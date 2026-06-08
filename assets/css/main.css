@@ -1,0 +1,351 @@
+@import "tailwindcss";
+
+/* El modo oscuro se activa con [data-theme="dark"] (lo pone @nuxtjs/color-mode) */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ============================================================
+   Hibi — Design tokens · plano y suave
+   Reglas: sin degradados, sin neón, SIN bordes, sin sombras
+   con glow. Las superficies se separan por bloques de color
+   plano. Todo muy redondeado.
+   ============================================================ */
+
+@theme {
+  --font-sans: "M PLUS Rounded 1c", "Quicksand", system-ui, -apple-system, sans-serif;
+
+  /* Marca — cielo suave (constante entre temas) */
+  --color-sky: #a6d6f0;
+  --color-sky-soft: #d9edfa;
+  --color-sky-deep: #5aa6d2;
+  --color-pink: #f7c8d5;
+  --color-pink-soft: #fbe6ec;
+  --color-pink-deep: #db8aa3;
+  --color-lavender: #dcd2f1;
+  --color-cream: #fdf3e3;
+  --color-yellow: #ffe6a8;
+  --color-mint: #c6e9d6;
+  --color-peach: #ffd8c4;
+
+  /* Estado (pastel, nunca saturado) */
+  --color-success: #93cfa6;
+  --color-warning: #f4cd95;
+  --color-danger: #efa4ac;
+  --color-info: #a6d6f0;
+
+  /* Radios — redondo y mullido */
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 30px;
+  --radius-2xl: 40px;
+  --radius-full: 9999px;
+
+  /* Movimiento. Curvas más fuertes que las defaults (Emil Kowalski / Vercel) */
+  --ease-soft: cubic-bezier(0.32, 0.72, 0.24, 1);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);          /* ease-out-quart fuerte */
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);      /* in-out fuerte */
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);       /* tipo iOS */
+  --ease-bounce: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+}
+
+/* Superficies/texto que leen var() de tema en runtime */
+@theme inline {
+  --color-base: var(--bg-base);
+  --color-card: var(--bg-card);
+  --color-muted: var(--bg-muted);
+  --color-elevated: var(--bg-elevated);
+  --color-inset: var(--bg-inset);
+
+  --color-fg: var(--text-primary);
+  --color-fg-muted: var(--text-muted);
+  --color-fg-subtle: var(--text-subtle);
+}
+
+/* ───────────── Tema claro · día despejado ───────────── */
+:root {
+  --bg-base: #e9f2fb; /* cielo pálido */
+  --bg-card: #ffffff; /* superficie limpia */
+  --bg-muted: #e4edf7; /* relleno de campos / pistas */
+  --bg-inset: #eff5fc; /* hueco sutil */
+  --bg-elevated: #ffffff;
+
+  --text-primary: #36465c; /* navy suave, no negro */
+  --text-muted: #6f8197;
+  --text-subtle: #a2b2c4;
+
+  --ring: #7fbfe6;
+  color-scheme: light;
+}
+
+/* ───────────── Tema oscuro · noche calmada y plana ───────────── */
+[data-theme="dark"] {
+  --bg-base: #151a28; /* navy profundo, plano */
+  --bg-card: #1e2435; /* un escalón más claro */
+  --bg-muted: #272e42; /* relleno de campos */
+  --bg-inset: #1a2030;
+  --bg-elevated: #232a3d;
+
+  --text-primary: #eceff6;
+  --text-muted: #a4adc2;
+  --text-subtle: #727b93;
+
+  --ring: #7fbfe6;
+  color-scheme: dark;
+}
+
+/* ============================================================
+   Base
+   ============================================================ */
+@layer base {
+  html,
+  body,
+  #__nuxt {
+    height: 100%;
+    width: 100%;
+  }
+  html,
+  body {
+    overflow: hidden;
+  }
+
+  body {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    transition: background-color var(--duration-base) var(--ease-soft),
+      color var(--duration-base) var(--ease-soft);
+  }
+
+  /* Vercel guideline: evita el delay de doble tap en móvil sobre elementos clicables */
+  button,
+  a,
+  [role='button'] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Vercel guideline: encabezados sin viudas */
+  :where(h1, h2, h3, h4) {
+    text-wrap: balance;
+  }
+  :where(p) {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background-color: var(--color-sky-soft);
+    color: var(--text-primary);
+  }
+
+  /* Único "contorno" permitido: foco por teclado (accesibilidad AA).
+     No aparece con el ratón. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+
+  :where(h1, h2, h3, h4) {
+    font-weight: 700;
+    letter-spacing: -0.015em;
+  }
+}
+
+/* ============================================================
+   Utilidades propias
+   ============================================================ */
+
+@utility scroll-area {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-muted) transparent;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+.scroll-area::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+.scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-area::-webkit-scrollbar-thumb {
+  background-color: var(--bg-muted);
+  border-radius: var(--radius-full);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Solo para lectores de pantalla (accesibilidad) */
+@utility sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skeleton: pulso suave (sin degradados) */
+@utility skeleton {
+  background-color: var(--bg-muted);
+  border-radius: var(--radius-md);
+  animation: hibi-pulse 1.6s var(--ease-soft) infinite;
+}
+@keyframes hibi-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* Decoraciones flotantes — desactivadas por guía UX
+   (continuous animations are distracting). Las clases existen para no
+   romper plantillas, pero NO animan. */
+.hibi-float,
+.hibi-float-slow {
+  animation: none;
+}
+
+/* ============================================================
+   Transición de vistas (login / registro / recuperar)
+   Deslizamiento + leve escala + fundido. Global para que aplique
+   con seguridad (sin depender de estilos scoped).
+   ============================================================ */
+.view-next-enter-active,
+.view-prev-enter-active {
+  transition: opacity 0.42s var(--ease-soft), transform 0.42s var(--ease-soft);
+}
+.view-next-leave-active,
+.view-prev-leave-active {
+  transition: opacity 0.26s var(--ease-soft), transform 0.26s var(--ease-soft);
+}
+.view-next-enter-from {
+  opacity: 0;
+  transform: translateX(64px) scale(0.96);
+}
+.view-next-leave-to {
+  opacity: 0;
+  transform: translateX(-64px) scale(0.96);
+}
+.view-prev-enter-from {
+  opacity: 0;
+  transform: translateX(-64px) scale(0.96);
+}
+.view-prev-leave-to {
+  opacity: 0;
+  transform: translateX(64px) scale(0.96);
+}
+
+/* Aparición de formularios inline: leve slide-down + fundido.
+   Sin scale/translate grande que mueva el layout adyacente. */
+.inline-form-enter-active {
+  transition: opacity 0.28s cubic-bezier(0.23, 1, 0.32, 1),
+              transform 0.28s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.inline-form-leave-active {
+  transition: opacity 0.18s ease-in, transform 0.18s ease-in;
+}
+.inline-form-enter-from,
+.inline-form-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* Stagger de campos dentro del formulario con animation-delay por índice */
+.staggered > * {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: hibi-field-in 0.36s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+.staggered > *:nth-child(1) { animation-delay: 60ms; }
+.staggered > *:nth-child(2) { animation-delay: 120ms; }
+.staggered > *:nth-child(3) { animation-delay: 180ms; }
+.staggered > *:nth-child(4) { animation-delay: 240ms; }
+.staggered > *:nth-child(5) { animation-delay: 300ms; }
+.staggered > *:nth-child(6) { animation-delay: 360ms; }
+.staggered > *:nth-child(7) { animation-delay: 420ms; }
+@keyframes hibi-field-in {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Fundido simple */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.24s var(--ease-soft);
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Cambio de vista: insinúa una hoja girando, pero MUY suave.
+   Movimientos pequeños, easing soft simétrico, ligero solape para fluir. */
+.swap-enter-active,
+.swap-leave-active {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 55%;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+.swap-enter-active {
+  transition:
+    transform 0.55s cubic-bezier(0.33, 1, 0.68, 1),
+    opacity 0.45s cubic-bezier(0.33, 1, 0.68, 1);
+  transition-delay: 0.22s, 0.22s; /* la nueva espera a que casi acabe de salir la vieja */
+}
+.swap-leave-active {
+  transition:
+    transform 0.42s cubic-bezier(0.33, 1, 0.68, 1),
+    opacity 0.34s cubic-bezier(0.33, 1, 0.68, 1);
+}
+.swap-enter-from {
+  opacity: 0;
+  transform: translateX(20px) rotateY(-6deg);
+}
+.swap-leave-to {
+  opacity: 0;
+  transform: translateX(-18px) rotateY(6deg);
+}
+
+/* Cambio de vista que SUBE muy suave. Para "Recupera tu acceso". */
+.lift-enter-active,
+.lift-leave-active {
+  position: absolute;
+  inset: 0;
+  will-change: transform, opacity;
+}
+.lift-enter-active {
+  transition:
+    transform 0.6s cubic-bezier(0.33, 1, 0.68, 1),
+    opacity 0.45s cubic-bezier(0.33, 1, 0.68, 1);
+  transition-delay: 0.24s, 0.24s;
+}
+.lift-leave-active {
+  transition:
+    transform 0.44s cubic-bezier(0.33, 1, 0.68, 1),
+    opacity 0.36s cubic-bezier(0.33, 1, 0.68, 1);
+}
+.lift-enter-from {
+  opacity: 0;
+  transform: translateY(36px);
+}
+.lift-leave-to {
+  opacity: 0;
+  transform: translateY(-18px);
+}
