@@ -1,0 +1,54 @@
+{
+  "app": {
+    "name": "Hibi",
+    "tagline": "día a día"
+  },
+  "nav": {
+    "today": "Hoy",
+    "calendar": "Calendario",
+    "tasks": "Tareas",
+    "notes": "Notas",
+    "reminders": "Recordatorios",
+    "habits": "Hábitos",
+    "goals": "Objetivos",
+    "journal": "Diario",
+    "focus": "Enfoque",
+    "routines": "Rutinas",
+    "lists": "Listas",
+    "finances": "Finanzas",
+    "spotify": "Spotify",
+    "settings": "Ajustes"
+  },
+  "theme": {
+    "label": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Auto"
+  },
+  "today": {
+    "greetingMorning": "Buenos días",
+    "greetingAfternoon": "Buenas tardes",
+    "greetingEvening": "Buenas noches",
+    "subtitle": "Esto es lo que tienes para hoy.",
+    "quickCapture": "Captura rápida — escribe una tarea, evento o nota…",
+    "widgets": {
+      "todayEvents": "Eventos de hoy",
+      "dueTasks": "Tareas vencidas",
+      "todayTasks": "Tareas de hoy",
+      "reminders": "Recordatorios próximos",
+      "habits": "Hábitos de hoy",
+      "mood": "Ánimo",
+      "streak": "Racha"
+    }
+  },
+  "common": {
+    "soon": "En construcción",
+    "soonDesc": "Este módulo estará disponible muy pronto.",
+    "empty": "Nada por aquí todavía",
+    "search": "Buscar",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "add": "Añadir",
+    "loading": "Cargando…"
+  }
+}
