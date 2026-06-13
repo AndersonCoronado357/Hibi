@@ -1,0 +1,54 @@
+{
+  "app": {
+    "name": "Hibi",
+    "tagline": "day by day"
+  },
+  "nav": {
+    "today": "Today",
+    "calendar": "Calendar",
+    "tasks": "Tasks",
+    "notes": "Notes",
+    "reminders": "Reminders",
+    "habits": "Habits",
+    "goals": "Goals",
+    "journal": "Journal",
+    "focus": "Focus",
+    "routines": "Routines",
+    "lists": "Lists",
+    "finances": "Finances",
+    "spotify": "Spotify",
+    "settings": "Settings"
+  },
+  "theme": {
+    "label": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "Auto"
+  },
+  "today": {
+    "greetingMorning": "Good morning",
+    "greetingAfternoon": "Good afternoon",
+    "greetingEvening": "Good evening",
+    "subtitle": "Here's what you have for today.",
+    "quickCapture": "Quick capture — type a task, event or note…",
+    "widgets": {
+      "todayEvents": "Today's events",
+      "dueTasks": "Overdue tasks",
+      "todayTasks": "Today's tasks",
+      "reminders": "Upcoming reminders",
+      "habits": "Today's habits",
+      "mood": "Mood",
+      "streak": "Streak"
+    }
+  },
+  "common": {
+    "soon": "Coming soon",
+    "soonDesc": "This module will be available very soon.",
+    "empty": "Nothing here yet",
+    "search": "Search",
+    "save": "Save",
+    "cancel": "Cancel",
+    "add": "Add",
+    "loading": "Loading…"
+  }
+}
