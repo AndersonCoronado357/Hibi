@@ -20,7 +20,7 @@ const currentTitle = computed(() => {
 </script>
 
 <template>
-  <header class="shrink-0 h-16 flex items-center gap-2 px-3 md:px-4 z-20 bg-card">
+  <header class="relative shrink-0 h-16 flex items-center gap-2 px-3 md:px-4 z-30 bg-card w-full">
     <NuxtLink to="/inicio" class="shrink-0">
       <AppLogo :show-text="false" />
     </NuxtLink>

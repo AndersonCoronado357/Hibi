@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Plus, ListChecks, ShoppingCart, Film, BookOpen, MapPin, Check, Star } from '@lucide/vue'
+import { Plus, ListChecks, ShoppingCart, Film, BookOpen, MapPin, Check, Star, X, Trash2, Tag, FileText, ListPlus } from '@lucide/vue'
 
 useHead({ title: 'Hibi — Listas' })
 
@@ -31,75 +31,128 @@ const selected = computed(() => listsData.value.find(l => l.id === selectedId.va
 const total = computed(() => selected.value.items.length)
 const done = computed(() => selected.value.items.filter(i => i.done).length)
 
-const creating = ref(false)
-const newName = ref(''); const newType = ref<'shopping'|'movies'|'books'|'places'>('shopping')
-const TYPE_META: Record<string, { tone: string; icon: any }> = {
-  shopping: { tone: 'bg-mint text-[#34936a]', icon: ShoppingCart },
-  movies: { tone: 'bg-lavender text-[#7a63c0]', icon: Film },
-  books: { tone: 'bg-pink-soft text-pink-deep', icon: BookOpen },
-  places: { tone: 'bg-peach text-[#c5733f]', icon: MapPin },
+const view = ref<'list' | 'create'>('list')
+const newName = ref('')
+const newType = ref<'shopping'|'movies'|'books'|'places'>('shopping')
+const newInitialItems = ref<string[]>([])
+const newInitialTitle = ref('')
+const newNotes = ref('')
+const TYPE_META: Record<string, { tone: string; icon: any; label: string }> = {
+  shopping: { tone: 'bg-mint text-[#34936a]', icon: ShoppingCart, label: 'Compra' },
+  movies: { tone: 'bg-lavender text-[#7a63c0]', icon: Film, label: 'Pelis / series' },
+  books: { tone: 'bg-pink-soft text-pink-deep', icon: BookOpen, label: 'Libros' },
+  places: { tone: 'bg-peach text-[#c5733f]', icon: MapPin, label: 'Sitios' },
 }
+const TYPE_OPTS = Object.entries(TYPE_META).map(([k, v]) => ({ value: k, label: v.label }))
 let nextId = 100
-function startCreate() { creating.value = true; nextTick(() => document.getElementById('new-list-name')?.focus()) }
-function cancelCreate() { creating.value = false; newName.value = '' }
+let nextItemId = 500
+function openCreate() {
+  newName.value = ''; newType.value = 'shopping'
+  newInitialItems.value = []; newInitialTitle.value = ''; newNotes.value = ''
+  view.value = 'create'
+}
+function cancelCreate() { view.value = 'list' }
+function addInitial() {
+  const t = newInitialTitle.value.trim(); if (!t) return
+  newInitialItems.value.push(t)
+  newInitialTitle.value = ''
+}
+function removeInitial(i: number) { newInitialItems.value.splice(i, 1) }
 function saveList() {
   const n = newName.value.trim(); if (!n) return
   const id = 'l' + (nextId++)
   const meta = TYPE_META[newType.value]!
-  listsData.value.unshift({ id, name: n, type: newType.value, tone: meta.tone, icon: meta.icon, items: [] })
+  const items: AnyItem[] = newInitialItems.value.map(t => ({ id: 'it' + (nextItemId++), title: t }))
+  listsData.value.unshift({ id, name: n, type: newType.value, tone: meta.tone, icon: meta.icon, items })
   selectedId.value = id
-  cancelCreate()
+  view.value = 'list'
 }
 
-// Form rápido para item
 const newItemTitle = ref('')
-let nextItemId = 500
+const itemsListRef = ref<HTMLElement | null>(null)
 function addItem() {
   const t = newItemTitle.value.trim(); if (!t) return
   selected.value.items.push({ id: 'it' + (nextItemId++), title: t })
   newItemTitle.value = ''
+  nextTick(() => {
+    if (itemsListRef.value) itemsListRef.value.scrollTop = itemsListRef.value.scrollHeight
+  })
 }
+
 </script>
 
 <template>
-  <div class="h-full flex flex-col gap-3 px-4 md:px-7 py-5">
-    <AppCard class="shrink-0 !p-3 md:!p-4 flex items-center justify-between gap-3">
-      <div class="flex items-center gap-2.5">
-        <span class="grid place-items-center size-10 rounded-[13px] bg-sky-soft text-sky-deep" aria-hidden="true"><ListChecks class="size-5" :stroke-width="1.9" /></span>
-        <div>
-          <h1 class="text-[20px] md:text-[22px] font-extrabold text-fg leading-tight">Listas</h1>
-          <p class="text-[12.5px] text-fg-muted leading-tight">{{ lists.length }} listas activas</p>
-        </div>
+  <!-- VISTA DE CREACIÓN -->
+  <AppCreateView v-if="view === 'create'"
+    title="Nueva lista" subtitle="Para no dejarte nada"
+    :disabled="!newName.trim()"
+    @close="cancelCreate" @save="saveList">
+    <div class="flex flex-col gap-2">
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">Nombre</label>
+      <input v-model="newName" type="text" placeholder="Compra semanal, viaje a Japón…" autofocus
+        class="w-full h-14 rounded-[14px] bg-card focus:bg-muted px-4 text-[18px] font-semibold text-fg outline-none" />
+    </div>
+    <div class="flex flex-col gap-2">
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">Tipo</label>
+      <div class="flex items-center gap-2 flex-wrap">
+        <button v-for="(meta, key) in TYPE_META" :key="key" type="button"
+          class="hibi-chip" :class="[meta.tone, newType === key ? 'is-active' : '']"
+          @click="newType = key as any">
+          <component :is="meta.icon" class="size-[18px]" :stroke-width="1.9" />
+          {{ meta.label }}
+        </button>
       </div>
-      <AppButton variant="primary" size="sm" @click="startCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>Nueva</AppButton>
-    </AppCard>
+    </div>
 
-    <div class="flex-1 min-h-0 flex flex-col md:flex-row gap-3 overflow-y-auto md:overflow-hidden scroll-area">
+    <div class="flex flex-col gap-2">
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">Ítems iniciales</label>
+      <!-- INPUT ARRIBA: añadir nuevo ítem -->
+      <div class="flex items-center gap-2">
+        <input v-model="newInitialTitle" type="text" placeholder="Pan, leche, manzanas…"
+          class="flex-1 h-12 rounded-[12px] bg-card focus:bg-inset px-3 text-[14.5px] text-fg outline-none"
+          @keydown.enter.prevent="addInitial" />
+        <button type="button" class="inline-flex items-center gap-1 h-12 px-4 rounded-[12px] bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white font-bold text-[13.5px] transition-[background-color,color]" @click="addInitial">
+          <Plus class="size-[15px]" :stroke-width="2.3" />Añadir
+        </button>
+      </div>
+      <!-- LISTA DEBAJO: ítems agregados -->
+      <ul v-if="newInitialItems.length" class="flex flex-col gap-1.5 mt-1">
+        <li v-for="(t, i) in newInitialItems" :key="i"
+          class="flex items-center gap-3 bg-card rounded-[12px] px-3 py-2.5">
+          <span class="grid place-items-center size-7 rounded-full bg-muted text-fg-muted text-[12px] font-bold tabular-nums">{{ i + 1 }}</span>
+          <p class="flex-1 text-[14px] font-semibold text-fg">{{ t }}</p>
+          <button type="button" class="grid place-items-center size-8 rounded-[10px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft" aria-label="Eliminar" @click="removeInitial(i)"><X class="size-[15px]" :stroke-width="2" /></button>
+        </li>
+      </ul>
+    </div>
+  </AppCreateView>
+
+  <div v-else class="h-full w-full flex flex-col gap-3 px-4 md:px-7 py-5 overflow-hidden relative">
+    <!-- Decoración cute -->
+    <HibiCloud :size="150" float :duration="8" class="hidden md:block absolute -top-6 -right-8 text-sky-soft opacity-15 pointer-events-none z-40" aria-hidden="true" />
+    <HibiCloud :size="90"  float :duration="10" :delay="1.2" class="hidden md:block absolute bottom-6 -left-6 text-pink-soft opacity-15 pointer-events-none z-40" aria-hidden="true" />
+    <HibiSparkle :size="18" twinkle :duration="2.4" class="hidden md:block absolute top-[14%] left-[10%] text-fg-subtle opacity-25 pointer-events-none z-40" />
+    <HibiSparkle :size="14" twinkle :duration="3" :delay="0.8" class="hidden md:block absolute top-[8%] right-[26%] text-fg-subtle opacity-25 pointer-events-none z-40" />
+    <HibiHeart :size="16" beat :duration="2.6" class="hidden md:block absolute bottom-[20%] right-[8%] text-fg-subtle opacity-25 pointer-events-none z-40" />
+
+    <div class="relative z-10">
+      <PageHero :icon="ListChecks" tone="sky" title="Listas" :subtitle="`${listsData.length} listas activas`">
+        <template #actions>
+          <AppButton variant="primary" size="sm" @click="openCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>Nueva</AppButton>
+        </template>
+      </PageHero>
+    </div>
+
+    <div class="relative z-10 flex-1 min-h-0 flex flex-col md:flex-row gap-3 overflow-hidden">
       <AppCard class="md:w-[260px] shrink-0 flex flex-col" :padded="false">
         <h2 class="px-4 pt-4 pb-2 text-[13px] font-bold text-fg-muted">Tus listas</h2>
-        <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-2 pb-3 flex flex-col gap-1">
-          <Transition name="inline-form">
-            <form v-if="creating" aria-label="Nueva lista" class="staggered bg-muted rounded-[12px] p-3 mb-1 mx-1 flex flex-col gap-2" @submit.prevent="saveList" @keydown.escape="cancelCreate">
-              <label for="new-list-name" class="sr-only">Nombre</label>
-              <input id="new-list-name" v-model="newName" type="text" placeholder="Nombre de la lista" class="w-full h-9 rounded-[10px] bg-card focus:bg-inset px-3 text-[14px] font-semibold text-fg outline-none" />
-              <div class="flex items-center gap-1.5">
-                <button v-for="(meta, key) in TYPE_META" :key="key" type="button" :aria-label="key"
-                  class="grid place-items-center size-9 rounded-[10px] transition-[outline-width]"
-                  :class="[meta.tone, newType === key ? 'outline outline-2 outline-offset-2 outline-sky-deep' : '']"
-                  @click="newType = key as any"><component :is="meta.icon" class="size-[15px]" :stroke-width="1.9" /></button>
-              </div>
-              <div class="flex items-center justify-end gap-2">
-                <button type="button" class="h-8 px-3 rounded-[8px] text-[12.5px] font-semibold text-fg-muted hover:bg-card" @click="cancelCreate">Cancelar</button>
-                <button type="submit" :disabled="!newName.trim()" class="h-8 px-3 rounded-[8px] bg-sky text-[#1f4661] text-[12.5px] font-bold disabled:opacity-50">Crear</button>
-              </div>
-            </form>
-          </Transition>
+        <div class="hibi-anim-slide-right flex-1 min-h-0 overflow-y-auto scroll-area px-2 pb-3 flex flex-col gap-1">
           <button v-for="l in listsData" :key="l.id" type="button"
             class="text-left p-3 rounded-[12px] flex items-center gap-3 transition-[background-color]"
             :class="selectedId === l.id ? 'bg-sky-soft' : 'hover:bg-muted'"
             @click="selectedId = l.id"
           >
-            <span class="grid place-items-center size-10 rounded-[12px]" :class="l.tone" aria-hidden="true"><component :is="l.icon" class="size-[18px]" :stroke-width="1.9" /></span>
+            <HibiCloudIcon :size="52" :icon="l.icon" :icon-size="18" :cloud-color="l.tone.split(' ')[0]" :icon-color="l.tone.split(' ')[1]" :icon-stroke="1.9" class="shrink-0" />
             <div class="flex-1 min-w-0">
               <p class="text-[14px] font-bold text-fg truncate">{{ l.name }}</p>
               <p class="text-[12px] text-fg-muted">{{ l.items.length }} ítems</p>
@@ -123,15 +176,25 @@ function addItem() {
             <button type="submit" :disabled="!newItemTitle.trim()" class="absolute right-1 top-1/2 -translate-y-1/2 grid place-items-center size-8 rounded-[9px] bg-sky text-[#1f4661] disabled:opacity-40 hover:brightness-[0.96] transition-[filter]" aria-label="Añadir"><Plus class="size-[16px]" :stroke-width="2.3" /></button>
           </form>
         </header>
-        <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-3 pb-3">
-          <ul class="flex flex-col gap-1">
-            <li v-for="i in selected.items" :key="i.id" class="flex items-center gap-3 p-3 rounded-[12px] hover:bg-muted transition-[background-color]">
-              <button type="button"
-                class="grid place-items-center size-6 rounded-md transition-[background-color] shrink-0"
-                :class="i.done ? 'bg-mint text-[#34936a]' : 'bg-muted text-fg-subtle hover:bg-sky-soft hover:text-sky-deep'"
-                :aria-label="i.done ? 'Desmarcar' : 'Marcar'"
-              ><Check v-if="i.done" class="size-4" :stroke-width="2.4" /></button>
-              <p class="flex-1 text-[14px] font-semibold text-fg" :class="{ 'line-through opacity-50': i.done }">{{ i.title }}</p>
+        <div ref="itemsListRef" class="flex-1 min-h-0 overflow-y-auto scroll-area px-3 pb-3">
+          <ul class="hibi-anim-fade-up flex flex-col gap-1">
+            <li v-for="i in selected.items" :key="i.id"
+              class="flex items-center gap-3 p-3 rounded-[12px] hover:bg-muted cursor-pointer transition-[background-color,opacity]"
+              :class="i.done ? 'opacity-60' : ''"
+              @click="i.done = !i.done">
+              <span class="shrink-0 relative inline-block" :style="{ width: '38px', height: '26px' }">
+                <Transition name="hibi-check" mode="out-in">
+                  <HibiCloudIcon
+                    :key="i.done ? 'on' : 'off'"
+                    :size="38"
+                    :icon="Check"
+                    :icon-size="14"
+                    :cloud-color="i.done ? 'text-mint' : 'text-card'"
+                    :icon-color="i.done ? 'text-[#34936a]' : 'text-transparent'"
+                    :icon-stroke="2.4" />
+                </Transition>
+              </span>
+              <p class="flex-1 text-[14px] font-semibold text-fg" :class="{ 'line-through': i.done }">{{ i.title }}</p>
               <span v-if="(i as ShoppingItem).qty" class="text-[12px] text-fg-muted">{{ (i as ShoppingItem).qty }}</span>
               <span v-if="(i as MovieItem).year" class="text-[12px] text-fg-muted">{{ (i as MovieItem).year }}</span>
               <span v-if="(i as BookItem).author" class="text-[12px] text-fg-muted">{{ (i as BookItem).author }}</span>
