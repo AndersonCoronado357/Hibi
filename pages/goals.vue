@@ -1,101 +1,210 @@
 <script setup lang="ts">
-import { Plus, Target, Calendar } from '@lucide/vue'
+import { Plus, Target, Calendar, TrendingUp, Minus, Check, Hash, Palette, FileText, Folder } from '@lucide/vue'
 
 useHead({ title: 'Hibi — Objetivos' })
 
-interface Goal { id: string; title: string; target: string; progress: number; tone: string; ringColor: string; projects: string[] }
-const goals: Goal[] = [
-  { id: 'g1', title: 'Leer 12 libros en el año', target: 'Dic 2026', progress: 58, tone: 'bg-sky-soft text-sky-deep', ringColor: 'var(--color-sky-deep)', projects: ['Lecturas'] },
-  { id: 'g2', title: 'Aprender japonés básico', target: 'Sep 2026', progress: 32, tone: 'bg-pink-soft text-pink-deep', ringColor: 'var(--color-pink-deep)', projects: ['Japonés', 'Personal'] },
-  { id: 'g3', title: 'Correr una media maratón', target: 'Oct 2026', progress: 71, tone: 'bg-mint text-[#34936a]', ringColor: '#34936a', projects: ['Salud'] },
-  { id: 'g4', title: 'Ahorrar 3000€', target: 'Dic 2026', progress: 45, tone: 'bg-peach text-[#c5733f]', ringColor: '#c5733f', projects: ['Finanzas'] },
-  { id: 'g5', title: 'Acabar curso de UX', target: 'Ago 2026', progress: 90, tone: 'bg-lavender text-[#7a63c0]', ringColor: '#7a63c0', projects: ['Trabajo'] },
-  { id: 'g6', title: 'Visitar 5 países', target: 'Dic 2026', progress: 20, tone: 'bg-sky-soft text-sky-deep', ringColor: 'var(--color-sky-deep)', projects: ['Viajes'] },
-]
-const goalsData = ref(goals)
-function ringDash(p: number, r = 40) {
-  const c = 2 * Math.PI * r
-  return { dash: (p / 100) * c, total: c }
+interface Milestone { label: string; at: number; done: boolean }
+interface Goal {
+  id: string; title: string; target: string; progress: number
+  color: string; ringColor: string
+  unit: string; current: number; total: number
+  milestones: Milestone[]
+  area?: string
+}
+const goalsData = ref<Goal[]>([
+  { id: 'g1', title: 'Leer 12 libros en el año', target: 'Dic 2026', progress: 58, color: 'bg-sky-soft text-sky-deep', ringColor: 'var(--color-sky-deep)', area: 'Lecturas', unit: 'libros', current: 7, total: 12, milestones: [
+    { label: '1', at: 8, done: true }, { label: '3', at: 25, done: true }, { label: '6', at: 50, done: true }, { label: '9', at: 75, done: false }, { label: '12', at: 100, done: false },
+  ]},
+  { id: 'g2', title: 'Aprender japonés básico', target: 'Sep 2026', progress: 32, color: 'bg-pink-soft text-pink-deep', ringColor: 'var(--color-pink-deep)', area: 'Estudio', unit: 'lecciones', current: 48, total: 150, milestones: [
+    { label: 'Hiragana', at: 20, done: true }, { label: 'Katakana', at: 40, done: false }, { label: 'Kanji N5', at: 70, done: false }, { label: 'N5', at: 100, done: false },
+  ]},
+  { id: 'g3', title: 'Correr una media maratón', target: 'Oct 2026', progress: 71, color: 'bg-mint text-[#34936a]', ringColor: '#34936a', area: 'Salud', unit: 'km', current: 15, total: 21, milestones: [
+    { label: '5 km', at: 24, done: true }, { label: '10 km', at: 48, done: true }, { label: '15 km', at: 71, done: true }, { label: '21 km', at: 100, done: false },
+  ]},
+  { id: 'g4', title: 'Ahorrar 12.000.000 COP', target: 'Dic 2026', progress: 45, color: 'bg-peach text-[#c5733f]', ringColor: '#c5733f', area: 'Finanzas', unit: 'COP', current: 5400000, total: 12000000, milestones: [
+    { label: '2M', at: 17, done: true }, { label: '4M', at: 33, done: true }, { label: '8M', at: 67, done: false }, { label: '12M', at: 100, done: false },
+  ]},
+])
+
+// Drag de la barra para aportar
+const dragGoalId = ref<string | null>(null)
+function onBarPointerDown(e: PointerEvent, g: Goal) {
+  dragGoalId.value = g.id
+  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  updateFromPointer(e, g)
+}
+function onBarPointerMove(e: PointerEvent, g: Goal) {
+  if (dragGoalId.value !== g.id) return
+  updateFromPointer(e, g)
+}
+function onBarPointerUp(e: PointerEvent) {
+  dragGoalId.value = null
+  ;(e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId)
+}
+function updateFromPointer(e: PointerEvent, g: Goal) {
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  const pct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100))
+  // Calcular CURRENT a partir del total (unidades enteras), luego progress = current/total
+  // Así un 97% del slider con 12 libros se redondea a 11/12 (91.7%), no a 12/12.
+  g.current = Math.round((pct / 100) * g.total)
+  g.progress = Math.round((g.current / g.total) * 100)
+  g.milestones.forEach(m => { m.done = g.progress >= m.at })
+}
+function fmtCurrent(g: Goal) {
+  if (g.unit === 'COP') return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(g.current)
+  return `${g.current} ${g.unit}`
+}
+function fmtTotal(g: Goal) {
+  if (g.unit === 'COP') return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(g.total)
+  return `${g.total} ${g.unit}`
 }
 
-const creating = ref(false)
-const newTitle = ref(''); const newTarget = ref(''); const newTone = ref(0)
 const TONES = [
-  { tone: 'bg-sky-soft text-sky-deep', ringColor: 'var(--color-sky-deep)' },
-  { tone: 'bg-pink-soft text-pink-deep', ringColor: 'var(--color-pink-deep)' },
-  { tone: 'bg-mint text-[#34936a]', ringColor: '#34936a' },
-  { tone: 'bg-peach text-[#c5733f]', ringColor: '#c5733f' },
-  { tone: 'bg-lavender text-[#7a63c0]', ringColor: '#7a63c0' },
+  { value: '0', label: 'Cielo', tone: 'bg-sky-soft text-sky-deep', ringColor: 'var(--color-sky-deep)', swatch: 'bg-sky-soft' },
+  { value: '1', label: 'Rosa', tone: 'bg-pink-soft text-pink-deep', ringColor: 'var(--color-pink-deep)', swatch: 'bg-pink-soft' },
+  { value: '2', label: 'Menta', tone: 'bg-mint text-[#34936a]', ringColor: '#34936a', swatch: 'bg-mint' },
+  { value: '3', label: 'Melocotón', tone: 'bg-peach text-[#c5733f]', ringColor: '#c5733f', swatch: 'bg-peach' },
+  { value: '4', label: 'Lavanda', tone: 'bg-lavender text-[#7a63c0]', ringColor: '#7a63c0', swatch: 'bg-lavender' },
 ]
+const TONE_OPTS = TONES.map(t => ({ value: t.value, label: t.label }))
+
+const view = ref<'list' | 'create'>('list')
+const newTitle = ref('')
+const newTarget = ref('')
+const newToneStr = ref('0')
+const newGoalColor = ref('#5aa6d2')
+const newArea = ref('')
+const newUnit = ref('')
+const newTotalStr = ref('100')
+const newNotes = ref('')
 let nextId = 100
-function startCreate() { creating.value = true; nextTick(() => document.getElementById('new-goal-title')?.focus()) }
-function cancelCreate() { creating.value = false; newTitle.value = ''; newTarget.value = '' }
+function openCreate() {
+  newTitle.value = ''; newTarget.value = ''; newToneStr.value = '0'
+  newGoalColor.value = '#5aa6d2'
+  newArea.value = ''; newUnit.value = ''; newTotalStr.value = '100'; newNotes.value = ''
+  view.value = 'create'
+}
+function cancelCreate() { view.value = 'list' }
+
 function saveGoal() {
   const t = newTitle.value.trim(); if (!t) return
-  const c = TONES[newTone.value]!
-  goalsData.value.unshift({ id: 'g' + (nextId++), title: t, target: newTarget.value || 'Sin fecha', progress: 0, tone: c.tone, ringColor: c.ringColor, projects: [] })
-  cancelCreate()
+  goalsData.value.unshift({
+    id: 'g' + (nextId++), title: t, target: newTarget.value || 'Sin fecha',
+    progress: 0, color: 'bg-sky-soft text-sky-deep', ringColor: newGoalColor.value,
+    area: newArea.value || undefined,
+    unit: newUnit.value, current: 0, total: Number(newTotalStr.value) || 100, milestones: [],
+  })
+  view.value = 'list'
 }
 </script>
 
 <template>
-  <div class="h-full flex flex-col gap-3 px-4 md:px-7 py-5">
-    <AppCard class="shrink-0 !p-3 md:!p-4 flex items-center justify-between gap-3">
-      <div class="flex items-center gap-2.5">
-        <span class="grid place-items-center size-10 rounded-[13px] bg-lavender text-[#7a63c0]" aria-hidden="true"><Target class="size-5" :stroke-width="1.9" /></span>
-        <div>
-          <h1 class="text-[20px] md:text-[22px] font-extrabold text-fg leading-tight">Objetivos</h1>
-          <p class="text-[12.5px] text-fg-muted leading-tight">{{ goalsData.length }} activos, progreso medio {{ goalsData.length ? Math.round(goalsData.reduce((a,g)=>a+g.progress,0)/goalsData.length) : 0 }}%</p>
-        </div>
+  <!-- VISTA DE CREACIÓN -->
+  <AppCreateView v-if="view === 'create'"
+    title="Nuevo objetivo"
+    subtitle="Define a dónde quieres llegar"
+    :disabled="!newTitle.trim()"
+    @close="cancelCreate" @save="saveGoal">
+    <div class="flex flex-col gap-2">
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">Título</label>
+      <input v-model="newTitle" type="text" placeholder="¿Qué quieres conseguir?" autofocus
+        class="w-full h-14 rounded-[14px] bg-card focus:bg-muted px-4 text-[18px] font-semibold text-fg outline-none placeholder:text-fg-subtle" />
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="flex flex-col gap-2">
+        <label class="text-[12.5px] font-bold text-fg-muted px-1">Fecha objetivo</label>
+        <AppDate v-model="newTarget" placeholder="Selecciona fecha" />
       </div>
-      <AppButton variant="primary" size="sm" @click="startCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>Nuevo</AppButton>
-    </AppCard>
+      <div class="flex flex-col gap-2">
+        <label class="text-[12.5px] font-bold text-fg-muted px-1">Área</label>
+        <input v-model="newArea" type="text" placeholder="Salud, Estudio, Finanzas…"
+          class="w-full h-12 rounded-[12px] bg-card focus:bg-inset px-3 text-[14.5px] text-fg outline-none" />
+      </div>
+      <div class="flex flex-col gap-2">
+        <label class="text-[12.5px] font-bold text-fg-muted px-1">Meta total</label>
+        <input v-model="newTotalStr" type="number" min="1" placeholder="100"
+          class="w-full h-12 rounded-[12px] bg-card focus:bg-inset px-3 text-[14.5px] text-fg outline-none tabular-nums" />
+      </div>
+      <div class="flex flex-col gap-2">
+        <label class="text-[12.5px] font-bold text-fg-muted px-1">Unidad</label>
+        <input v-model="newUnit" type="text" placeholder="libros, km, COP, lecciones…"
+          class="w-full h-12 rounded-[12px] bg-card focus:bg-inset px-3 text-[14.5px] text-fg outline-none" />
+      </div>
+    </div>
+    <div class="flex flex-col gap-2 flex-1 min-h-0">
+      <label class="text-[12.5px] font-bold text-fg-muted px-1 shrink-0">Color</label>
+      <div class="flex-1 min-h-0">
+        <AppColorPicker v-model="newGoalColor" format="hex" />
+      </div>
+    </div>
+  </AppCreateView>
 
-    <div class="flex-1 min-h-0 overflow-y-auto scroll-area flex flex-col gap-3">
-      <Transition name="inline-form">
-        <AppCard v-if="creating" class="!p-4">
-          <form aria-label="Nuevo objetivo" class="staggered flex flex-col gap-2.5" @submit.prevent="saveGoal" @keydown.escape="cancelCreate">
-            <label for="new-goal-title" class="sr-only">Título</label>
-            <input id="new-goal-title" v-model="newTitle" type="text" placeholder="¿Qué objetivo te marcas?" class="w-full h-10 rounded-[10px] bg-muted focus:bg-inset px-3 text-[14.5px] font-semibold text-fg outline-none" />
-            <div class="grid grid-cols-2 gap-2">
-              <input v-model="newTarget" type="text" placeholder="Para cuándo (ej. Dic 2026)" class="h-10 rounded-[10px] bg-muted focus:bg-inset px-3 text-[13px] text-fg outline-none" />
-              <div class="flex items-center gap-1.5 px-1">
-                <span class="text-[12px] text-fg-muted shrink-0">Color:</span>
-                <button v-for="(c, i) in TONES" :key="i" type="button" :aria-label="`Color ${i+1}`"
-                  class="size-6 rounded-full transition-[outline-width]" :class="[c.tone.split(' ')[0], newTone === i ? 'outline outline-2 outline-offset-2 outline-sky-deep' : '']"
-                  @click="newTone = i"></button>
-              </div>
-            </div>
-            <div class="flex items-center justify-end gap-2">
-              <button type="button" class="h-9 px-3.5 rounded-[10px] text-[13px] font-semibold text-fg-muted hover:bg-muted" @click="cancelCreate">Cancelar</button>
-              <button type="submit" :disabled="!newTitle.trim()" class="h-9 px-4 rounded-[10px] bg-sky text-[#1f4661] text-[13px] font-bold disabled:opacity-50">Crear</button>
-            </div>
-          </form>
-        </AppCard>
-      </Transition>
-      <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 auto-rows-fr">
-        <AppCard v-for="g in goalsData" :key="g.id" interactive class="flex gap-4 !p-5">
-          <div class="shrink-0 relative">
-            <svg width="96" height="96" viewBox="0 0 100 100" aria-label="Progreso">
-              <circle cx="50" cy="50" r="40" fill="none" stroke="var(--bg-muted)" stroke-width="10" />
-              <circle cx="50" cy="50" r="40" fill="none"
-                :stroke="g.ringColor" stroke-width="10" stroke-linecap="round"
-                :stroke-dasharray="`${ringDash(g.progress).dash} ${ringDash(g.progress).total}`"
-                transform="rotate(-90 50 50)" />
-            </svg>
-            <div class="absolute inset-0 grid place-items-center">
-              <p class="text-[20px] font-extrabold text-fg leading-none">{{ g.progress }}<span class="text-[11px] text-fg-muted">%</span></p>
+  <!-- VISTA NORMAL -->
+  <div v-else class="h-full w-full flex flex-col gap-3 px-4 md:px-7 py-5 overflow-hidden relative">
+    <!-- Decoración cute -->
+    <HibiCloud :size="150" float :duration="8" class="hidden md:block absolute -top-6 -right-8 text-lavender opacity-15 pointer-events-none z-40" aria-hidden="true" />
+    <HibiCloud :size="90"  float :duration="10" :delay="1.2" class="hidden md:block absolute bottom-6 -left-6 text-sky-soft opacity-15 pointer-events-none z-40" aria-hidden="true" />
+    <HibiSparkle :size="18" twinkle :duration="2.4" class="hidden md:block absolute top-[14%] left-[10%] text-fg-subtle opacity-25 pointer-events-none z-40" />
+    <HibiSparkle :size="14" twinkle :duration="3" :delay="0.8" class="hidden md:block absolute top-[8%] right-[28%] text-fg-subtle opacity-25 pointer-events-none z-40" />
+    <HibiHeart :size="16" beat :duration="2.6" class="hidden md:block absolute bottom-[20%] right-[8%] text-fg-subtle opacity-25 pointer-events-none z-40" />
+
+    <div class="relative z-10">
+      <PageHero :icon="Target" tone="lavender" title="Objetivos" :subtitle="`${goalsData.length} activos · avance medio ${goalsData.length ? Math.round(goalsData.reduce((a,g)=>a+g.progress,0)/goalsData.length) : 0}%`">
+        <template #actions>
+          <AppButton variant="primary" size="sm" @click="openCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>Nuevo</AppButton>
+        </template>
+      </PageHero>
+    </div>
+
+    <div class="hibi-anim-pop relative z-10 flex-1 min-h-0 overflow-y-auto scroll-area flex flex-col gap-3">
+      <AppCard v-for="g in goalsData" :key="g.id" class="!p-5">
+        <div class="flex items-start gap-3 mb-4">
+          <HibiCloudIcon :size="62" :icon="Target" :icon-size="22" :cloud-color="g.color.split(' ')[0]" :icon-color="g.color.split(' ')[1]" :icon-stroke="1.9" class="shrink-0" />
+          <div class="flex-1 min-w-0">
+            <h3 class="text-[17px] font-extrabold text-fg leading-tight">{{ g.title }}</h3>
+            <div class="flex items-center gap-3 mt-1 text-[12.5px] text-fg-muted flex-wrap">
+              <span class="inline-flex items-center gap-1"><Calendar class="size-3" :stroke-width="2" aria-hidden="true" />{{ g.target }}</span>
+              <span v-if="g.area" class="text-[11px] font-bold px-2 h-6 grid place-items-center rounded-full" :class="g.color">{{ g.area }}</span>
             </div>
           </div>
-          <div class="flex-1 min-w-0 flex flex-col">
-            <h3 class="text-[15.5px] font-extrabold text-fg leading-snug">{{ g.title }}</h3>
-            <p class="text-[12.5px] text-fg-muted inline-flex items-center gap-1 mt-1"><Calendar class="size-3" :stroke-width="2" aria-hidden="true" />{{ g.target }}</p>
-            <div class="flex flex-wrap gap-1 mt-auto pt-2">
-              <span v-for="p in g.projects" :key="p" class="text-[11px] font-bold px-2 h-6 grid place-items-center rounded-full" :class="g.tone">{{ p }}</span>
-            </div>
+          <div class="text-right shrink-0">
+            <p class="text-[26px] font-extrabold leading-none tabular-nums" :style="{ color: g.ringColor }">{{ g.progress }}<span class="text-[14px] text-fg-muted">%</span></p>
+            <p class="text-[11px] text-fg-muted tabular-nums">{{ fmtCurrent(g) }} / {{ fmtTotal(g) }}</p>
           </div>
-        </AppCard>
-      </div>
+        </div>
+
+        <!-- Barra de progreso MOVIBLE: arrastra para aportar progreso -->
+        <div class="relative h-6 flex items-center cursor-grab active:cursor-grabbing touch-none select-none"
+          @pointerdown="onBarPointerDown($event, g)"
+          @pointermove="onBarPointerMove($event, g)"
+          @pointerup="onBarPointerUp"
+          @pointercancel="onBarPointerUp">
+          <div class="relative h-3 w-full rounded-full bg-muted overflow-visible">
+            <div class="absolute inset-y-0 left-0 rounded-full transition-[width] duration-150"
+              :style="{ width: g.progress + '%', background: g.ringColor }"></div>
+            <!-- Knob -->
+            <span class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 size-6 rounded-full bg-card grid place-items-center transition-[left] duration-150"
+              :style="{ left: g.progress + '%', boxShadow: `0 2px 8px ${g.ringColor}66, inset 0 0 0 3px ${g.ringColor}` }"
+              aria-hidden="true">
+              <span class="size-1.5 rounded-full" :style="{ background: g.ringColor }"></span>
+            </span>
+            <!-- Hitos -->
+            <span v-for="(m, i) in g.milestones" :key="i"
+              class="absolute top-1/2 -translate-y-1/2 size-3 rounded-full transition-[background-color]"
+              :class="m.done ? '' : 'bg-card'"
+              :style="{ left: `calc(${m.at}% - 6px)`, background: m.done ? g.ringColor : 'var(--bg-card)' }"
+              :title="m.label">
+            </span>
+          </div>
+        </div>
+        <div class="relative h-5 mt-1.5">
+          <span v-for="(m, i) in g.milestones" :key="i"
+            class="absolute text-[10.5px] font-bold tabular-nums whitespace-nowrap -translate-x-1/2"
+            :class="m.done ? 'text-fg' : 'text-fg-subtle'"
+            :style="{ left: m.at + '%' }">{{ m.label }}</span>
+        </div>
+        <p class="mt-2 text-[11.5px] text-fg-muted font-semibold flex items-center gap-1"><TrendingUp class="size-3" :stroke-width="2.2" />Arrastra la barra para aportar progreso</p>
+      </AppCard>
     </div>
   </div>
 </template>

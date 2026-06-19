@@ -30,7 +30,7 @@
     "greetingAfternoon": "Good afternoon",
     "greetingEvening": "Good evening",
     "subtitle": "Here's what you have for today.",
-    "quickCapture": "Quick capture — type a task, event or note…",
+    "quickCapture": "Quick capture",
     "widgets": {
       "todayEvents": "Today's events",
       "dueTasks": "Overdue tasks",

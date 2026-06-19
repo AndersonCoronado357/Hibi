@@ -1,189 +1,273 @@
 <script setup lang="ts">
-import { Plus, Wallet, TrendingDown, TrendingUp, Repeat, ShoppingBag, Home as HomeI, Utensils, Bus, Film, HeartPulse } from '@lucide/vue'
+import { Plus, Wallet, Repeat, ShoppingBag, Home as HomeI, Utensils, Bus, Film, HeartPulse, TrendingDown, TrendingUp, Settings2,
+  Car, Coffee, Pizza, Gift, Plane, Book, Shirt, Sparkles, Heart, Music, Gamepad2, Dog, Baby, Banknote, Trash2, Check, X, ArrowLeft } from '@lucide/vue'
+import { markRaw, type Component } from 'vue'
 
 useHead({ title: 'Hibi — Finanzas' })
 
-interface Category { key: string; name: string; amount: number; budget: number; color: string; icon: any; tone: string }
-const categories: Category[] = [
-  { key: 'food', name: 'Comida', amount: 320, budget: 400, color: '#5aa6d2', icon: Utensils, tone: 'bg-sky-soft text-sky-deep' },
-  { key: 'home', name: 'Hogar', amount: 540, budget: 600, color: '#34936a', icon: HomeI, tone: 'bg-mint text-[#34936a]' },
-  { key: 'transport', name: 'Transporte', amount: 120, budget: 150, color: '#c5733f', icon: Bus, tone: 'bg-peach text-[#c5733f]' },
-  { key: 'ocio', name: 'Ocio', amount: 180, budget: 200, color: '#db8aa3', icon: Film, tone: 'bg-pink-soft text-pink-deep' },
-  { key: 'health', name: 'Salud', amount: 90, budget: 100, color: '#7a63c0', icon: HeartPulse, tone: 'bg-lavender text-[#7a63c0]' },
-  { key: 'others', name: 'Otros', amount: 60, budget: 100, color: '#bf8f2e', icon: ShoppingBag, tone: 'bg-cream text-[#bf8f2e]' },
+interface Category { name: string; icon: Component; color: string }
+// Galería de iconos disponibles para personalizar categorías
+const ICON_GALLERY: { key: string; icon: Component }[] = [
+  { key: 'Utensils', icon: markRaw(Utensils) }, { key: 'Pizza', icon: markRaw(Pizza) },
+  { key: 'Coffee', icon: markRaw(Coffee) }, { key: 'ShoppingBag', icon: markRaw(ShoppingBag) },
+  { key: 'HomeI', icon: markRaw(HomeI) }, { key: 'Bus', icon: markRaw(Bus) },
+  { key: 'Car', icon: markRaw(Car) }, { key: 'Plane', icon: markRaw(Plane) },
+  { key: 'Film', icon: markRaw(Film) }, { key: 'Music', icon: markRaw(Music) },
+  { key: 'Gamepad2', icon: markRaw(Gamepad2) }, { key: 'Book', icon: markRaw(Book) },
+  { key: 'HeartPulse', icon: markRaw(HeartPulse) }, { key: 'Heart', icon: markRaw(Heart) },
+  { key: 'Sparkles', icon: markRaw(Sparkles) }, { key: 'Shirt', icon: markRaw(Shirt) },
+  { key: 'Gift', icon: markRaw(Gift) }, { key: 'Dog', icon: markRaw(Dog) },
+  { key: 'Baby', icon: markRaw(Baby) }, { key: 'Banknote', icon: markRaw(Banknote) },
 ]
-const totalExpense = computed(() => categories.reduce((a, c) => a + c.amount, 0))
-const income = 2150
-const net = computed(() => income - totalExpense.value)
-
-const arcs = computed(() => {
-  const r = 60, cx = 80, cy = 80
-  let acc = 0
-  return categories.map(c => {
-    const start = (acc / totalExpense.value) * Math.PI * 2 - Math.PI / 2
-    acc += c.amount
-    const end = (acc / totalExpense.value) * Math.PI * 2 - Math.PI / 2
-    const large = end - start > Math.PI ? 1 : 0
-    const x1 = cx + r * Math.cos(start), y1 = cy + r * Math.sin(start)
-    const x2 = cx + r * Math.cos(end), y2 = cy + r * Math.sin(end)
-    return { d: `M${cx} ${cy} L${x1} ${y1} A${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`, color: c.color }
-  })
+const CAT_META = reactive<Record<string, Category>>({
+  food: { name: 'Comida', icon: markRaw(Utensils), color: '#5aa6d2' },
+  home: { name: 'Hogar', icon: markRaw(HomeI), color: '#34936a' },
+  transport: { name: 'Transporte', icon: markRaw(Bus), color: '#c5733f' },
+  ocio: { name: 'Ocio', icon: markRaw(Film), color: '#db8aa3' },
+  health: { name: 'Salud', icon: markRaw(HeartPulse), color: '#7a63c0' },
+  others: { name: 'Otros', icon: markRaw(ShoppingBag), color: '#bf8f2e' },
 })
+const CAT_OPTS = computed(() => Object.entries(CAT_META).map(([k, v]) => ({ value: k, label: v.name })))
+function catChipStyle(catKey: string) {
+  const c = CAT_META[catKey]; if (!c) return {}
+  return { background: c.color + '22', color: c.color }
+}
 
-interface Tx { id: string; title: string; cat: string; date: string; amount: number; sub?: boolean }
-const txs: Tx[] = [
-  { id: 't1', title: 'Mercadona', cat: 'food', date: 'Hoy', amount: -38.40 },
-  { id: 't2', title: 'Café con María', cat: 'ocio', date: 'Hoy', amount: -4.80 },
-  { id: 't3', title: 'Alquiler junio', cat: 'home', date: 'Ayer', amount: -540 },
-  { id: 't4', title: 'Spotify', cat: 'ocio', date: '2 jun', amount: -10.99, sub: true },
-  { id: 't5', title: 'Nómina', cat: '', date: '1 jun', amount: 2150 },
-  { id: 't6', title: 'Bus mensual', cat: 'transport', date: '1 jun', amount: -42 },
-]
-const txsData = ref(txs)
-const subscriptions = computed(() => txsData.value.filter(t => t.sub))
-const fmt = (v: number) => v.toLocaleString('es-ES', { style:'currency', currency:'EUR' })
+interface Tx { id: string; title: string; cat: string; date: string; amount: number }
+interface Sub { id: string; title: string; amount: number; nextCharge: string; cat: string }
 
-const creating = ref(false)
-const newTitle = ref(''); const newAmount = ref(0); const newCat = ref('food'); const newType = ref<'expense'|'income'>('expense'); const newDate = ref('Hoy')
+const expenses = ref<Tx[]>([
+  { id: 't1', title: 'Éxito', cat: 'food', date: 'Hoy', amount: -180000 },
+  { id: 't2', title: 'Café con María', cat: 'ocio', date: 'Hoy', amount: -22000 },
+  { id: 't3', title: 'Arriendo junio', cat: 'home', date: 'Ayer', amount: -2_400_000 },
+  { id: 't6', title: 'TransMilenio', cat: 'transport', date: '1 jun', amount: -180000 },
+])
+const subscriptions = ref<Sub[]>([
+  { id: 's1', title: 'Spotify', amount: 17900, nextCharge: '15 jun', cat: 'ocio' },
+  { id: 's2', title: 'Netflix', amount: 38900, nextCharge: '20 jun', cat: 'ocio' },
+  { id: 's3', title: 'Gimnasio', amount: 120000, nextCharge: '1 jul', cat: 'health' },
+])
+
+const totalMonth = computed(() => expenses.value.reduce((a, t) => a + Math.abs(t.amount), 0))
+const totalSubs = computed(() => subscriptions.value.reduce((a, s) => a + s.amount, 0))
+const fmt = (v: number) => v.toLocaleString('es-CO', { style:'currency', currency:'COP', maximumFractionDigits: 0 })
+
+type Tab = 'expenses' | 'subs'
+type View = 'list' | 'categories'
+const tab = ref<Tab>('expenses')
+const view = ref<View>('list')
+
+// CRUD categorías
+const editingCatKey = ref<string | null>(null)
+const catDraft = ref<{ name: string; color: string; iconKey: string }>({ name: '', color: '#5aa6d2', iconKey: 'ShoppingBag' })
+function startEditCat(key: string) {
+  editingCatKey.value = key
+  const c = CAT_META[key]!
+  const iconKey = ICON_GALLERY.find(g => g.icon === c.icon)?.key || 'ShoppingBag'
+  catDraft.value = { name: c.name, color: c.color, iconKey }
+}
+function startNewCat() {
+  editingCatKey.value = '__new__'
+  catDraft.value = { name: '', color: '#5aa6d2', iconKey: 'ShoppingBag' }
+}
+function saveCat() {
+  const n = catDraft.value.name.trim(); if (!n) return
+  const iconObj = ICON_GALLERY.find(g => g.key === catDraft.value.iconKey)?.icon || markRaw(ShoppingBag)
+  if (editingCatKey.value === '__new__') {
+    const key = 'cat_' + Date.now()
+    CAT_META[key] = { name: n, icon: iconObj, color: catDraft.value.color }
+  } else if (editingCatKey.value) {
+    CAT_META[editingCatKey.value] = { name: n, icon: iconObj, color: catDraft.value.color }
+  }
+  editingCatKey.value = null
+}
+function deleteCat(key: string) {
+  if (Object.keys(CAT_META).length <= 1) return
+  delete CAT_META[key]
+  if (editingCatKey.value === key) editingCatKey.value = null
+}
+
+const newTitle = ref(''); const newAmount = ref<number | null>(null); const newCat = ref('food'); const newDate = ref('')
+const newSubTitle = ref(''); const newSubAmount = ref<number | null>(null); const newSubDate = ref(''); const newSubCat = ref('ocio')
 let nextId = 100
-function startCreate() { creating.value = true; nextTick(() => document.getElementById('new-tx-title')?.focus()) }
-function cancelCreate() { creating.value = false; newTitle.value = ''; newAmount.value = 0 }
-function saveTx() {
-  const t = newTitle.value.trim(); if (!t || !newAmount.value) return
-  const sign = newType.value === 'income' ? 1 : -1
-  txsData.value.unshift({ id: 't' + (nextId++), title: t, cat: newType.value === 'income' ? '' : newCat.value, date: newDate.value, amount: sign * Math.abs(Number(newAmount.value)) })
-  cancelCreate()
+
+function addExpense() {
+  const t = newTitle.value.trim(); const a = newAmount.value
+  if (!t || !a) return
+  expenses.value.unshift({ id: 't' + (nextId++), title: t, cat: newCat.value, date: newDate.value || 'Hoy', amount: -Math.abs(Number(a)) })
+  newTitle.value = ''; newAmount.value = null
+}
+function addSub() {
+  const t = newSubTitle.value.trim(); const a = newSubAmount.value
+  if (!t || !a) return
+  subscriptions.value.unshift({ id: 's' + (nextId++), title: t, amount: Math.abs(Number(a)), nextCharge: newSubDate.value || 'Próximo mes', cat: newSubCat.value })
+  newSubTitle.value = ''; newSubAmount.value = null
 }
 </script>
 
 <template>
-  <div class="h-full flex flex-col gap-3 px-4 md:px-7 py-5">
-    <AppCard class="shrink-0 !p-3 md:!p-4 flex items-center justify-between gap-3">
-      <div class="flex items-center gap-2.5">
-        <span class="grid place-items-center size-10 rounded-[13px] bg-mint text-[#34936a]" aria-hidden="true"><Wallet class="size-5" :stroke-width="1.9" /></span>
-        <div>
-          <h1 class="text-[20px] md:text-[22px] font-extrabold text-fg leading-tight">Finanzas</h1>
-          <p class="text-[12.5px] text-fg-muted leading-tight">Junio, {{ txsData.length }} movimientos</p>
+  <div class="h-full w-full flex flex-col gap-3 px-4 md:px-7 py-5 overflow-hidden relative">
+    <!-- Decoración cute -->
+    <HibiCloud :size="150" float :duration="8" class="hidden md:block absolute -top-6 -right-8 text-mint opacity-15 pointer-events-none z-40" aria-hidden="true" />
+    <HibiCloud :size="90"  float :duration="10" :delay="1.2" class="hidden md:block absolute bottom-6 -left-6 text-cream opacity-15 pointer-events-none z-40" aria-hidden="true" />
+    <HibiSparkle :size="18" twinkle :duration="2.4" class="hidden md:block absolute top-[14%] left-[10%] text-fg-subtle opacity-25 pointer-events-none z-40" />
+    <HibiSparkle :size="14" twinkle :duration="3" :delay="0.8" class="hidden md:block absolute top-[8%] right-[26%] text-fg-subtle opacity-25 pointer-events-none z-40" />
+    <HibiHeart :size="16" beat :duration="2.6" class="hidden md:block absolute bottom-[20%] right-[8%] text-fg-subtle opacity-25 pointer-events-none z-40" />
+
+    <!-- Toolbar -->
+    <div class="relative z-10">
+      <PageHero :icon="Wallet" tone="mint" title="Finanzas" :subtitle="`Junio · ${fmt(totalMonth)} gastado`">
+        <template #actions>
+          <AppSegmented :model-value="tab" :options="[{ value: 'expenses', label: 'Gastos' }, { value: 'subs', label: 'Suscripciones' }]" @update:model-value="(v) => { tab = v as Tab; view = 'list' }" />
+          <AppButton variant="secondary" size="sm" @click="view = view === 'categories' ? 'list' : 'categories'">
+            <template #icon><Settings2 class="size-[15px]" :stroke-width="2.2" /></template>
+            Categorías
+          </AppButton>
+        </template>
+      </PageHero>
+    </div>
+
+    <!-- VISTA CATEGORÍAS: CRUD real -->
+    <AppCard v-if="view === 'categories'" class="relative z-10 flex-1 min-h-0 flex flex-col" :padded="false">
+      <header class="px-5 pt-4 pb-3 shrink-0 flex items-center gap-3">
+        <button type="button"
+          class="inline-flex items-center gap-2 h-10 pl-2.5 pr-4 rounded-full bg-muted text-fg hover:bg-inset transition-[background-color] shrink-0"
+          @click="view = 'list'">
+          <ArrowLeft class="size-[17px]" :stroke-width="2" />
+          <span class="text-[13.5px] font-bold">Atrás</span>
+        </button>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-[16px] font-extrabold text-fg truncate">Parametrizar categorías</h2>
+          <p class="text-[12.5px] text-fg-muted truncate">Crea, edita y elimina categorías. Cada una con su icono y color.</p>
         </div>
+        <AppButton variant="primary" size="sm" @click="startNewCat">
+          <template #icon><Plus class="size-[15px]" :stroke-width="2.3" /></template>Nueva
+        </AppButton>
+      </header>
+
+      <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-5 pb-5">
+        <!-- Editor inline cuando se crea/edita -->
+        <div v-if="editingCatKey" class="rounded-[16px] bg-muted p-4 mb-4 flex flex-col gap-3">
+          <div class="flex items-center gap-3">
+            <span class="grid place-items-center size-12 rounded-[14px] shrink-0" :style="{ background: catDraft.color + '22', color: catDraft.color }">
+              <component :is="ICON_GALLERY.find(g => g.key === catDraft.iconKey)?.icon || ShoppingBag" class="size-[20px]" :stroke-width="1.9" />
+            </span>
+            <input v-model="catDraft.name" type="text" placeholder="Nombre de la categoría"
+              class="flex-1 h-12 rounded-[12px] bg-card focus:bg-inset px-3 text-[14.5px] font-semibold text-fg outline-none" />
+            <button class="grid place-items-center size-12 rounded-[12px] text-fg-muted hover:text-fg hover:bg-card" aria-label="Cancelar" @click="editingCatKey = null"><X class="size-[18px]" :stroke-width="2.2" /></button>
+            <button class="grid place-items-center size-12 rounded-[12px] bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white" aria-label="Guardar" @click="saveCat"><Check class="size-[18px]" :stroke-width="2.4" /></button>
+          </div>
+          <div>
+            <p class="text-[11.5px] font-bold text-fg-muted uppercase tracking-wide mb-2">Icono</p>
+            <!-- Galería: iconos compactos, NO cuadrados gigantes -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <button v-for="g in ICON_GALLERY" :key="g.key" type="button"
+                class="grid place-items-center size-9 rounded-[10px] bg-card transition-[background-color]"
+                :class="catDraft.iconKey === g.key ? 'ring-2 ring-fg' : 'hover:bg-inset'"
+                @click="catDraft.iconKey = g.key">
+                <component :is="g.icon" class="size-[15px] text-fg" :stroke-width="2" />
+              </button>
+            </div>
+          </div>
+          <div>
+            <p class="text-[11.5px] font-bold text-fg-muted uppercase tracking-wide mb-2">Color</p>
+            <AppColorPicker v-model="catDraft.color" format="hex" />
+          </div>
+        </div>
+
+        <!-- Galería de categorías -->
+        <ul class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          <li v-for="(meta, key) in CAT_META" :key="key" class="p-3 rounded-[14px] bg-muted flex items-center gap-3 group">
+            <span class="grid place-items-center size-12 rounded-[14px] shrink-0" :style="{ background: meta.color + '22', color: meta.color }">
+              <component :is="meta.icon" class="size-[20px]" :stroke-width="1.9" />
+            </span>
+            <div class="flex-1 min-w-0">
+              <p class="text-[14px] font-bold text-fg truncate">{{ meta.name }}</p>
+              <p class="text-[11.5px] text-fg-muted">Click para editar</p>
+            </div>
+            <button class="grid place-items-center size-8 rounded-[9px] text-fg-subtle hover:text-fg hover:bg-card opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Editar" @click="startEditCat(key)"><Settings2 class="size-[14px]" :stroke-width="2" /></button>
+            <button class="grid place-items-center size-8 rounded-[9px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Eliminar" @click="deleteCat(key)"><Trash2 class="size-[14px]" :stroke-width="2" /></button>
+          </li>
+        </ul>
       </div>
-      <AppButton variant="primary" size="sm" @click="startCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>Movimiento</AppButton>
     </AppCard>
 
-    <div class="flex-1 min-h-0 overflow-y-auto scroll-area flex flex-col gap-3">
-      <Transition name="inline-form">
-        <AppCard v-if="creating" class="!p-4">
-          <form aria-label="Nuevo movimiento" class="staggered flex flex-col gap-2.5" @submit.prevent="saveTx" @keydown.escape="cancelCreate">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <label for="new-tx-title" class="sr-only">Concepto</label>
-              <input id="new-tx-title" v-model="newTitle" type="text" placeholder="Concepto" class="h-10 rounded-[10px] bg-muted focus:bg-inset px-3 text-[14px] font-semibold text-fg outline-none" />
-              <input v-model.number="newAmount" type="number" step="0.01" placeholder="Importe (€)" class="h-10 rounded-[10px] bg-muted focus:bg-inset px-3 text-[14px] text-fg outline-none tabular-nums" />
+    <!-- GASTOS -->
+    <div v-else-if="tab === 'expenses'" class="relative z-10 flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
+      <!-- Form inline siempre visible -->
+      <AppCard class="shrink-0 !p-3">
+        <form class="grid grid-cols-1 md:grid-cols-[1fr_130px_200px_200px_auto] gap-2 items-center" @submit.prevent="addExpense">
+          <input v-model="newTitle" type="text" placeholder="Concepto del gasto"
+            class="h-12 rounded-[12px] bg-muted focus:bg-inset px-3 text-[14.5px] font-semibold text-fg outline-none" />
+          <input v-model.number="newAmount" type="number" step="1000" placeholder="0 COP"
+            class="h-12 rounded-[12px] bg-muted focus:bg-inset px-3 text-[14.5px] text-fg outline-none tabular-nums text-right" />
+          <AppDate v-model="newDate" placeholder="Fecha" />
+          <AppSelect v-model="newCat" :options="CAT_OPTS" placeholder="Categoría" />
+          <button type="submit" :disabled="!newTitle.trim() || !newAmount"
+            class="h-12 px-4 rounded-[12px] bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white font-bold text-[13.5px] disabled:opacity-40 transition-[background-color,color] inline-flex items-center gap-1.5">
+            <TrendingDown class="size-[15px]" :stroke-width="2.2" />Anotar
+          </button>
+        </form>
+      </AppCard>
+      <AppCard class="flex-1 min-w-0 flex flex-col" :padded="false">
+        <header class="px-5 pt-5 pb-3 shrink-0 flex items-center justify-between">
+          <h2 class="text-[14px] font-bold text-fg">Movimientos de junio</h2>
+          <span class="text-[13px] font-extrabold text-fg tabular-nums">{{ fmt(totalMonth) }}</span>
+        </header>
+        <ul class="flex-1 min-h-0 overflow-y-auto scroll-area px-3 pb-3 flex flex-col">
+          <li v-for="t in expenses" :key="t.id" class="flex items-center gap-3 p-3 rounded-[12px] hover:bg-muted transition-[background-color]">
+            <!-- Icono dentro de NUBE Hibi, color de la categoría -->
+            <span class="relative inline-block shrink-0" :style="{ width: '54px', height: '37px' }" aria-hidden="true">
+              <HibiCloud :size="54" :body-opacity="0.25" :style="{ color: CAT_META[t.cat]?.color || '#bf8f2e' }" class="absolute inset-0" />
+              <component :is="CAT_META[t.cat]?.icon || ShoppingBag" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                :style="{ width: '17px', height: '17px', color: CAT_META[t.cat]?.color || '#bf8f2e' }" :stroke-width="2" />
+            </span>
+            <div class="flex-1 min-w-0">
+              <p class="text-[14px] font-semibold text-fg truncate">{{ t.title }}</p>
+              <p class="text-[12px] text-fg-muted">{{ t.date }} · {{ CAT_META[t.cat]?.name }}</p>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <select v-model="newType" class="h-10 rounded-[10px] bg-muted focus:bg-inset px-3 text-[13px] text-fg outline-none">
-                <option value="expense">Gasto</option><option value="income">Ingreso</option>
-              </select>
-              <select v-model="newCat" :disabled="newType === 'income'" class="h-10 rounded-[10px] bg-muted focus:bg-inset px-3 text-[13px] text-fg outline-none disabled:opacity-50">
-                <option v-for="c in categories" :key="c.key" :value="c.key">{{ c.name }}</option>
-              </select>
-              <input v-model="newDate" type="text" placeholder="Hoy / 5 jun" class="h-10 rounded-[10px] bg-muted focus:bg-inset px-3 text-[13px] text-fg outline-none" />
-            </div>
-            <div class="flex items-center justify-end gap-2">
-              <button type="button" class="h-9 px-3.5 rounded-[10px] text-[13px] font-semibold text-fg-muted hover:bg-muted" @click="cancelCreate">Cancelar</button>
-              <button type="submit" :disabled="!newTitle.trim() || !newAmount" class="h-9 px-4 rounded-[10px] bg-sky text-[#1f4661] text-[13px] font-bold disabled:opacity-50">Guardar</button>
-            </div>
-          </form>
-        </AppCard>
-      </Transition>
-      <div class="grid gap-3 grid-cols-1 lg:grid-cols-3">
-        <!-- Resumen -->
-        <AppCard class="!p-4 flex flex-col">
-          <p class="text-[12.5px] font-bold text-fg-muted">Saldo del mes</p>
-          <p class="text-[28px] font-extrabold text-fg mt-1 leading-none tabular-nums">{{ fmt(net) }}</p>
-          <div class="mt-3 flex flex-col gap-1.5">
-            <div class="flex items-center gap-2 text-[13px]">
-              <span class="grid place-items-center size-6 rounded-[8px] bg-mint text-[#34936a]"><TrendingUp class="size-3.5" :stroke-width="2.4" aria-hidden="true" /></span>
-              <span class="text-fg-muted">Ingresos</span>
-              <span class="ml-auto font-bold text-fg tabular-nums">{{ fmt(income) }}</span>
-            </div>
-            <div class="flex items-center gap-2 text-[13px]">
-              <span class="grid place-items-center size-6 rounded-[8px] bg-pink-soft text-pink-deep"><TrendingDown class="size-3.5" :stroke-width="2.4" aria-hidden="true" /></span>
-              <span class="text-fg-muted">Gastos</span>
-              <span class="ml-auto font-bold text-fg tabular-nums">{{ fmt(totalExpense) }}</span>
-            </div>
-          </div>
-        </AppCard>
+            <span class="text-[15px] font-bold text-fg tabular-nums">{{ fmt(t.amount) }}</span>
+          </li>
+        </ul>
+      </AppCard>
+    </div>
 
-        <!-- Donut -->
-        <AppCard class="!p-4 lg:col-span-2">
-          <h3 class="text-[14px] font-bold text-fg mb-3">Gastos por categoría</h3>
-          <div class="flex items-center gap-5">
-            <div class="relative shrink-0">
-              <svg width="160" height="160" viewBox="0 0 160 160" aria-label="Distribución de gastos">
-                <path v-for="(a, i) in arcs" :key="i" :d="a.d" :fill="a.color" />
-                <circle cx="80" cy="80" r="36" fill="var(--bg-card)" />
-              </svg>
-              <div class="absolute inset-0 grid place-items-center text-center">
-                <div>
-                  <p class="text-[10px] text-fg-muted font-bold">Total</p>
-                  <p class="text-[14px] font-extrabold text-fg leading-none mt-0.5 tabular-nums">{{ totalExpense }} €</p>
-                </div>
-              </div>
+    <!-- SUSCRIPCIONES -->
+    <div v-else class="relative z-10 flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
+      <AppCard class="shrink-0 !p-3">
+        <form class="grid grid-cols-1 md:grid-cols-[1fr_130px_200px_200px_auto] gap-2 items-center" @submit.prevent="addSub">
+          <input v-model="newSubTitle" type="text" placeholder="Nombre del servicio"
+            class="h-12 rounded-[12px] bg-muted focus:bg-inset px-3 text-[14.5px] font-semibold text-fg outline-none" />
+          <input v-model.number="newSubAmount" type="number" step="1000" placeholder="0 COP/mes"
+            class="h-12 rounded-[12px] bg-muted focus:bg-inset px-3 text-[14.5px] text-fg outline-none tabular-nums text-right" />
+          <AppDate v-model="newSubDate" placeholder="Próximo cobro" />
+          <AppSelect v-model="newSubCat" :options="CAT_OPTS" placeholder="Categoría" />
+          <button type="submit" :disabled="!newSubTitle.trim() || !newSubAmount"
+            class="h-12 px-4 rounded-[12px] bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white font-bold text-[13.5px] disabled:opacity-40 transition-[background-color,color] inline-flex items-center gap-1.5">
+            <Repeat class="size-[15px]" :stroke-width="2.2" />Crear
+          </button>
+        </form>
+      </AppCard>
+      <AppCard class="flex-1 min-w-0 flex flex-col" :padded="false">
+        <header class="px-5 pt-5 pb-3 shrink-0 flex items-center justify-between">
+          <h2 class="text-[14px] font-bold text-fg">Suscripciones activas</h2>
+          <span class="text-[13px] font-extrabold text-fg tabular-nums">{{ fmt(totalSubs) }}/mes</span>
+        </header>
+        <ul class="flex-1 min-h-0 overflow-y-auto scroll-area px-3 pb-3 flex flex-col">
+          <li v-for="s in subscriptions" :key="s.id" class="flex items-center gap-3 p-3 rounded-[12px] hover:bg-muted transition-[background-color]">
+            <span class="relative inline-block shrink-0" :style="{ width: '54px', height: '37px' }" aria-hidden="true">
+              <HibiCloud :size="54" :body-opacity="0.25" :style="{ color: CAT_META[s.cat]?.color || '#bf8f2e' }" class="absolute inset-0" />
+              <Repeat class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                :style="{ width: '17px', height: '17px', color: CAT_META[s.cat]?.color || '#bf8f2e' }" :stroke-width="2" />
+            </span>
+            <div class="flex-1 min-w-0">
+              <p class="text-[14px] font-semibold text-fg truncate">{{ s.title }}</p>
+              <p class="text-[12px] text-fg-muted">Próximo cobro {{ s.nextCharge }}</p>
             </div>
-            <ul class="flex-1 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12.5px]">
-              <li v-for="c in categories" :key="c.key" class="flex items-center gap-2">
-                <span class="size-3 rounded-full" :style="{ background: c.color }" aria-hidden="true" />
-                <span class="text-fg-muted truncate">{{ c.name }}</span>
-                <span class="ml-auto font-bold text-fg tabular-nums">{{ c.amount }} €</span>
-              </li>
-            </ul>
-          </div>
-        </AppCard>
-
-        <!-- Budget bars -->
-        <AppCard class="!p-4 lg:col-span-2">
-          <h3 class="text-[14px] font-bold text-fg mb-3">Presupuesto del mes</h3>
-          <div class="flex flex-col gap-2.5">
-            <div v-for="c in categories" :key="c.key">
-              <div class="flex items-center gap-2 mb-1">
-                <span class="grid place-items-center size-7 rounded-[9px]" :class="c.tone" aria-hidden="true"><component :is="c.icon" class="size-[14px]" :stroke-width="2" /></span>
-                <span class="text-[13px] font-semibold text-fg flex-1">{{ c.name }}</span>
-                <span class="text-[12.5px] font-bold tabular-nums" :class="c.amount > c.budget ? 'text-pink-deep' : 'text-fg-muted'">{{ c.amount }} / {{ c.budget }} €</span>
-              </div>
-              <div class="h-2 rounded-full bg-muted overflow-hidden">
-                <div class="h-full rounded-full" :style="{ width: Math.min(100, (c.amount / c.budget) * 100) + '%', background: c.color }" />
-              </div>
-            </div>
-          </div>
-        </AppCard>
-
-        <!-- Suscripciones -->
-        <AppCard class="!p-4">
-          <h3 class="text-[14px] font-bold text-fg mb-2 inline-flex items-center gap-1.5"><Repeat class="size-[15px]" :stroke-width="1.9" aria-hidden="true" />Suscripciones</h3>
-          <ul class="flex flex-col gap-1.5">
-            <li v-for="s in subscriptions" :key="s.id" class="flex items-center justify-between p-2.5 rounded-[10px] bg-muted">
-              <p class="text-[13.5px] font-semibold text-fg">{{ s.title }}</p>
-              <span class="text-[13px] font-bold text-fg tabular-nums">{{ fmt(Math.abs(s.amount)) }}</span>
-            </li>
-          </ul>
-        </AppCard>
-
-        <!-- Transacciones -->
-        <AppCard class="!p-4 lg:col-span-3">
-          <h3 class="text-[14px] font-bold text-fg mb-2">Últimos movimientos</h3>
-          <ul class="flex flex-col">
-            <li v-for="t in txsData" :key="t.id" class="flex items-center gap-3 py-2.5">
-              <span class="grid place-items-center size-9 rounded-[11px]" :class="t.cat ? (categories.find(c => c.key === t.cat)?.tone || 'bg-muted') : 'bg-sky text-[#1f4661]'" aria-hidden="true">
-                <component :is="t.cat ? categories.find(c => c.key === t.cat)?.icon : TrendingUp" class="size-[16px]" :stroke-width="2" />
-              </span>
-              <div class="flex-1 min-w-0">
-                <p class="text-[14px] font-semibold text-fg truncate">{{ t.title }}<span v-if="t.sub" class="inline-flex items-center gap-1 ml-2 text-[10.5px] font-bold text-sky-deep bg-sky-soft px-1.5 py-0.5 rounded-full"><Repeat class="size-3" :stroke-width="2.4" aria-hidden="true" /> susc.</span></p>
-                <p class="text-[12px] text-fg-muted">{{ t.date }}</p>
-              </div>
-              <span class="text-[14.5px] font-bold tabular-nums" :class="t.amount > 0 ? 'text-[#34936a]' : 'text-fg'">{{ t.amount > 0 ? '+' : '' }}{{ fmt(t.amount) }}</span>
-            </li>
-          </ul>
-        </AppCard>
-      </div>
+            <span class="text-[15px] font-bold text-fg tabular-nums">{{ fmt(s.amount) }}</span>
+          </li>
+        </ul>
+      </AppCard>
     </div>
   </div>
 </template>
