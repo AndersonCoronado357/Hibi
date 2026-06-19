@@ -13,18 +13,20 @@ const { x: mx, y: my } = useMouse({ type: 'client' })
 const { left, top, width, height } = useElementBounding(el)
 const cxy = computed(() => ({ x: left.value + width.value / 2, y: top.value + height.value / 2 }))
 
+// Inclinación contenida: NO se sale del contenedor del padre.
 const lean = computed(() => {
   const dx = mx.value - cxy.value.x
   const dy = my.value - cxy.value.y
   const c = (v: number, m: number) => Math.max(-m, Math.min(m, v))
-  return { x: c(dx / 11, 20), y: c(dy / 11, 12), rot: c(dx / 38, 6) }
+  return { x: c(dx / 28, 6), y: c(dy / 28, 4), rot: c(dx / 60, 3) }
 })
+// Pupilas limitadas dentro de la cuenca (ojo rx=3.1, pupila ~1.4 de desplazamiento máx).
 const pupil = computed(() => {
   const dx = mx.value - cxy.value.x
   const dy = my.value - cxy.value.y
   const dist = Math.hypot(dx, dy) || 1
   const reach = Math.min(1, dist / 300)
-  return { x: (dx / dist) * reach * 2.6, y: (dy / dist) * reach * 2.6 }
+  return { x: (dx / dist) * reach * 1.3, y: (dy / dist) * reach * 1.3 }
 })
 const svgH = computed(() => Math.round((props.size * 95) / 140))
 
@@ -108,7 +110,7 @@ onBeforeUnmount(() => {
     ref="el"
     class="relative inline-block select-none cursor-pointer will-change-transform"
     role="button"
-    aria-label="Nube de Hibi"
+    aria-label="Hibi"
     :style="{
       transform: `translate(${lean.x}px, ${lean.y}px) rotate(${lean.rot}deg)`,
       transformOrigin: 'center bottom',

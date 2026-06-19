@@ -66,12 +66,14 @@
 }
 
 /* ───────────── Tema claro · día despejado ───────────── */
-:root {
+:root,
+[data-theme="light"] {
   --bg-base: #e9f2fb; /* cielo pálido */
   --bg-card: #ffffff; /* superficie limpia */
   --bg-muted: #e4edf7; /* relleno de campos / pistas */
   --bg-inset: #eff5fc; /* hueco sutil */
   --bg-elevated: #ffffff;
+  --bg-pop: #f1f6fb; /* superficie de dropdowns/popovers: ~-4 sobre bg-card blanco para separación FLAT sin sombra */
 
   --text-primary: #36465c; /* navy suave, no negro */
   --text-muted: #6f8197;
@@ -81,21 +83,83 @@
   color-scheme: light;
 }
 
-/* ───────────── Tema oscuro · noche calmada y plana ───────────── */
+/* ───────────── Tema oscuro · grises neutros con acentos pastel ───────────── */
+/* Sin azul saturado, sin navy. Grises tibios para que los acentos Cinnamoroll
+   (cielo, rosa, menta, melocotón) sigan siendo los protagonistas. */
 [data-theme="dark"] {
-  --bg-base: #151a28; /* navy profundo, plano */
-  --bg-card: #1e2435; /* un escalón más claro */
-  --bg-muted: #272e42; /* relleno de campos */
-  --bg-inset: #1a2030;
-  --bg-elevated: #232a3d;
+  /* Oscuro Hibi: cielo nocturno suave, ligero tinte azul de la marca */
+  --bg-base: #131826;        /* azul-noche muy oscuro */
+  --bg-card: #1b2233;        /* superficie con azul tenue */
+  --bg-muted: #232c41;       /* relleno de campos (todavía azul) */
+  --bg-inset: #181f30;       /* hueco sutil */
+  --bg-elevated: #1f273b;
+  --bg-pop: #2a334b; /* superficie de dropdowns/popovers: ~+10 sobre bg-card para separación FLAT sin sombra */
 
-  --text-primary: #eceff6;
-  --text-muted: #a4adc2;
-  --text-subtle: #727b93;
+  --text-primary: #ecf2fb;   /* casi blanco con tinte cielo */
+  --text-muted: #aeb9d1;     /* azul-gris claro (>4.5:1) */
+  --text-subtle: #7d88a3;    /* azul-gris medio (>3:1) */
 
-  --ring: #7fbfe6;
+  --ring: #a6d6f0;
   color-scheme: dark;
 }
+
+/* ─── Dark mode: paleta cinnamoroll oscura ───────── */
+[data-theme="dark"] .bg-sky-soft     { background-color: #234a64 !important; }
+[data-theme="dark"] .bg-pink-soft    { background-color: #5a2f3f !important; }
+[data-theme="dark"] .bg-mint         { background-color: #234538 !important; }
+[data-theme="dark"] .bg-peach        { background-color: #553a28 !important; }
+[data-theme="dark"] .bg-lavender     { background-color: #38304f !important; }
+[data-theme="dark"] .bg-cream        { background-color: #443d28 !important; }
+[data-theme="dark"] .bg-yellow       { background-color: #4d3f1c !important; }
+[data-theme="dark"] .bg-sky          { background-color: #3a6e92 !important; }
+[data-theme="dark"] .bg-\[\#fff1cf\] { background-color: #4d3f1c !important; }
+[data-theme="dark"] .hover\:bg-sky-soft:hover   { background-color: #2c5d7e !important; }
+[data-theme="dark"] .hover\:bg-pink-soft:hover  { background-color: #6e3a4e !important; }
+[data-theme="dark"] .hover\:bg-mint:hover       { background-color: #2c5544 !important; }
+[data-theme="dark"] .text-sky-deep   { color: #9dcef0 !important; }
+[data-theme="dark"] .text-pink-deep  { color: #f0a8bc !important; }
+[data-theme="dark"] .text-\[\#1f4661\] { color: #e7f3fc !important; }
+[data-theme="dark"] .text-\[\#1f4660\] { color: #e7f3fc !important; }
+[data-theme="dark"] .text-\[\#6e2230\] { color: #f3c1cb !important; }
+[data-theme="dark"] .text-\[\#34936a\] { color: #88d3ad !important; }
+[data-theme="dark"] .text-\[\#c5733f\] { color: #efaa82 !important; }
+[data-theme="dark"] .text-\[\#7a63c0\] { color: #b9aded !important; }
+[data-theme="dark"] .text-\[\#bf8f2e\] { color: #ebc775 !important; }
+[data-theme="dark"] .text-\[\#1c4258\] { color: #c5e1f2 !important; }
+[data-theme="dark"] .outline-sky-deep { outline-color: #9dcef0 !important; }
+
+/* ─── LIGHT OVERRIDE: dentro de un subárbol [data-theme="light"] siempre
+   ganan los valores claros, sin importar que <html> esté en dark.
+   Esto es lo que hace que el LOGIN (envuelto en data-theme="light") se vea
+   siempre en modo claro, aunque la app esté en oscuro. ─── */
+[data-theme="light"] .bg-sky-soft     { background-color: #d9edfa !important; }
+[data-theme="light"] .bg-pink-soft    { background-color: #fbe6ec !important; }
+[data-theme="light"] .bg-mint         { background-color: #c6e9d6 !important; }
+[data-theme="light"] .bg-peach        { background-color: #ffd8c4 !important; }
+[data-theme="light"] .bg-lavender     { background-color: #dcd2f1 !important; }
+[data-theme="light"] .bg-cream        { background-color: #fdf3e3 !important; }
+[data-theme="light"] .bg-yellow       { background-color: #ffe6a8 !important; }
+[data-theme="light"] .bg-sky          { background-color: #a6d6f0 !important; }
+[data-theme="light"] .bg-\[\#fff1cf\] { background-color: #fff1cf !important; }
+[data-theme="light"] .hover\:bg-sky-soft:hover   { background-color: #c8e3f5 !important; }
+[data-theme="light"] .hover\:bg-pink-soft:hover  { background-color: #f5d4dd !important; }
+[data-theme="light"] .hover\:bg-mint:hover       { background-color: #b5e0c8 !important; }
+[data-theme="light"] .text-sky-deep   { color: #5aa6d2 !important; }
+[data-theme="light"] .text-pink-deep  { color: #db8aa3 !important; }
+[data-theme="light"] .text-\[\#1f4661\] { color: #1f4661 !important; }
+[data-theme="light"] .text-\[\#1f4660\] { color: #1f4660 !important; }
+[data-theme="light"] .text-\[\#6e2230\] { color: #6e2230 !important; }
+[data-theme="light"] .text-\[\#34936a\] { color: #34936a !important; }
+[data-theme="light"] .text-\[\#c5733f\] { color: #c5733f !important; }
+[data-theme="light"] .text-\[\#7a63c0\] { color: #7a63c0 !important; }
+[data-theme="light"] .text-\[\#bf8f2e\] { color: #bf8f2e !important; }
+[data-theme="light"] .text-\[\#1c4258\] { color: #1c4258 !important; }
+[data-theme="light"] .text-\[\#2c6189\] { color: #2c6189 !important; }
+[data-theme="light"] .text-\[\#14202b\] { color: #14202b !important; }
+[data-theme="light"] .outline-sky-deep { outline-color: #5aa6d2 !important; }
+
+/* ::selection dentro de subárbol light siempre debe ser de tema claro */
+[data-theme="light"] ::selection { background-color: #5aa6d2 !important; color: #ffffff !important; }
 
 /* ============================================================
    Base
@@ -140,9 +204,25 @@
     text-wrap: pretty;
   }
 
+  /* Globalmente: inputs number SIN flechitas */
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] { -moz-appearance: textfield; appearance: textfield; }
+
+  /* Placeholder/truncate: si se trunca, los "..." quedan a ras (no a media línea) */
+  ::placeholder { vertical-align: baseline; line-height: 1; }
+
+  /* Selección de texto: visible en ambos temas */
   ::selection {
-    background-color: var(--color-sky-soft);
-    color: var(--text-primary);
+    background-color: var(--color-sky-deep);
+    color: #ffffff;
+  }
+  [data-theme="dark"] ::selection {
+    background-color: #a6d6f0;
+    color: #14202b;
   }
 
   /* Único "contorno" permitido: foco por teclado (accesibilidad AA).
@@ -160,29 +240,185 @@
 }
 
 /* ============================================================
+   Decoraciones cute al frente (nubes, sparkles, hearts) —
+   van encima del contenido pero NO bloquean clicks. Posicionadas en
+   esquinas/bordes para no tapar texto importante.
+   ============================================================ */
+.hibi-deco {
+  position: absolute;
+  pointer-events: none;
+  z-index: 40;
+}
+
+/* Animación idle "wobble" suave: rotación sutil ±3° loop infinito.
+   Para iconos decorativos de feature-cards que queremos que se muevan
+   por sí solos. Aplicarse vía clase .hibi-idle-wobble. */
+.hibi-idle-wobble {
+  animation: hibiIdleWobble 4s ease-in-out infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+@keyframes hibiIdleWobble {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  25%      { transform: rotate(-3deg) scale(1.04); }
+  75%      { transform: rotate(3deg) scale(1.04); }
+}
+
+/* Animación idle "breathe" — sutil pulse de escala (1 → 1.06 → 1) en loop. */
+.hibi-idle-breathe {
+  animation: hibiIdleBreathe 3s ease-in-out infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+@keyframes hibiIdleBreathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.06); }
+}
+
+/* Animación idle "spin-slow" — rotación lenta continua. Bueno para sparkles. */
+.hibi-idle-spin {
+  animation: hibiIdleSpin 8s linear infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+@keyframes hibiIdleSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hibi-idle-wobble, .hibi-idle-breathe, .hibi-idle-spin { animation: none !important; }
+}
+
+/* ============================================================
+   CUTE micro-animaciones globales — NO afectan layout
+   Solo color, brightness, opacidad. NUNCA scale/translate en interacción.
+   ============================================================ */
+
+/* Transición suave de color en TODO elemento interactivo */
+button, [role="button"], a {
+  transition: background-color 180ms var(--ease-soft),
+              color 180ms var(--ease-soft),
+              filter 180ms var(--ease-soft),
+              opacity 180ms var(--ease-soft);
+}
+
+/* Press feedback NO destructivo: leve oscurecimiento del fondo, sin scale */
+button:not(:disabled):active:not(.hibi-btn),
+[role="button"]:not([aria-disabled="true"]):active {
+  filter: brightness(0.94);
+}
+
+/* Hover suave en cualquier botón */
+button:hover:not(:disabled),
+[role="button"]:hover:not([aria-disabled="true"]) {
+  filter: brightness(1.06);
+}
+
+/* Iconos Lucide dentro de botones: PARPADEO sutil (sin cambio de tamaño) */
+button:hover svg.lucide,
+[role="button"]:hover svg.lucide,
+input:focus ~ svg.lucide {
+  animation: hibiIconBlink 0.6s var(--ease-soft);
+}
+@keyframes hibiIconBlink {
+  0%, 100% { opacity: 1; filter: none; }
+  50%      { opacity: 0.75; filter: brightness(1.3); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:hover svg.lucide, [role="button"]:hover svg.lucide { animation: none !important; }
+  button:active, [role="button"]:active,
+  button:hover, [role="button"]:hover { filter: none !important; }
+}
+
+/* ============================================================
+   Cara de Hibi en hover de botones primarios — parpadeo después de
+   hover sostenido. Definido global para que funcione en cualquier
+   botón con clase .group\/hibibtn (AppButton + raw buttons).
+   ============================================================ */
+.group\/hibibtn:hover .hibi-eye,
+.group\/hibibtn:hover .hibi-eye-shine {
+  animation: hibiBtnBlinkGlobal 3.2s ease-in-out infinite;
+  animation-delay: 1.4s;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+@keyframes hibiBtnBlinkGlobal {
+  0%, 90%, 100% { transform: scaleY(1); }
+  94%           { transform: scaleY(0.08); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .group\/hibibtn:hover .hibi-eye,
+  .group\/hibibtn:hover .hibi-eye-shine { animation: none !important; }
+}
+
+/* ============================================================
+   Drop target del kanban — visible en claro y oscuro
+   ============================================================ */
+.hibi-drop { outline: 2px dashed transparent; outline-offset: -2px; transition: outline-color 200ms var(--ease-soft), background-color 200ms var(--ease-soft); }
+.hibi-drop--over { outline-color: var(--color-sky-deep); background-color: var(--color-sky-soft); }
+[data-theme="dark"] .hibi-drop--over { outline-color: #9dcef0; background-color: #234a64; }
+
+/* Tarjeta siendo arrastrada — sin efecto visual: la card se queda igual */
+.hibi-dragging { /* no-op */ }
+
+/* ============================================================
+   Chips de selección (tags, color, prioridad, estado…)
+   Sin bordes feos. El activo se distingue solo por opacidad + tono pleno.
+   ============================================================ */
+.hibi-chip {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  height: 2.5rem; padding: 0 0.9rem;
+  border-radius: 9999px; font-weight: 700; font-size: 13px;
+  transition: background-color 200ms var(--ease-soft),
+              opacity 200ms var(--ease-soft),
+              filter 200ms var(--ease-soft);
+  cursor: pointer; opacity: 0.55;
+  filter: saturate(0.7);
+}
+.hibi-chip:hover { opacity: 0.85; filter: saturate(0.95); }
+.hibi-chip.is-active { opacity: 1; filter: saturate(1.1); }
+
+/* Color swatch (círculos de color).
+   Activo: check blanco + halo interno sutil. SIN outline ni borde exterior. */
+.hibi-swatch {
+  display: grid; place-items: center;
+  border-radius: 9999px;
+  transition: transform 160ms var(--ease-soft), filter 200ms var(--ease-soft);
+  cursor: pointer;
+  opacity: 0.7;
+  filter: saturate(0.7);
+}
+.hibi-swatch:hover { transform: scale(1.06); opacity: 0.95; filter: saturate(0.95); }
+.hibi-swatch.is-active { opacity: 1; filter: saturate(1.05) brightness(1.02); }
+
+/* ============================================================
    Utilidades propias
    ============================================================ */
 
+/* Owner: sin barra visible, solo la acción de scroll. */
 @utility scroll-area {
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--bg-muted) transparent;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
   scroll-behavior: smooth;
   overscroll-behavior: contain;
 }
 .scroll-area::-webkit-scrollbar {
-  width: 9px;
-  height: 9px;
+  display: none;
+  width: 0;
+  height: 0;
 }
-.scroll-area::-webkit-scrollbar-track {
-  background: transparent;
+/* También oculta scrollbars globales del body y html */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
-.scroll-area::-webkit-scrollbar-thumb {
-  background-color: var(--bg-muted);
-  border-radius: var(--radius-full);
-  border: 3px solid transparent;
-  background-clip: padding-box;
-}
+html, body { scrollbar-width: none; -ms-overflow-style: none; }
 
 /* Solo para lectores de pantalla (accesibilidad) */
 @utility sr-only {
@@ -291,6 +527,287 @@
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* Popover (color picker en notas, etc) */
+.hibi-pop-enter-active, .hibi-pop-leave-active {
+  transition: opacity 0.18s cubic-bezier(0.33, 1, 0.68, 1),
+              transform 0.18s cubic-bezier(0.33, 1, 0.68, 1);
+  transform-origin: top left;
+}
+.hibi-pop-enter-from, .hibi-pop-leave-to {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.96);
+}
+
+/* Acordeón vertical PREMIUM: usa grid-template-rows 0fr → 1fr para animar
+   la altura real desde 0 hasta auto. El contenido SE EMPUJA suavemente. */
+.hibi-acc-enter-active, .hibi-acc-leave-active {
+  display: grid;
+  transition:
+    grid-template-rows 0.34s cubic-bezier(0.33, 1, 0.68, 1),
+    opacity 0.24s cubic-bezier(0.33, 1, 0.68, 1);
+}
+.hibi-acc-enter-active, .hibi-acc-leave-active { grid-template-rows: 1fr; }
+.hibi-acc-enter-from, .hibi-acc-leave-to       { grid-template-rows: 0fr; opacity: 0; }
+.hibi-acc-enter-active > *, .hibi-acc-leave-active > * { overflow: hidden; min-height: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .hibi-acc-enter-active, .hibi-acc-leave-active {
+    transition: opacity 0.12s ease;
+    grid-template-rows: 1fr;
+  }
+  .hibi-acc-enter-from, .hibi-acc-leave-to { grid-template-rows: 1fr; }
+}
+
+/* Slide horizontal premium */
+.hibi-slide-x-enter-active, .hibi-slide-x-leave-active {
+  transition: opacity 0.32s cubic-bezier(0.33, 1, 0.68, 1),
+              transform 0.32s cubic-bezier(0.33, 1, 0.68, 1),
+              width 0.32s cubic-bezier(0.33, 1, 0.68, 1),
+              margin 0.32s cubic-bezier(0.33, 1, 0.68, 1);
+}
+.hibi-slide-x-enter-from, .hibi-slide-x-leave-to {
+  opacity: 0;
+  transform: translateX(-16px);
+}
+
+/* ============================================================
+   Librería de animaciones de entrada en cascada. Una distinta por
+   vista/lista vía clase específica. Todas con `backwards` fill mode
+   para que el delay funcione sin flashes intermedios.
+   ============================================================ */
+
+/* ── fade-up (default): aparece desde abajo 8px ── */
+@keyframes hibi-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hibi-cascade > *,
+.hibi-anim-fade-up > * {
+  animation: hibi-fade-up 0.4s cubic-bezier(0.33, 1, 0.68, 1) backwards;
+}
+
+/* ── slide-right: entra desde la izquierda ── */
+@keyframes hibi-slide-right {
+  from { opacity: 0; transform: translateX(-14px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.hibi-anim-slide-right > * {
+  animation: hibi-slide-right 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+/* ── slide-left: entra desde la derecha ── */
+@keyframes hibi-slide-left {
+  from { opacity: 0; transform: translateX(14px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.hibi-anim-slide-left > * {
+  animation: hibi-slide-left 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+/* ── pop-in: aparece con escala suave ── */
+@keyframes hibi-pop-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.hibi-anim-pop > * {
+  animation: hibi-pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+/* ── float-down: cae desde arriba como nube ── */
+@keyframes hibi-float-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hibi-anim-float-down > * {
+  animation: hibi-float-down 0.5s cubic-bezier(0.34, 1.3, 0.64, 1) backwards;
+}
+
+/* ── rotate-in: rotación sutil con fade ── */
+@keyframes hibi-rotate-in {
+  from { opacity: 0; transform: rotate(-3deg) scale(0.95); }
+  to   { opacity: 1; transform: rotate(0deg) scale(1); }
+}
+.hibi-anim-rotate > * {
+  animation: hibi-rotate-in 0.5s cubic-bezier(0.34, 1.4, 0.64, 1) backwards;
+}
+
+/* Stagger genérico para CUALQUIER .hibi-cascade o .hibi-anim-* */
+.hibi-cascade > *:nth-child(1),  .hibi-anim-fade-up > *:nth-child(1),
+.hibi-anim-slide-right > *:nth-child(1), .hibi-anim-slide-left > *:nth-child(1),
+.hibi-anim-pop > *:nth-child(1), .hibi-anim-float-down > *:nth-child(1),
+.hibi-anim-rotate > *:nth-child(1)  { animation-delay: 40ms; }
+.hibi-cascade > *:nth-child(2),  .hibi-anim-fade-up > *:nth-child(2),
+.hibi-anim-slide-right > *:nth-child(2), .hibi-anim-slide-left > *:nth-child(2),
+.hibi-anim-pop > *:nth-child(2), .hibi-anim-float-down > *:nth-child(2),
+.hibi-anim-rotate > *:nth-child(2)  { animation-delay: 80ms; }
+.hibi-cascade > *:nth-child(3),  .hibi-anim-fade-up > *:nth-child(3),
+.hibi-anim-slide-right > *:nth-child(3), .hibi-anim-slide-left > *:nth-child(3),
+.hibi-anim-pop > *:nth-child(3), .hibi-anim-float-down > *:nth-child(3),
+.hibi-anim-rotate > *:nth-child(3)  { animation-delay: 120ms; }
+.hibi-cascade > *:nth-child(4),  .hibi-anim-fade-up > *:nth-child(4),
+.hibi-anim-slide-right > *:nth-child(4), .hibi-anim-slide-left > *:nth-child(4),
+.hibi-anim-pop > *:nth-child(4), .hibi-anim-float-down > *:nth-child(4),
+.hibi-anim-rotate > *:nth-child(4)  { animation-delay: 160ms; }
+.hibi-cascade > *:nth-child(5),  .hibi-anim-fade-up > *:nth-child(5),
+.hibi-anim-slide-right > *:nth-child(5), .hibi-anim-slide-left > *:nth-child(5),
+.hibi-anim-pop > *:nth-child(5), .hibi-anim-float-down > *:nth-child(5),
+.hibi-anim-rotate > *:nth-child(5)  { animation-delay: 200ms; }
+.hibi-cascade > *:nth-child(6),  .hibi-anim-fade-up > *:nth-child(6),
+.hibi-anim-slide-right > *:nth-child(6), .hibi-anim-slide-left > *:nth-child(6),
+.hibi-anim-pop > *:nth-child(6), .hibi-anim-float-down > *:nth-child(6),
+.hibi-anim-rotate > *:nth-child(6)  { animation-delay: 240ms; }
+.hibi-cascade > *:nth-child(7),  .hibi-anim-fade-up > *:nth-child(7),
+.hibi-anim-slide-right > *:nth-child(7), .hibi-anim-slide-left > *:nth-child(7),
+.hibi-anim-pop > *:nth-child(7), .hibi-anim-float-down > *:nth-child(7),
+.hibi-anim-rotate > *:nth-child(7)  { animation-delay: 280ms; }
+.hibi-cascade > *:nth-child(8),  .hibi-anim-fade-up > *:nth-child(8),
+.hibi-anim-slide-right > *:nth-child(8), .hibi-anim-slide-left > *:nth-child(8),
+.hibi-anim-pop > *:nth-child(8), .hibi-anim-float-down > *:nth-child(8),
+.hibi-anim-rotate > *:nth-child(8)  { animation-delay: 320ms; }
+.hibi-cascade > *:nth-child(n+9),.hibi-anim-fade-up > *:nth-child(n+9),
+.hibi-anim-slide-right > *:nth-child(n+9), .hibi-anim-slide-left > *:nth-child(n+9),
+.hibi-anim-pop > *:nth-child(n+9), .hibi-anim-float-down > *:nth-child(n+9),
+.hibi-anim-rotate > *:nth-child(n+9)  { animation-delay: 360ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hibi-cascade > *, .hibi-anim-fade-up > *,
+  .hibi-anim-slide-right > *, .hibi-anim-slide-left > *,
+  .hibi-anim-pop > *, .hibi-anim-float-down > *, .hibi-anim-rotate > * {
+    animation: none !important;
+  }
+}
+
+/* ============================================================
+   COLAPSO suave de paneles (notes folders, chat history, etc.)
+   Sólo anima WIDTH para que sea fluido y predecible. La curva es
+   un ease-out suave (sin overshoot). !important para sobrescribir
+   el transition-[background-color] que AppCard pone por defecto.
+   ============================================================ */
+.hibi-collapsible {
+  transition-property: width, background-color !important;
+  transition-duration: 380ms !important;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1) !important;
+  will-change: width;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hibi-collapsible { transition: none !important; }
+}
+
+/* ============================================================
+   Animación de counter-up para números de analíticas. Usar con
+   <span class="hibi-count-up">N</span> + JS que cuenta desde 0.
+   El estilo simplemente añade un suave fade-in mientras el JS hace
+   el conteo. Aquí solo el estado visual del wrapper.
+   ============================================================ */
+.hibi-count-up {
+  font-variant-numeric: tabular-nums;
+  display: inline-block;
+}
+.hibi-count-up--anim {
+  animation: hibiCountFade 420ms ease-out;
+}
+@keyframes hibiCountFade {
+  from { opacity: 0.5; transform: translateY(-3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hibi-count-up--anim { animation: none; }
+}
+
+/* ============================================================
+   Bars de analítica (heatmap, rings, etc) — entrada con stagger
+   en cada celda/segmento. Aplicar .hibi-anim-bars al contenedor.
+   ============================================================ */
+@keyframes hibi-bar-rise {
+  from { opacity: 0; transform: scaleY(0.4); transform-origin: bottom; }
+  to   { opacity: 1; transform: scaleY(1); }
+}
+.hibi-anim-bars > * {
+  animation: hibi-bar-rise 0.5s cubic-bezier(0.34, 1.3, 0.64, 1) backwards;
+}
+.hibi-anim-bars > *:nth-child(7n+1) { animation-delay: 30ms; }
+.hibi-anim-bars > *:nth-child(7n+2) { animation-delay: 60ms; }
+.hibi-anim-bars > *:nth-child(7n+3) { animation-delay: 90ms; }
+.hibi-anim-bars > *:nth-child(7n+4) { animation-delay: 120ms; }
+.hibi-anim-bars > *:nth-child(7n+5) { animation-delay: 150ms; }
+.hibi-anim-bars > *:nth-child(7n+6) { animation-delay: 180ms; }
+.hibi-anim-bars > *:nth-child(7n+7) { animation-delay: 210ms; }
+@media (prefers-reduced-motion: reduce) {
+  .hibi-anim-bars > * { animation: none; }
+}
+
+/* ============================================================
+   Fade SUTIL para swap de contenido SIN LAYOUT SHIFT.
+   Uso: <Transition name="hibi-fade"> (SIN mode="out-in"). El elemento
+   nuevo toma el espacio normal mientras el viejo se va con position
+   absolute → el contenedor (relative) MANTIENE su tamaño siempre.
+   ============================================================ */
+.hibi-fade-enter-active { transition: opacity 180ms ease-out; }
+.hibi-fade-leave-active {
+  transition: opacity 140ms ease-in;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.hibi-fade-enter-from   { opacity: 0; }
+.hibi-fade-leave-to     { opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .hibi-fade-enter-active, .hibi-fade-leave-active { transition: opacity 80ms ease; }
+}
+
+/* ============================================================
+   HibiCloud SVG: transición suave de color (currentColor) cuando
+   cambia el text-* class. Para el mood selector, etc.
+   ============================================================ */
+.hibi-cloud-icon svg { transition: color 220ms ease-out, fill 220ms ease-out; }
+
+/* ============================================================
+   "Pop" al marcar/desmarcar un check (tareas, listas, recordatorios,
+   subpasos). El icono swap se anima con Vue Transition name="hibi-check".
+   ============================================================ */
+.hibi-check-enter-active {
+  animation: hibiCheckPop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.hibi-check-leave-active {
+  animation: hibiCheckFade 0.18s ease-out forwards;
+}
+@keyframes hibiCheckPop {
+  0%   { opacity: 0; transform: scale(0.4); }
+  60%  { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes hibiCheckFade {
+  0%   { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.85); }
+}
+/* Vue Transition con mode="out-in": el "leave" debe completar antes del "enter".
+   Posicionamos absolutamente para que no se sume el tamaño durante el swap. */
+.hibi-check-leave-active { position: absolute; }
+@media (prefers-reduced-motion: reduce) {
+  .hibi-check-enter-active, .hibi-check-leave-active { animation: none; }
+}
+
+/* ============================================================
+   Form fields — entrada con stagger (para formularios de creación).
+   Aplica .hibi-anim-form al contenedor del form body.
+   ============================================================ */
+@keyframes hibi-form-field {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hibi-anim-form > * {
+  animation: hibi-form-field 0.42s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+.hibi-anim-form > *:nth-child(1) { animation-delay: 60ms; }
+.hibi-anim-form > *:nth-child(2) { animation-delay: 120ms; }
+.hibi-anim-form > *:nth-child(3) { animation-delay: 180ms; }
+.hibi-anim-form > *:nth-child(4) { animation-delay: 240ms; }
+.hibi-anim-form > *:nth-child(5) { animation-delay: 300ms; }
+.hibi-anim-form > *:nth-child(6) { animation-delay: 360ms; }
+.hibi-anim-form > *:nth-child(n+7) { animation-delay: 420ms; }
+@media (prefers-reduced-motion: reduce) {
+  .hibi-anim-form > * { animation: none; }
 }
 
 /* Cambio de vista: insinúa una hoja girando, pero MUY suave.
