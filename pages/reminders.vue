@@ -173,7 +173,7 @@ function saveReminder() {
                     </p>
                   </div>
                   <span class="shrink-0 relative inline-block" :style="{ width: '44px', height: '30px' }">
-                    <Transition name="hibi-check" mode="out-in">
+                    <Transition name="hibi-check">
                       <HibiCloudIcon
                         :key="r.done ? 'on' : 'off'"
                         :size="44"
@@ -181,7 +181,8 @@ function saveReminder() {
                         :icon-size="16"
                         :cloud-color="r.done ? 'text-mint' : 'text-muted'"
                         :icon-color="r.done ? 'text-[#34936a]' : 'text-transparent'"
-                        :icon-stroke="2.3" />
+                        :icon-stroke="2.3"
+                        class="absolute inset-0" />
                     </Transition>
                   </span>
                 </button>

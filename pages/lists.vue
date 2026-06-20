@@ -183,7 +183,7 @@ function addItem() {
               :class="i.done ? 'opacity-60' : ''"
               @click="i.done = !i.done">
               <span class="shrink-0 relative inline-block" :style="{ width: '38px', height: '26px' }">
-                <Transition name="hibi-check" mode="out-in">
+                <Transition name="hibi-check">
                   <HibiCloudIcon
                     :key="i.done ? 'on' : 'off'"
                     :size="38"
@@ -191,7 +191,8 @@ function addItem() {
                     :icon-size="14"
                     :cloud-color="i.done ? 'text-mint' : 'text-card'"
                     :icon-color="i.done ? 'text-[#34936a]' : 'text-transparent'"
-                    :icon-stroke="2.4" />
+                    :icon-stroke="2.4"
+                    class="absolute inset-0" />
                 </Transition>
               </span>
               <p class="flex-1 text-[14px] font-semibold text-fg" :class="{ 'line-through': i.done }">{{ i.title }}</p>

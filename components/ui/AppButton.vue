@@ -46,7 +46,7 @@ const sizeClass: Record<Size, string> = {
   <button
     :type="type"
     :disabled="disabled || loading"
-    class="hibi-btn group/hibibtn relative inline-flex items-center justify-center font-semibold select-none transition-[background-color,filter,opacity] duration-200 ease-soft disabled:opacity-50 disabled:pointer-events-none"
+    class="hibi-btn group/hibibtn relative inline-flex items-center justify-center font-semibold select-none transition-[background-color,filter,opacity,transform] duration-200 ease-soft disabled:opacity-50 disabled:pointer-events-none active:scale-[0.97]"
     :class="[variantClass[variant], sizeClass[size], block ? 'w-full' : '']"
   >
     <!-- Contenido normal del botón. En hover de primary/danger se desvanece
