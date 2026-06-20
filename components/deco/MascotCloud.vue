@@ -192,7 +192,7 @@ onBeforeUnmount(() => {
   opacity: 0.9;
   pointer-events: none;
   animation-name: hibi-rain;
-  animation-timing-function: ease-in;
+  animation-timing-function: var(--ease-in-out, cubic-bezier(0.77, 0, 0.175, 1));
   animation-fill-mode: forwards;
 }
 @keyframes hibi-rain {

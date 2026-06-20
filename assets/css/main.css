@@ -490,16 +490,14 @@ html, body { scrollbar-width: none; -ms-overflow-style: none; }
 /* Aparición de formularios inline: leve slide-down + fundido.
    Sin scale/translate grande que mueva el layout adyacente. */
 .inline-form-enter-active {
-  transition: opacity 0.28s cubic-bezier(0.23, 1, 0.32, 1),
-              transform 0.28s cubic-bezier(0.23, 1, 0.32, 1);
+  transition: opacity 200ms var(--ease-out);
 }
 .inline-form-leave-active {
-  transition: opacity 0.18s ease-in, transform 0.18s ease-in;
+  transition: opacity 140ms var(--ease-out);
 }
 .inline-form-enter-from,
 .inline-form-leave-to {
   opacity: 0;
-  transform: translateY(-6px);
 }
 
 /* Stagger de campos dentro del formulario con animation-delay por índice */
@@ -545,8 +543,8 @@ html, body { scrollbar-width: none; -ms-overflow-style: none; }
 .hibi-acc-enter-active, .hibi-acc-leave-active {
   display: grid;
   transition:
-    grid-template-rows 0.34s cubic-bezier(0.33, 1, 0.68, 1),
-    opacity 0.24s cubic-bezier(0.33, 1, 0.68, 1);
+    grid-template-rows 240ms var(--ease-drawer),
+    opacity 180ms var(--ease-out);
 }
 .hibi-acc-enter-active, .hibi-acc-leave-active { grid-template-rows: 1fr; }
 .hibi-acc-enter-from, .hibi-acc-leave-to       { grid-template-rows: 0fr; opacity: 0; }
@@ -577,59 +575,22 @@ html, body { scrollbar-width: none; -ms-overflow-style: none; }
    para que el delay funcione sin flashes intermedios.
    ============================================================ */
 
-/* ── fade-up (default): aparece desde abajo 8px ── */
-@keyframes hibi-fade-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* TODAS las animaciones de entrada usan SOLO opacity — sin transform,
+   sin scale, sin slide. El layout NO se mueve nunca. La variedad por
+   página se mantiene solo con la duración + stagger (no con la curva
+   de movimiento). */
+@keyframes hibi-only-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 .hibi-cascade > *,
-.hibi-anim-fade-up > * {
-  animation: hibi-fade-up 0.4s cubic-bezier(0.33, 1, 0.68, 1) backwards;
-}
-
-/* ── slide-right: entra desde la izquierda ── */
-@keyframes hibi-slide-right {
-  from { opacity: 0; transform: translateX(-14px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-.hibi-anim-slide-right > * {
-  animation: hibi-slide-right 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-}
-
-/* ── slide-left: entra desde la derecha ── */
-@keyframes hibi-slide-left {
-  from { opacity: 0; transform: translateX(14px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-.hibi-anim-slide-left > * {
-  animation: hibi-slide-left 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-}
-
-/* ── pop-in: aparece con escala suave ── */
-@keyframes hibi-pop-in {
-  from { opacity: 0; transform: scale(0.92); }
-  to   { opacity: 1; transform: scale(1); }
-}
-.hibi-anim-pop > * {
-  animation: hibi-pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
-}
-
-/* ── float-down: cae desde arriba como nube ── */
-@keyframes hibi-float-down {
-  from { opacity: 0; transform: translateY(-10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.hibi-anim-float-down > * {
-  animation: hibi-float-down 0.5s cubic-bezier(0.34, 1.3, 0.64, 1) backwards;
-}
-
-/* ── rotate-in: rotación sutil con fade ── */
-@keyframes hibi-rotate-in {
-  from { opacity: 0; transform: rotate(-3deg) scale(0.95); }
-  to   { opacity: 1; transform: rotate(0deg) scale(1); }
-}
+.hibi-anim-fade-up > *,
+.hibi-anim-slide-right > *,
+.hibi-anim-slide-left > *,
+.hibi-anim-pop > *,
+.hibi-anim-float-down > *,
 .hibi-anim-rotate > * {
-  animation: hibi-rotate-in 0.5s cubic-bezier(0.34, 1.4, 0.64, 1) backwards;
+  animation: hibi-only-fade 220ms var(--ease-out) backwards;
 }
 
 /* Stagger genérico para CUALQUIER .hibi-cascade o .hibi-anim-* */
@@ -686,8 +647,8 @@ html, body { scrollbar-width: none; -ms-overflow-style: none; }
    ============================================================ */
 .hibi-collapsible {
   transition-property: width, background-color !important;
-  transition-duration: 380ms !important;
-  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1) !important;
+  transition-duration: 260ms !important;
+  transition-timing-function: var(--ease-drawer) !important;
   will-change: width;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -720,11 +681,11 @@ html, body { scrollbar-width: none; -ms-overflow-style: none; }
    en cada celda/segmento. Aplicar .hibi-anim-bars al contenedor.
    ============================================================ */
 @keyframes hibi-bar-rise {
-  from { opacity: 0; transform: scaleY(0.4); transform-origin: bottom; }
-  to   { opacity: 1; transform: scaleY(1); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 .hibi-anim-bars > * {
-  animation: hibi-bar-rise 0.5s cubic-bezier(0.34, 1.3, 0.64, 1) backwards;
+  animation: hibi-bar-rise 220ms var(--ease-out) backwards;
 }
 .hibi-anim-bars > *:nth-child(7n+1) { animation-delay: 30ms; }
 .hibi-anim-bars > *:nth-child(7n+2) { animation-delay: 60ms; }
@@ -742,10 +703,11 @@ html, body { scrollbar-width: none; -ms-overflow-style: none; }
    Uso: <Transition name="hibi-fade"> (SIN mode="out-in"). El elemento
    nuevo toma el espacio normal mientras el viejo se va con position
    absolute → el contenedor (relative) MANTIENE su tamaño siempre.
+   Emil: nunca ease-in en UI; salida más rápida que la entrada.
    ============================================================ */
-.hibi-fade-enter-active { transition: opacity 180ms ease-out; }
+.hibi-fade-enter-active { transition: opacity 160ms var(--ease-out); }
 .hibi-fade-leave-active {
-  transition: opacity 140ms ease-in;
+  transition: opacity 120ms var(--ease-out);
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -753,7 +715,7 @@ html, body { scrollbar-width: none; -ms-overflow-style: none; }
 .hibi-fade-enter-from   { opacity: 0; }
 .hibi-fade-leave-to     { opacity: 0; }
 @media (prefers-reduced-motion: reduce) {
-  .hibi-fade-enter-active, .hibi-fade-leave-active { transition: opacity 80ms ease; }
+  .hibi-fade-enter-active, .hibi-fade-leave-active { transition: opacity 80ms linear; }
 }
 
 /* ============================================================
@@ -767,19 +729,20 @@ html, body { scrollbar-width: none; -ms-overflow-style: none; }
    subpasos). El icono swap se anima con Vue Transition name="hibi-check".
    ============================================================ */
 .hibi-check-enter-active {
-  animation: hibiCheckPop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: hibiCheckPop 220ms var(--ease-out);
 }
 .hibi-check-leave-active {
-  animation: hibiCheckFade 0.18s ease-out forwards;
+  animation: hibiCheckFade 140ms var(--ease-out) forwards;
 }
+/* Solo opacity — el icono no escala ni se mueve, para que el wrapper
+   mantenga su layout. */
 @keyframes hibiCheckPop {
-  0%   { opacity: 0; transform: scale(0.4); }
-  60%  { opacity: 1; transform: scale(1.15); }
-  100% { opacity: 1; transform: scale(1); }
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
 }
 @keyframes hibiCheckFade {
-  0%   { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(0.85); }
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
 }
 /* Vue Transition con mode="out-in": el "leave" debe completar antes del "enter".
    Posicionamos absolutamente para que no se sume el tamaño durante el swap. */
@@ -793,11 +756,11 @@ html, body { scrollbar-width: none; -ms-overflow-style: none; }
    Aplica .hibi-anim-form al contenedor del form body.
    ============================================================ */
 @keyframes hibi-form-field {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 .hibi-anim-form > * {
-  animation: hibi-form-field 0.42s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation: hibi-form-field 240ms var(--ease-out) backwards;
 }
 .hibi-anim-form > *:nth-child(1) { animation-delay: 60ms; }
 .hibi-anim-form > *:nth-child(2) { animation-delay: 120ms; }
