@@ -42,12 +42,23 @@ const CLOUD_PATH =
   ' A 30 30 0 0 1 25.4 25.4' +
   ' Z'
 
-// Longitud aproximada del path (medida con DOMRef o calculada). Usamos un
-// valor empírico medido en runtime para que el dashoffset funcione bien.
+// Longitud REAL del path. Al inicio NO está medida → el path se mantiene
+// completamente invisible (mounted=false) y NO se aplica transición hasta
+// después del primer frame. Eso evita el "flash" donde la barra parecía
+// haber empezado en otro punto antes de asentarse en 0.
 const pathRef = ref<SVGPathElement | null>(null)
-const totalLen = ref(360) // valor inicial razonable; se actualiza al montar
-onMounted(() => {
+const totalLen = ref(0)
+const mounted = ref(false)
+const transitionReady = ref(false)
+onMounted(async () => {
   if (pathRef.value) totalLen.value = pathRef.value.getTotalLength()
+  mounted.value = true
+  // Espera 2 frames antes de habilitar la transición de stroke-dashoffset
+  // para que el valor inicial (sin animar) se aplique limpio.
+  await nextTick()
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { transitionReady.value = true })
+  })
 })
 
 const dashOffset = computed(() => totalLen.value * (1 - Math.max(0, Math.min(1, props.progress))))
@@ -66,7 +77,9 @@ const dashOffset = computed(() => totalLen.value * (1 - Math.max(0, Math.min(1, 
       stroke-linejoin="round"
       fill="none"
     />
-    <!-- Progress (mismo contorno, parcialmente trazado) -->
+    <!-- Progress (mismo contorno, parcialmente trazado). Hasta que el
+         path se monte y mida totalLen real + 2 frames después, la
+         transición está desactivada para evitar el flash inicial. -->
     <path
       ref="pathRef"
       :d="CLOUD_PATH"
@@ -75,9 +88,12 @@ const dashOffset = computed(() => totalLen.value * (1 - Math.max(0, Math.min(1, 
       stroke-linecap="round"
       stroke-linejoin="round"
       fill="none"
-      :stroke-dasharray="totalLen"
-      :stroke-dashoffset="dashOffset"
-      style="transition: stroke-dashoffset 0.6s ease;"
+      :stroke-dasharray="totalLen || 1"
+      :stroke-dashoffset="mounted ? dashOffset : (totalLen || 1)"
+      :style="{
+        transition: transitionReady ? 'stroke-dashoffset 0.6s ease' : 'none',
+        opacity: mounted ? 1 : 0,
+      }"
     />
   </svg>
 </template>

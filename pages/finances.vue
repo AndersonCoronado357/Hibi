@@ -199,7 +199,7 @@ function addSub() {
         <form class="grid grid-cols-1 md:grid-cols-[1fr_130px_200px_200px_auto] gap-2 items-center" @submit.prevent="addExpense">
           <input v-model="newTitle" type="text" placeholder="Concepto del gasto"
             class="h-12 rounded-[12px] bg-muted focus:bg-inset px-3 text-[14.5px] font-semibold text-fg outline-none" />
-          <input v-model.number="newAmount" type="number" step="1000" placeholder="0 COP"
+          <input v-model.number="newAmount" type="number" step="any" min="0" placeholder="0 COP"
             class="h-12 rounded-[12px] bg-muted focus:bg-inset px-3 text-[14.5px] text-fg outline-none tabular-nums text-right" />
           <AppDate v-model="newDate" placeholder="Fecha" />
           <AppSelect v-model="newCat" :options="CAT_OPTS" placeholder="Categoría" />
@@ -238,7 +238,7 @@ function addSub() {
         <form class="grid grid-cols-1 md:grid-cols-[1fr_130px_200px_200px_auto] gap-2 items-center" @submit.prevent="addSub">
           <input v-model="newSubTitle" type="text" placeholder="Nombre del servicio"
             class="h-12 rounded-[12px] bg-muted focus:bg-inset px-3 text-[14.5px] font-semibold text-fg outline-none" />
-          <input v-model.number="newSubAmount" type="number" step="1000" placeholder="0 COP/mes"
+          <input v-model.number="newSubAmount" type="number" step="any" min="0" placeholder="0 COP/mes"
             class="h-12 rounded-[12px] bg-muted focus:bg-inset px-3 text-[14.5px] text-fg outline-none tabular-nums text-right" />
           <AppDate v-model="newSubDate" placeholder="Próximo cobro" />
           <AppSelect v-model="newSubCat" :options="CAT_OPTS" placeholder="Categoría" />

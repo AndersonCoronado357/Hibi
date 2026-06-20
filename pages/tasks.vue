@@ -202,9 +202,12 @@ function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
           <AppCard class="!p-0 overflow-hidden transition-[background-color]"
             :class="expandedId === t.id ? '!bg-muted' : ''">
             <button type="button" class="w-full flex items-center gap-3 p-4 text-left" @click="toggleRow(t.id)">
-              <!-- Check con forma de nube y POP al marcar/desmarcar -->
-              <button type="button" @click.stop="toggleDone(t)" class="shrink-0 relative" :aria-label="t.status === 'done' ? 'Marcar pendiente' : 'Marcar hecha'">
-                <Transition name="hibi-check" mode="out-in">
+              <!-- Check con nube — wrapper con tamaño fijo para que el swap NO mueva layout -->
+              <button type="button" @click.stop="toggleDone(t)"
+                class="shrink-0 relative inline-block"
+                :style="{ width: '40px', height: '27px' }"
+                :aria-label="t.status === 'done' ? 'Marcar pendiente' : 'Marcar hecha'">
+                <Transition name="hibi-check">
                   <HibiCloudIcon
                     :key="t.status"
                     :size="40"
@@ -212,7 +215,8 @@ function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
                     :icon-size="16"
                     :cloud-color="t.status === 'done' ? 'text-mint' : 'text-muted'"
                     :icon-color="t.status === 'done' ? 'text-[#34936a]' : 'text-transparent'"
-                    :icon-stroke="2.4" />
+                    :icon-stroke="2.4"
+                    class="absolute inset-0" />
                 </Transition>
               </button>
               <div class="flex-1 min-w-0">
@@ -231,9 +235,9 @@ function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
               </div>
               <ChevronDown class="size-[18px] text-fg-muted transition-[transform] duration-200" :class="expandedId === t.id ? 'rotate-180' : ''" :stroke-width="2.2" aria-hidden="true" />
             </button>
-            <!-- Detalle expandible -->
+            <!-- Detalle expandible — v-if para que el grid trick anime altura -->
             <Transition name="hibi-acc">
-              <div v-show="expandedId === t.id" class="px-4 pb-4 pt-0">
+              <div v-if="expandedId === t.id" class="px-4 pb-4 pt-0">
                 <div v-if="t.notes" class="rounded-[10px] bg-card px-3 py-2.5">
                   <p class="text-[11px] text-fg-muted font-semibold uppercase tracking-wide mb-1">Notas</p>
                   <p class="text-[13.5px] text-fg whitespace-pre-wrap">{{ t.notes }}</p>

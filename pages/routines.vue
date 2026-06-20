@@ -284,14 +284,18 @@ function playRoutine() {
               @dragstart="onStepDragStart($event, i)"
               @dragover="onStepDragOver"
               @drop="onStepDrop(i)">
-              <!-- Marcador del paso: nubecita verde si hecho, nubecita pálida con número si pendiente -->
+              <!-- Marcador del paso con POP al cambiar (nube verde con check / pálida con número) -->
               <span class="relative z-10 mx-auto inline-block" :style="{ width: '46px', height: '32px' }">
-                <HibiCloud :size="46" :class="s.done ? 'text-mint' : 'text-card'" class="absolute inset-0" />
-                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-[13px]"
-                  :class="s.done ? 'text-[#34936a]' : 'text-fg-muted'">
-                  <Check v-if="s.done" class="size-[15px]" :stroke-width="2.5" aria-hidden="true" />
-                  <template v-else>{{ i + 1 }}</template>
-                </span>
+                <Transition name="hibi-check">
+                  <span :key="s.done ? 'on' : 'off'" class="absolute inset-0">
+                    <HibiCloud :size="46" :class="s.done ? 'text-mint' : 'text-card'" class="absolute inset-0" />
+                    <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold text-[13px]"
+                      :class="s.done ? 'text-[#34936a]' : 'text-fg-muted'">
+                      <Check v-if="s.done" class="size-[15px]" :stroke-width="2.5" aria-hidden="true" />
+                      <template v-else>{{ i + 1 }}</template>
+                    </span>
+                  </span>
+                </Transition>
               </span>
               <p class="text-[14px] font-semibold text-fg" :class="{ 'line-through opacity-50': s.done }">{{ s.title }}</p>
               <span class="text-[12.5px] font-bold text-fg-subtle tabular-nums">{{ s.mins }} min</span>
@@ -305,7 +309,7 @@ function playRoutine() {
               class="relative grid grid-cols-[56px_1fr] gap-3 items-center py-1.5 pl-12 cursor-pointer hover:bg-muted/50 rounded-[10px] transition-[background-color]"
               @click.stop="sub.done = !sub.done">
               <span class="relative z-10 mx-auto inline-block" :style="{ width: '32px', height: '22px' }">
-                <Transition name="hibi-check" mode="out-in">
+                <Transition name="hibi-check">
                   <HibiCloudIcon
                     :key="sub.done ? 'on' : 'off'"
                     :size="32"
@@ -313,7 +317,8 @@ function playRoutine() {
                     :icon-size="12"
                     :cloud-color="sub.done ? 'text-mint' : 'text-card'"
                     :icon-color="sub.done ? 'text-[#34936a]' : 'text-transparent'"
-                    :icon-stroke="3" />
+                    :icon-stroke="3"
+                    class="absolute inset-0" />
                 </Transition>
               </span>
               <p class="text-[13px] text-fg" :class="{ 'line-through opacity-50': sub.done }">{{ sub.title }}</p>

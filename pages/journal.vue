@@ -95,6 +95,9 @@ const moodDist = computed(() => {
   return moods.map(m => ({ ...m, count: entries.value.filter(e => e.mood === m.v).length, pct: Math.round((entries.value.filter(e => e.mood === m.v).length / total) * 100) }))
 })
 const hoveredMood = ref<number | null>(null)
+// Mood SELECCIONADO (click): el heatmap solo muestra ese, los otros días aparecen vacíos
+const selectedMood = ref<number | null>(null)
+function toggleMood(v: number) { selectedMood.value = selectedMood.value === v ? null : v }
 
 // Heatmap: 12 semanas × 7 días. Empezamos en LUNES de la semana hace 12 semanas
 // y fluimos por columnas (cada columna = una semana, cada fila = día L..D).
@@ -264,14 +267,19 @@ function arcPath(idx: number, dist: typeof moodDist.value) {
         <svg viewBox="0 0 240 240" class="w-full max-w-[260px] relative z-10" aria-label="Distribución de ánimo">
           <g transform="translate(120 120)">
             <template v-for="(m, i) in moodDist" :key="m.v">
-              <!-- Cada arco -->
+              <!-- Cada arco — click para FILTRAR el heatmap por este mood -->
               <path v-if="m.count"
                 :d="arcPath(i, moodDist)"
                 :fill="m.hex"
                 class="cursor-pointer transition-[opacity,transform]"
-                :style="{ opacity: hoveredMood === null || hoveredMood === m.v ? 1 : 0.35, transformOrigin: '0 0', transform: hoveredMood === m.v ? 'scale(1.04)' : 'scale(1)' }"
+                :style="{
+                  opacity: (selectedMood !== null ? (selectedMood === m.v ? 1 : 0.25) : (hoveredMood === null || hoveredMood === m.v ? 1 : 0.35)),
+                  transformOrigin: '0 0',
+                  transform: hoveredMood === m.v || selectedMood === m.v ? 'scale(1.04)' : 'scale(1)'
+                }"
                 @mouseenter="hoveredMood = m.v"
-                @mouseleave="hoveredMood = null" />
+                @mouseleave="hoveredMood = null"
+                @click="toggleMood(m.v)" />
             </template>
             <!-- Hueco centro con icono mood hovered -->
             <circle r="56" fill="var(--bg-card)" />
@@ -282,9 +290,13 @@ function arcPath(idx: number, dist: typeof moodDist.value) {
         <!-- Leyenda con barras: cada mood -->
         <div class="w-full flex flex-col gap-1.5 relative z-10">
           <div v-for="m in moodDist" :key="m.v"
-            class="flex items-center gap-2 px-2 py-1.5 rounded-[10px] cursor-pointer transition-[background-color]"
-            :class="hoveredMood === m.v ? 'bg-muted' : 'hover:bg-muted'"
-            @mouseenter="hoveredMood = m.v" @mouseleave="hoveredMood = null">
+            class="flex items-center gap-2 px-2 py-1.5 rounded-[10px] cursor-pointer transition-[background-color,opacity]"
+            :class="[
+              selectedMood !== null && selectedMood !== m.v ? 'opacity-40' : '',
+              hoveredMood === m.v || selectedMood === m.v ? 'bg-muted' : 'hover:bg-muted',
+            ]"
+            @mouseenter="hoveredMood = m.v" @mouseleave="hoveredMood = null"
+            @click="toggleMood(m.v)">
             <component :is="m.icon" class="size-[16px] shrink-0" :class="m.color" :stroke-width="1.9" aria-hidden="true" />
             <span class="text-[12.5px] font-semibold text-fg w-16 shrink-0">{{ m.label }}</span>
             <div class="flex-1 h-2 rounded-full bg-muted overflow-hidden">
@@ -312,13 +324,16 @@ function arcPath(idx: number, dist: typeof moodDist.value) {
           </div>
           <div class="hibi-anim-bars flex-1 grid gap-1.5 min-h-0"
             style="grid-template-rows: repeat(7, minmax(0, 1fr)); grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);">
+            <!-- Si hay un mood seleccionado, solo ese se muestra con color; los otros días salen pálidos (bg-muted) -->
             <button v-for="(c, i) in heatCells" :key="i" type="button"
-              class="rounded-[5px] min-h-0 transition-[filter]"
+              class="rounded-[5px] min-h-0 transition-[filter,background-color,opacity] duration-200"
               :class="[
-                c.mood ? '' : 'bg-muted',
+                (!c.mood || (selectedMood !== null && c.mood !== selectedMood)) ? 'bg-muted' : '',
                 heatSelected?.date === c.date ? 'brightness-125' : '',
               ]"
-              :style="c.mood ? { background: moods[c.mood-1]!.hex, opacity: 0.4 + (c.mood / 5) * 0.6 } : undefined"
+              :style="c.mood && (selectedMood === null || c.mood === selectedMood)
+                ? { background: moods[c.mood-1]!.hex, opacity: 0.4 + (c.mood / 5) * 0.6 }
+                : undefined"
               :title="`${format(c.date, 'EEE d', { locale: es })}`"
               @click="heatSelected = c"
               @mouseenter="heatSelected = c"></button>

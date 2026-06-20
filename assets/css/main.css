@@ -490,14 +490,15 @@ html, body { scrollbar-width: none; -ms-overflow-style: none; }
 /* Aparición de formularios inline: leve slide-down + fundido.
    Sin scale/translate grande que mueva el layout adyacente. */
 .inline-form-enter-active {
-  transition: opacity 200ms var(--ease-out);
+  transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out);
 }
 .inline-form-leave-active {
-  transition: opacity 140ms var(--ease-out);
+  transition: opacity 140ms var(--ease-out), transform 140ms var(--ease-out);
 }
 .inline-form-enter-from,
 .inline-form-leave-to {
   opacity: 0;
+  transform: translateY(-4px);
 }
 
 /* Stagger de campos dentro del formulario con animation-delay por índice */
@@ -538,23 +539,31 @@ html, body { scrollbar-width: none; -ms-overflow-style: none; }
   transform: translateY(-6px) scale(0.96);
 }
 
-/* Acordeón vertical PREMIUM: usa grid-template-rows 0fr → 1fr para animar
-   la altura real desde 0 hasta auto. El contenido SE EMPUJA suavemente. */
+/* Acordeón con grid 0fr→1fr (animación fluida y predecible).
+   El truco: grid-template-rows interpola perfectamente entre 0fr y 1fr
+   en navegadores modernos. Para evitar saltos se aplica overflow:hidden
+   en el hijo y se usa la curva de drawer (iOS). */
 .hibi-acc-enter-active, .hibi-acc-leave-active {
   display: grid;
+  grid-template-rows: 1fr;
   transition:
-    grid-template-rows 240ms var(--ease-drawer),
-    opacity 180ms var(--ease-out);
+    grid-template-rows 280ms var(--ease-drawer),
+    opacity 200ms var(--ease-out);
 }
-.hibi-acc-enter-active, .hibi-acc-leave-active { grid-template-rows: 1fr; }
-.hibi-acc-enter-from, .hibi-acc-leave-to       { grid-template-rows: 0fr; opacity: 0; }
-.hibi-acc-enter-active > *, .hibi-acc-leave-active > * { overflow: hidden; min-height: 0; }
+.hibi-acc-enter-active > *, .hibi-acc-leave-active > * {
+  overflow: hidden;
+  min-height: 0;
+}
+.hibi-acc-enter-from, .hibi-acc-leave-to {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
 @media (prefers-reduced-motion: reduce) {
   .hibi-acc-enter-active, .hibi-acc-leave-active {
-    transition: opacity 0.12s ease;
-    grid-template-rows: 1fr;
+    transition: opacity 120ms ease;
+    grid-template-rows: 1fr !important;
   }
-  .hibi-acc-enter-from, .hibi-acc-leave-to { grid-template-rows: 1fr; }
+  .hibi-acc-enter-from, .hibi-acc-leave-to { grid-template-rows: 1fr; opacity: 0; }
 }
 
 /* Slide horizontal premium */
@@ -575,22 +584,57 @@ html, body { scrollbar-width: none; -ms-overflow-style: none; }
    para que el delay funcione sin flashes intermedios.
    ============================================================ */
 
-/* TODAS las animaciones de entrada usan SOLO opacity — sin transform,
-   sin scale, sin slide. El layout NO se mueve nunca. La variedad por
-   página se mantiene solo con la duración + stagger (no con la curva
-   de movimiento). */
-@keyframes hibi-only-fade {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+/* Variantes con micro-movimiento (transform). Todas terminan en el
+   estado natural (translate 0, scale 1) por lo que NO desplazan
+   layout alrededor — solo el elemento que entra hace su pequeño
+   recorrido y queda en su sitio. Duración corta + ease-out fuerte. */
+@keyframes hibi-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 .hibi-cascade > *,
-.hibi-anim-fade-up > *,
-.hibi-anim-slide-right > *,
-.hibi-anim-slide-left > *,
-.hibi-anim-pop > *,
-.hibi-anim-float-down > *,
+.hibi-anim-fade-up > * {
+  animation: hibi-fade-up 220ms var(--ease-out) backwards;
+}
+
+@keyframes hibi-slide-right {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.hibi-anim-slide-right > * {
+  animation: hibi-slide-right 240ms var(--ease-out) backwards;
+}
+
+@keyframes hibi-slide-left {
+  from { opacity: 0; transform: translateX(10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.hibi-anim-slide-left > * {
+  animation: hibi-slide-left 240ms var(--ease-out) backwards;
+}
+
+@keyframes hibi-pop-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.hibi-anim-pop > * {
+  animation: hibi-pop-in 220ms var(--ease-out) backwards;
+}
+
+@keyframes hibi-float-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hibi-anim-float-down > * {
+  animation: hibi-float-down 240ms var(--ease-out) backwards;
+}
+
+@keyframes hibi-rotate-in {
+  from { opacity: 0; transform: rotate(-2deg) scale(0.96); }
+  to   { opacity: 1; transform: rotate(0deg) scale(1); }
+}
 .hibi-anim-rotate > * {
-  animation: hibi-only-fade 220ms var(--ease-out) backwards;
+  animation: hibi-rotate-in 240ms var(--ease-out) backwards;
 }
 
 /* Stagger genérico para CUALQUIER .hibi-cascade o .hibi-anim-* */
@@ -681,8 +725,8 @@ html, body { scrollbar-width: none; -ms-overflow-style: none; }
    en cada celda/segmento. Aplicar .hibi-anim-bars al contenedor.
    ============================================================ */
 @keyframes hibi-bar-rise {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from { opacity: 0; transform: scaleY(0.85); transform-origin: bottom; }
+  to   { opacity: 1; transform: scaleY(1); }
 }
 .hibi-anim-bars > * {
   animation: hibi-bar-rise 220ms var(--ease-out) backwards;
@@ -734,15 +778,15 @@ html, body { scrollbar-width: none; -ms-overflow-style: none; }
 .hibi-check-leave-active {
   animation: hibiCheckFade 140ms var(--ease-out) forwards;
 }
-/* Solo opacity — el icono no escala ni se mueve, para que el wrapper
-   mantenga su layout. */
+/* Pop sutil al marcar/desmarcar. El wrapper externo tiene width/height
+   fijos, así que el scale interno no mueve nada de alrededor. */
 @keyframes hibiCheckPop {
-  0%   { opacity: 0; }
-  100% { opacity: 1; }
+  0%   { opacity: 0; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1); }
 }
 @keyframes hibiCheckFade {
-  0%   { opacity: 1; }
-  100% { opacity: 0; }
+  0%   { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.95); }
 }
 /* Vue Transition con mode="out-in": el "leave" debe completar antes del "enter".
    Posicionamos absolutamente para que no se sume el tamaño durante el swap. */
@@ -756,8 +800,8 @@ html, body { scrollbar-width: none; -ms-overflow-style: none; }
    Aplica .hibi-anim-form al contenedor del form body.
    ============================================================ */
 @keyframes hibi-form-field {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 .hibi-anim-form > * {
   animation: hibi-form-field 240ms var(--ease-out) backwards;
