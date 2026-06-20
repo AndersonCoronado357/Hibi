@@ -295,13 +295,15 @@
    Solo color, brightness, opacidad. NUNCA scale/translate en interacción.
    ============================================================ */
 
-/* Transición suave de color en TODO elemento interactivo */
-button, [role="button"], a {
+/* Transición suave de color en BOTONES (no en `a` para no afectar a
+   NuxtLinks como los iconos del TopNav, que a veces quedaban en estado
+   de transición de opacidad durante una recarga rápida → invisibles). */
+button, [role="button"] {
   transition: background-color 180ms var(--ease-soft),
               color 180ms var(--ease-soft),
-              filter 180ms var(--ease-soft),
-              opacity 180ms var(--ease-soft);
+              filter 180ms var(--ease-soft);
 }
+a { transition: background-color 180ms var(--ease-soft), color 180ms var(--ease-soft); }
 
 /* Press feedback NO destructivo: leve oscurecimiento del fondo, sin scale */
 button:not(:disabled):active:not(.hibi-btn),

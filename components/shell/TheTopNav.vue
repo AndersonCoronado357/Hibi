@@ -75,6 +75,13 @@ const currentTitle = computed(() => {
 </template>
 
 <style scoped>
+/* Blindaje: los iconos del TopNav SIEMPRE deben ser visibles. Prevenimos
+   que cualquier transición global de opacity los deje invisibles tras un
+   reload rápido / cambio de ruta. */
+.hibi-tn {
+  opacity: 1 !important;
+  animation: none !important;
+}
 .hibi-tn--active {
   background-color: var(--color-sky-soft);
   color: var(--color-sky-deep);
