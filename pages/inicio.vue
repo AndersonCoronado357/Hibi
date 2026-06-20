@@ -82,14 +82,13 @@ const widgets = computed<Widget[]>(() => [
         </AppCard>
       </section>
 
-      <!-- WIDGETS: grid que llena -->
+      <!-- WIDGETS: grid que llena. Sin animación de stagger por encima del
+           fade-in que ya hace cada AppCard al montarse — evita que recargar
+           inicio dispare una cascada visible de movimientos. -->
       <section class="md:flex-1 md:min-h-0 px-4 md:px-7 pb-6">
-        <div class="hibi-anim-pop grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 auto-rows-fr md:h-full">
+        <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 auto-rows-fr md:h-full">
           <AppCard
-            v-for="(w, i) in widgets" :key="w.key"
-            v-motion
-            :initial="{ opacity: 0, y: 10 }"
-            :enter="{ opacity: 1, y: 0, transition: { delay: i * 55, duration: 320 } }"
+            v-for="w in widgets" :key="w.key"
             class="flex flex-col min-h-[170px] relative overflow-hidden"
           >
             <HibiCloud :size="60" class="hidden md:block absolute -top-2 -right-2 text-card opacity-15 pointer-events-none z-40" aria-hidden="true" />
