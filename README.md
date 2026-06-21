@@ -11,11 +11,30 @@ Nuxt 3 · Vue 3 · TypeScript · Tailwind CSS 4 · Pinia · TanStack Vue Query �
 ## Desarrollo
 
 ```bash
-npm install       # instala dependencias
-npm run dev       # arranca en http://localhost:3100 (y en tu LAN para móvil)
+npm install --legacy-peer-deps   # instala dependencias
+npm run dev                      # arranca en http://localhost:3100
+npm run dev:tunnel               # variante para exponer en la LAN (móvil + Cloudflare tunnel)
 ```
 
-Al arrancar con `dev` el servidor se expone en la IP de la red local y se imprime un **código QR** en la terminal para abrir la app desde el móvil o la tablet conectados a la misma red.
+`dev:tunnel` también imprime un **código QR** para abrir la app desde el móvil o la tablet en la misma red.
+
+## Despliegue (acmsy)
+
+El proyecto cumple el contrato de despliegue de acmsy:
+
+- **Stack detectado:** Node (Nuxt 3 + Nitro).
+- **Build:** `npm run build` (genera `.output/`).
+- **Start:** `npm start` (corre `node .output/server/index.mjs`).
+- **Puerto interno:** lee `PORT` (por defecto `3000`); escucha en `0.0.0.0`.
+- **Base de datos:** todavía no se usa BD en el servidor — la persistencia
+  futura irá vía Supabase (cliente directo desde el frontend). Las vars
+  `DB_*` / `DATABASE_URL` están reservadas en `.env.example` por si se
+  añade una BD gestionada por acmsy más adelante.
+- **Dockerfile:** incluido. Base `node:22-bookworm-slim`. `npm install
+  --legacy-peer-deps` + `npm run build` + `npm start`.
+- **Proxy:** respeta `X-Forwarded-*` (gestionado por Nitro por defecto).
+
+Subdominio típico: `hibi.acmsy.com`.
 
 ## Variables de entorno
 

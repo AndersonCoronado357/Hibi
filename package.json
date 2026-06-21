@@ -5,8 +5,10 @@
   "type": "module",
   "description": "Hibi (日々) — organización personal día a día.",
   "scripts": {
-    "dev": "nuxt dev --port 3100 --host 0.0.0.0",
+    "dev": "nuxt dev --port 3100",
+    "dev:tunnel": "nuxt dev --port 3100 --host 0.0.0.0",
     "build": "nuxt build",
+    "start": "node .output/server/index.mjs",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "typecheck": "nuxt typecheck",
