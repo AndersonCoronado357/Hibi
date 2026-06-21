@@ -22,3 +22,12 @@ Thumbs.db
 # Editor
 .vscode
 .idea
+
+# Claude / docs locales (no se suben al repo)
+.claude
+.claude/
+**/.claude
+**/.claude/
+*.md
+!README.md
+

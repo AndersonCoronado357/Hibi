@@ -24,6 +24,10 @@ export default defineNuxtConfig({
 
   vite: {
     plugins: [tailwindcss()],
+    // Permite servir a traves de un tunel de Cloudflare (acceso desde el celular).
+    server: {
+      allowedHosts: ['.trycloudflare.com', '.cfargotunnel.com'],
+    },
   },
 
   // Tema con identidad: data-theme="dark" sobre <html>, sin parpadeo en SSR
@@ -85,8 +89,8 @@ export default defineNuxtConfig({
         'Referrer-Policy': 'strict-origin-when-cross-origin',
       },
     },
-    // La raíz redirige al dashboard principal
-    '/': { redirect: '/inicio' },
+    // La raíz redirige al login (la app entra desde ahí)
+    '/': { redirect: '/login' },
     // El login es 100% interactivo (animaciones, cursor): renderizado en cliente.
     '/login': { ssr: false },
   },
