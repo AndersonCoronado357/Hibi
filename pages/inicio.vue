@@ -82,11 +82,11 @@ const widgets = computed<Widget[]>(() => [
         </AppCard>
       </section>
 
-      <!-- WIDGETS: grid que llena. Sin animación de stagger por encima del
-           fade-in que ya hace cada AppCard al montarse — evita que recargar
-           inicio dispare una cascada visible de movimientos. -->
+      <!-- WIDGETS: grid que llena. Cascada sutil con hibi-anim-pop (solo
+           una capa, no encima de v-motion). El stagger por nth-child crea
+           el efecto diagonal de izquierda a derecha. -->
       <section class="md:flex-1 md:min-h-0 px-4 md:px-7 pb-6">
-        <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 auto-rows-fr md:h-full">
+        <div class="hibi-anim-pop grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 auto-rows-fr md:h-full">
           <AppCard
             v-for="w in widgets" :key="w.key"
             class="flex flex-col min-h-[170px] relative overflow-hidden"
