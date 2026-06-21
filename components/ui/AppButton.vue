@@ -52,12 +52,15 @@ const sizeClass: Record<Size, string> = {
     <!-- Contenido normal del botón. En hover de primary/danger se desvanece
          para dejar ver los ojitos. -->
     <span
-      class="inline-flex items-center justify-center gap-2 transition-opacity duration-200"
+      class="inline-flex items-center justify-center gap-2 leading-none transition-opacity duration-200"
       :class="(variant === 'primary' || variant === 'danger') ? 'group-hover/hibibtn:opacity-0' : ''"
     >
       <Loader2 v-if="loading" class="size-[18px] animate-spin" :stroke-width="2.2" />
       <slot v-else name="icon" />
-      <span v-if="$slots.default" class="leading-none"><slot /></span>
+      <!-- Slot del label SIN wrapper: si el contenido va `hidden` (p.ej. en
+           movil), al ser display:none deja de contar como item flex y el
+           gap NO reserva espacio → el icono queda centrado. -->
+      <slot />
     </span>
 
     <!-- CARITA DE HIBI: aparece centrada al hover (solo primary/danger).

@@ -1,9 +1,20 @@
 <script setup lang="ts">
-import { Bold, Italic, Heading1, Heading2, List, ListOrdered, Quote, Code2, Strikethrough, Link as LinkIcon, Undo2, Redo2, Highlighter, Palette, ChevronDown } from '@lucide/vue'
+import { Bold, Italic, Heading1, Heading2, List, ListOrdered, Quote, Code2, Strikethrough, Link as LinkIcon, Undo2, Redo2, Highlighter, Palette, ChevronDown, Type } from '@lucide/vue'
 import AppColorPicker from './AppColorPicker.vue'
 
-const props = defineProps<{ modelValue: string; placeholder?: string; minHeight?: string }>()
-const emit = defineEmits<{ (e: 'update:modelValue', v: string): void }>()
+const props = defineProps<{ modelValue: string; placeholder?: string; minHeight?: string; toolbarOpen?: boolean }>()
+const emit = defineEmits<{ (e: 'update:modelValue', v: string): void; (e: 'update:toolbarOpen', v: boolean): void }>()
+
+// En movil la barra de formato se pliega para no comer espacio del editor.
+// En desktop (md+) siempre está visible.
+// El estado puede ser CONTROLADO por el padre (v-model:toolbar-open) — útil
+// para colocar el botón "Formato" junto al título — o interno si no se pasa.
+const internalToolbarOpen = ref(false)
+const controlled = computed(() => props.toolbarOpen !== undefined)
+const toolbarOpen = computed({
+  get: () => (controlled.value ? !!props.toolbarOpen : internalToolbarOpen.value),
+  set: (v: boolean) => { controlled.value ? emit('update:toolbarOpen', v) : (internalToolbarOpen.value = v) },
+})
 
 const editorRef = ref<HTMLDivElement | null>(null)
 let pendingFromProp = false
@@ -118,8 +129,22 @@ const tools = [
 
 <template>
   <div class="flex flex-col w-full h-full">
-    <!-- Toolbar -->
-    <div class="shrink-0 flex items-center gap-0.5 px-2 py-1.5 rounded-[12px] bg-muted flex-wrap">
+    <!-- Movil: boton para abrir/cerrar la barra de formato. Solo se renderiza
+         si el estado NO está controlado por el padre (en ese caso el padre
+         coloca su propio botón, p.ej. junto al título). -->
+    <button v-if="!controlled" type="button"
+      class="md:hidden shrink-0 self-start mb-2 inline-flex items-center gap-2 h-9 px-3 rounded-[10px] bg-muted text-fg-muted hover:text-fg transition-[color]"
+      :aria-expanded="toolbarOpen"
+      @click="toolbarOpen = !toolbarOpen">
+      <Type class="size-[15px]" :stroke-width="2" aria-hidden="true" />
+      <span class="text-[13px] font-semibold">Formato</span>
+      <ChevronDown class="size-3.5 transition-[transform] duration-200" :class="toolbarOpen ? 'rotate-180' : ''" :stroke-width="2.2" aria-hidden="true" />
+    </button>
+
+    <!-- Toolbar: desktop siempre visible; movil solo si toolbarOpen -->
+    <div
+      class="shrink-0 items-center gap-0.5 px-2 py-1.5 rounded-[12px] bg-muted flex-wrap"
+      :class="toolbarOpen ? 'flex' : 'hidden md:flex'">
       <template v-for="(t, i) in tools" :key="i">
         <span v-if="(t as any).sep" class="w-px h-5 bg-[var(--bg-inset)] mx-1" aria-hidden="true" />
         <button v-else type="button"
@@ -143,7 +168,8 @@ const tools = [
         </button>
         <Transition name="hibi-pop">
           <div v-if="showColorPopup === 'color'"
-            class="hibi-color-popup absolute z-[60] top-full left-0 mt-2 w-[280px] bg-card rounded-[14px] p-3 shadow-[0_10px_30px_rgba(15,18,30,0.18)]"
+            class="hibi-color-popup absolute z-[60] top-full left-0 mt-2 w-[280px] rounded-[14px] p-3"
+            :style="{ background: 'var(--bg-pop)' }"
             @mousedown.prevent>
             <AppColorPicker :model-value="colorValue" format="hex" @update:model-value="onColorChange" />
           </div>
@@ -160,7 +186,8 @@ const tools = [
         </button>
         <Transition name="hibi-pop">
           <div v-if="showColorPopup === 'hilite'"
-            class="hibi-color-popup absolute z-[60] top-full left-0 mt-2 w-[280px] bg-card rounded-[14px] p-3 shadow-[0_10px_30px_rgba(15,18,30,0.18)]"
+            class="hibi-color-popup absolute z-[60] top-full left-0 mt-2 w-[280px] rounded-[14px] p-3"
+            :style="{ background: 'var(--bg-pop)' }"
             @mousedown.prevent>
             <AppColorPicker :model-value="hiliteValue" format="hex" @update:model-value="onHiliteChange" />
           </div>
@@ -176,7 +203,7 @@ const tools = [
           <ChevronDown class="size-3" :stroke-width="2.2" />
         </button>
         <Transition name="hibi-pop">
-          <div v-if="showSizeMenu" class="hibi-size-popup absolute z-50 top-full left-0 mt-1.5 bg-card rounded-[12px] py-1 flex flex-col min-w-[80px] shadow-[0_6px_20px_rgba(15,18,30,0.10)]">
+          <div v-if="showSizeMenu" class="hibi-size-popup absolute z-50 top-full left-0 mt-1.5 rounded-[12px] py-1 flex flex-col min-w-[80px]" :style="{ background: 'var(--bg-pop)' }">
             <button v-for="s in SIZES" :key="s" type="button"
               class="h-8 px-3 text-left text-[13px] font-semibold text-fg hover:bg-muted"
               @mousedown.prevent @click="setSize(s)">{{ s }} pt</button>

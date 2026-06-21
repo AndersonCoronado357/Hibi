@@ -17,12 +17,12 @@ const triggerRef = ref<HTMLElement | null>(null)
 const popoverRef = ref<HTMLElement | null>(null)
 const hoursColRef = ref<HTMLElement | null>(null)
 const minsColRef = ref<HTMLElement | null>(null)
-const popPos = ref({ top: 0, left: 0 })
-function recalcPos() {
-  if (!triggerRef.value) return
-  const r = triggerRef.value.getBoundingClientRect()
-  popPos.value = { top: r.bottom + 6, left: r.left }
-}
+// Ruedas hora+minuto ~290px alto x 240px ancho. Auto-flip.
+const { pos: popPos, recalc: recalcPos } = usePopoverPosition(triggerRef, {
+  desiredHeight: 290,
+  desiredWidth: 240,
+  matchTriggerWidth: false,
+})
 function onScrollResize() { if (open.value) recalcPos() }
 
 const parsed = computed(() => {
@@ -82,7 +82,7 @@ const display = computed(() => `${String(parsed.value.h).padStart(2,'0')}:${Stri
 <template>
   <div class="relative w-full">
     <button ref="triggerRef" type="button" :disabled="disabled"
-      class="w-full rounded-[12px] bg-muted hover:bg-inset focus:bg-inset transition-[background-color] duration-200 flex items-center gap-2 pl-3 pr-3 outline-none disabled:opacity-50"
+      class="w-full rounded-[12px] bg-card flex items-center gap-2 pl-3 pr-3 outline-none disabled:opacity-50"
       :class="heightClass"
       @click="toggle">
       <Clock class="size-[16px] text-fg-subtle shrink-0" :stroke-width="1.9" aria-hidden="true" />
@@ -93,8 +93,8 @@ const display = computed(() => `${String(parsed.value.h).padStart(2,'0')}:${Stri
     <Teleport to="body">
     <Transition name="hibi-pop">
       <div v-if="open" ref="popoverRef"
-        class="fixed z-[200] rounded-[18px] p-5 flex gap-5"
-        :style="{ top: popPos.top + 'px', left: popPos.left + 'px', background: 'var(--bg-pop)' }">
+        class="fixed z-[200] rounded-[18px] p-5 flex gap-5 overflow-hidden"
+        :style="{ top: popPos.top + 'px', left: popPos.left + 'px', maxHeight: popPos.maxHeight + 'px', background: 'var(--bg-pop)' }">
         <div class="flex flex-col items-center">
           <p class="text-[11px] font-bold text-fg-subtle uppercase tracking-wider mb-2">Hora</p>
           <div ref="hoursColRef" class="hibi-wheel w-20 h-[220px] overflow-y-auto scroll-area flex flex-col items-center gap-1 px-1">

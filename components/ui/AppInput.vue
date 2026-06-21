@@ -35,9 +35,9 @@ function onInput(e: Event) {
         :autocomplete="autocomplete"
         :aria-invalid="!!error"
         :aria-describedby="error ? `${id}-err` : hint ? `${id}-hint` : undefined"
-        class="w-full h-12 rounded-[14px] px-4 text-[15px] text-fg outline-none transition-[background-color] duration-200 ease-soft disabled:opacity-50"
+        class="w-full h-12 rounded-[14px] px-4 text-[15px] text-fg outline-none disabled:opacity-50"
         :class="[
-          error ? 'bg-pink-soft' : 'bg-muted focus:bg-inset',
+          error ? 'bg-pink-soft' : 'bg-muted',
           label ? 'pt-4 pb-1' : '',
         ]"
         @input="onInput"
