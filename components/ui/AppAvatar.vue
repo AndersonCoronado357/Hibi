@@ -34,6 +34,7 @@ const bg = computed(() => {
       backgroundColor: src ? undefined : bg,
       fontSize: `${Math.round(size * 0.4)}px`,
     }"
+    :title="name"
   >
     <img v-if="src" :src="src" :alt="name" class="w-full h-full object-cover" />
     <template v-else>{{ initials }}</template>

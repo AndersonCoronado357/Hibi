@@ -31,7 +31,7 @@ const emit = defineEmits<{ (e: 'close'): void; (e: 'save'): void }>()
         <p v-if="subtitle" class="text-[12.5px] text-fg-muted leading-tight truncate">{{ subtitle }}</p>
       </div>
       <button type="submit" form="create-form"
-        class="group/hibibtn relative inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white font-bold text-[14px] disabled:opacity-50 disabled:cursor-not-allowed transition-[background-color,color]"
+        class="group/hibibtn relative inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full bg-sky-deep text-white hover:bg-sky hover:text-[#1f4661] font-bold text-[14px] disabled:opacity-50 disabled:cursor-not-allowed transition-[background-color,color]"
         :disabled="disabled">
         <span class="inline-flex items-center gap-2 transition-opacity duration-200 group-hover/hibibtn:opacity-0">
           <Check class="size-[16px]" :stroke-width="2.4" aria-hidden="true" />
