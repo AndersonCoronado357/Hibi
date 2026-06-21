@@ -188,11 +188,13 @@
       color var(--duration-base) var(--ease-soft);
   }
 
-  /* Vercel guideline: evita el delay de doble tap en móvil sobre elementos clicables */
+  /* Elementos clicables: dejamos touch-action en AUTO para que NUNCA bloqueen
+     el scroll al tocarlos en móvil (antes era `manipulation`, que en algunos
+     webviews impedía deslizar sobre filas con botón). Solo quitamos el
+     highlight gris del tap. */
   button,
   a,
   [role='button'] {
-    touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
   }
 
@@ -316,6 +318,12 @@ button:hover:not(:disabled),
 [role="button"]:hover:not([aria-disabled="true"]) {
   filter: brightness(1.06);
 }
+
+/* Opt-out del hover/active global: inputs disfrazados de botón
+   (AppSelect / AppDate) que NO deben tener feedback de hover. */
+.hibi-no-hover:hover,
+.hibi-no-hover:active { filter: none !important; }
+.hibi-no-hover:hover svg.lucide { animation: none !important; }
 
 /* Iconos Lucide dentro de botones: PARPADEO sutil (sin cambio de tamaño) */
 button:hover svg.lucide,
