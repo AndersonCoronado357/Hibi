@@ -13,6 +13,7 @@ function isActive(to: string) {
 
 const currentTitle = computed(() => {
   if (route.path.startsWith('/inicio')) return t('nav.today')
+  if (route.path.startsWith('/chat')) return 'Chat'
   const all = [...items, settings]
   const match = all.find((i) => isActive(i.to))
   return match ? t(`nav.${match.key}`) : 'Hibi'
@@ -49,11 +50,15 @@ const currentTitle = computed(() => {
       </NuxtLink>
     </nav>
 
-    <!-- Móvil: título -->
-    <h1 class="md:hidden flex-1 min-w-0 text-[17px] font-bold text-fg truncate">
+    <!-- Móvil: spacer (empuja avatar/ruedita a la derecha) -->
+    <div class="md:hidden flex-1 min-w-0" aria-hidden="true" />
+
+    <!-- Móvil: título SIEMPRE centrado sobre el header -->
+    <h1 class="md:hidden absolute left-1/2 -translate-x-1/2 max-w-[55%] text-center text-[17px] font-bold text-fg truncate pointer-events-none">
       {{ currentTitle }}
     </h1>
 
+    <!-- Ruedita ajustes — desktop -->
     <NuxtLink
       :to="settings.to"
       :title="t('nav.settings')"
@@ -68,6 +73,16 @@ const currentTitle = computed(() => {
       <span
         class="pointer-events-none absolute top-full mt-2 right-0 px-2.5 py-1.5 rounded-[10px] bg-fg text-card text-[12px] font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50"
       >{{ t('nav.settings') }}</span>
+    </NuxtLink>
+
+    <!-- Ruedita ajustes — móvil, junto al avatar -->
+    <NuxtLink
+      :to="settings.to"
+      :aria-label="t('nav.settings')"
+      class="hibi-tn md:hidden grid place-items-center size-9 rounded-full shrink-0 text-fg-muted active:bg-muted transition-colors duration-150"
+      :class="{ 'hibi-tn--active': isActive(settings.to) }"
+    >
+      <component :is="settings.icon" class="size-[20px]" :stroke-width="isActive(settings.to) ? 2.2 : 1.8" />
     </NuxtLink>
 
     <AppAvatar name="Hibi User" :size="36" />
