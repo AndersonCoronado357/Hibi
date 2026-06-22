@@ -19,5 +19,5 @@ const model = computed({
 </script>
 
 <template>
-  <AppSegmented v-model="model" :options="options" />
+  <AppSegmented v-model="model" :options="options" toggle />
 </template>
