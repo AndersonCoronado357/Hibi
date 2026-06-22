@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
-  Plus, Filter, ListTodo, LayoutGrid, Inbox, Flag, CheckCircle2, Clock, ChevronDown, Calendar as CalIcon, FileText,
+  Plus, ListTodo, LayoutGrid, Inbox, Flag, CheckCircle2, Clock, ChevronDown, Calendar as CalIcon, FileText,
+  CalendarDays, CalendarClock, CalendarOff,
 } from '@lucide/vue'
 
 useHead({ title: 'Hibi — Tareas' })
@@ -38,7 +39,13 @@ const PRIORITY_BG = ['bg-muted text-fg', 'bg-mint text-[#34936a]', 'bg-sky-soft 
 const PRIORITY_LABEL = ['Sin prioridad', 'Baja', 'Media', 'Alta', 'Urgente']
 function toggleDone(t: Task) { t.status = t.status === 'done' ? 'pending' : 'done' }
 
-const filters = ['Hoy', 'Próximas', 'Sin fecha', 'Importantes', 'Hechas']
+const filters = [
+  { value: 'Hoy', label: 'Hoy', icon: CalendarDays },
+  { value: 'Próximas', label: 'Próximas', icon: CalendarClock },
+  { value: 'Sin fecha', label: 'Sin fecha', icon: CalendarOff },
+  { value: 'Importantes', label: 'Importantes', icon: Flag },
+  { value: 'Hechas', label: 'Hechas', icon: CheckCircle2 },
+]
 const activeFilter = ref('Hoy')
 
 const expandedId = ref<string | null>(null)
@@ -135,7 +142,7 @@ function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
     <div class="flex flex-col gap-2">
       <label class="text-[12.5px] font-bold text-fg-muted px-1">Título</label>
       <input v-model="newTitle" type="text" placeholder="¿Qué hay que hacer?" autofocus
-        class="w-full h-14 rounded-[14px] bg-card focus:bg-muted px-4 text-[18px] font-semibold text-fg outline-none placeholder:text-fg-subtle" />
+        class="w-full h-14 rounded-[14px] bg-card px-4 text-[18px] font-semibold text-fg outline-none placeholder:text-fg-subtle" />
     </div>
     <div class="flex flex-col gap-2">
       <label class="text-[12.5px] font-bold text-fg-muted px-1">Prioridad</label>
@@ -158,7 +165,7 @@ function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
     <div class="flex flex-col gap-2 flex-1 min-h-[200px]">
       <label class="text-[12.5px] font-bold text-fg-muted px-1">Notas</label>
       <textarea v-model="newNotes" placeholder="Detalles, contexto, enlaces…"
-        class="w-full flex-1 min-h-0 rounded-[14px] bg-card focus:bg-muted px-4 py-3 text-[14.5px] text-fg outline-none resize-none"></textarea>
+        class="w-full flex-1 min-h-0 rounded-[14px] bg-card px-4 py-3 text-[14.5px] text-fg outline-none resize-none"></textarea>
     </div>
   </AppCreateView>
 
@@ -174,6 +181,14 @@ function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
     <div class="relative z-10 flex flex-col gap-3">
       <PageHero :icon="ListTodo" tone="mint" title="Tareas" :subtitle="`${tasks.length} en total · ${grouped.done.length} hechas`">
         <template #actions>
+          <!-- Filtros: mismo estilo que el toggle de vista (AppSegmented).
+               Con icono: en movil se muestra solo el icono (sin texto), asi
+               no se cortan ni necesitan scroll. -->
+          <AppSegmented
+            block
+            :model-value="activeFilter"
+            :options="filters"
+            @update:model-value="(v) => activeFilter = String(v)" />
           <AppSegmented v-model="view" :options="[
             { value: 'list', icon: Inbox, ariaLabel: 'Lista' },
             { value: 'kanban', icon: LayoutGrid, ariaLabel: 'Kanban' },
@@ -184,15 +199,6 @@ function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
           </AppButton>
         </template>
       </PageHero>
-      <AppCard class="shrink-0 !p-3 md:!p-4">
-        <div class="flex items-center gap-1.5 overflow-x-auto hibi-no-sb">
-          <button v-for="f in filters" :key="f" type="button"
-            class="shrink-0 h-8 px-3 rounded-full text-[13px] font-semibold transition-[background-color,color]"
-            :class="activeFilter === f ? 'bg-sky text-[#1f4661]' : 'bg-muted text-fg-muted hover:text-fg'"
-            @click="activeFilter = f">{{ f }}</button>
-          <button class="shrink-0 grid place-items-center size-8 rounded-full bg-muted text-fg-muted hover:text-fg" aria-label="Filtros"><Filter class="size-[15px]" :stroke-width="1.9" /></button>
-        </div>
-      </AppCard>
     </div>
 
     <!-- LISTA: cada tarea = AppCard independiente -->
@@ -201,7 +207,10 @@ function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
         <li v-for="t in tasks" :key="t.id">
           <AppCard class="!p-0 overflow-hidden transition-[background-color]"
             :class="expandedId === t.id ? '!bg-muted' : ''">
-            <button type="button" class="w-full flex items-center gap-3 p-4 text-left" @click="toggleRow(t.id)">
+            <div role="button" tabindex="0" class="w-full flex items-center gap-3 p-4 text-left cursor-pointer outline-none focus-visible:bg-muted"
+              @click="toggleRow(t.id)"
+              @keydown.enter.prevent="toggleRow(t.id)"
+              @keydown.space.prevent="toggleRow(t.id)">
               <!-- Check con nube — wrapper con tamaño fijo para que el swap NO mueva layout -->
               <button type="button" @click.stop="toggleDone(t)"
                 class="shrink-0 relative inline-block"
@@ -234,7 +243,7 @@ function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
                 </div>
               </div>
               <ChevronDown class="size-[18px] text-fg-muted transition-[transform] duration-200" :class="expandedId === t.id ? 'rotate-180' : ''" :stroke-width="2.2" aria-hidden="true" />
-            </button>
+            </div>
             <!-- Detalle expandible — v-if para que el grid trick anime altura -->
             <Transition name="hibi-acc">
               <div v-if="expandedId === t.id" class="px-4 pb-4 pt-0">
