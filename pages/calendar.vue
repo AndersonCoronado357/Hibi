@@ -4,7 +4,7 @@ import {
   isSameMonth, isToday, addMonths, subMonths, addWeeks, subWeeks, addHours, isAfter,
 } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus, Calendar as Cal, Clock, Palette, FileText } from '@lucide/vue'
+import { ChevronLeft, ChevronRight, Plus, Calendar as Cal, Clock, Palette, FileText, Clock4, CalendarDays, CalendarRange, List } from '@lucide/vue'
 
 useHead({ title: 'Hibi — Calendario' })
 
@@ -30,6 +30,18 @@ function evStyle(ev: Event) {
 function eventsOn(d: Date) { return eventsData.value.filter(e => isSameDay(e.date, d)) }
 const selected = ref(today)
 const selectedEvents = computed(() => eventsOn(selected.value))
+
+// Movil: drill-down. Al tocar un dia del mes, mostramos su detalle dentro
+// del mismo card (reemplaza el grid). Volver con la flecha.
+const mobileDayDetail = ref(false)
+function pickDay(d: Date) {
+  selected.value = d
+  if (typeof window !== 'undefined' && window.innerWidth < 768) {
+    mobileDayDetail.value = true
+  }
+}
+// Al cambiar de vista (mes → semana/dia/agenda), salir del detalle.
+watch(() => view.value, () => { mobileDayDetail.value = false })
 
 const headerLabel = computed(() => {
   if (view.value === 'day') return format(cursor.value, "EEEE d 'de' MMMM yyyy", { locale: es })
@@ -76,9 +88,45 @@ function eventTop(ev: Event): number {
 }
 function eventHeight(ev: Event): number {
   const s = parseHm(ev.startTime); const e = parseHm(ev.endTime)
-  if (s === null || e === null || e <= s) return 38
-  return Math.max(30, (e - s) * (HOUR_H / 60) - 4)
+  if (s === null || e === null || e <= s) return 40
+  // Min 40px para que titulo + hora nunca se corten
+  return Math.max(40, (e - s) * (HOUR_H / 60) - 4)
 }
+
+// Eventos con hora (van en la timeline) vs de todo el dia (franja arriba)
+function timedEventsOn(d: Date) { return eventsOn(d).filter(e => e.startTime) }
+function allDayEventsOn(d: Date) { return eventsOn(d).filter(e => !e.startTime) }
+
+const weekDaysArr = computed(() => {
+  const s = startOfWeek(cursor.value, { weekStartsOn: 1 })
+  return Array.from({ length: 7 }, (_, j) => addDays(s, j))
+})
+const weekAllDayCount = computed(() => weekDaysArr.value.reduce((n, d) => n + allDayEventsOn(d).length, 0))
+
+// Auto-scroll de la timeline (dia/semana) a la primera hora con evento, o 07:00.
+// Asi no abre en medianoche con horas vacias de madrugada.
+const dayScrollRef = ref<HTMLElement | null>(null)
+const weekScrollRef = ref<HTMLElement | null>(null)
+function firstEventMinutes(days: Date[]): number {
+  let min = Infinity
+  for (const d of days) for (const e of timedEventsOn(d)) {
+    const m = parseHm(e.startTime); if (m !== null && m < min) min = m
+  }
+  return min === Infinity ? 7 * 60 : min
+}
+function scrollTimeline() {
+  nextTick(() => {
+    if (view.value === 'day' && dayScrollRef.value) {
+      const m = firstEventMinutes([cursor.value])
+      dayScrollRef.value.scrollTop = Math.max(0, m * (HOUR_H / 60) - HOUR_H)
+    } else if (view.value === 'week' && weekScrollRef.value) {
+      const m = firstEventMinutes(weekDaysArr.value)
+      weekScrollRef.value.scrollTop = Math.max(0, m * (HOUR_H / 60) - HOUR_H)
+    }
+  })
+}
+watch([view, cursor], scrollTimeline)
+onMounted(scrollTimeline)
 
 const agendaDays = computed(() => {
   const grouped: { date: Date; events: Event[] }[] = []
@@ -127,8 +175,10 @@ function saveEvent() {
 }
 
 const VIEW_OPTS = [
-  { value: 'day', label: 'Día' }, { value: 'week', label: 'Semana' },
-  { value: 'month', label: 'Mes' }, { value: 'agenda', label: 'Agenda' },
+  { value: 'day',    label: 'Día',    icon: Clock4,         ariaLabel: 'Día' },
+  { value: 'week',   label: 'Semana', icon: CalendarRange,  ariaLabel: 'Semana' },
+  { value: 'month',  label: 'Mes',    icon: CalendarDays,   ariaLabel: 'Mes' },
+  { value: 'agenda', label: 'Agenda', icon: List,           ariaLabel: 'Agenda' },
 ]
 </script>
 
@@ -142,7 +192,7 @@ const VIEW_OPTS = [
     <div class="flex flex-col gap-2">
       <label class="text-[12.5px] font-bold text-fg-muted px-1">Título</label>
       <input v-model="newTitle" type="text" placeholder="¿Qué hay que hacer?" autofocus
-        class="w-full h-14 rounded-[14px] bg-card focus:bg-muted px-4 text-[18px] font-semibold text-fg outline-none placeholder:text-fg-subtle" />
+        class="w-full h-14 rounded-[14px] bg-card px-4 text-[18px] font-semibold text-fg outline-none placeholder:text-fg-subtle" />
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -175,7 +225,7 @@ const VIEW_OPTS = [
   </AppCreateView>
 
   <!-- VISTAS NORMALES -->
-  <div v-else class="h-full flex flex-col gap-3 px-4 md:px-7 py-5 relative overflow-hidden">
+  <div v-else class="h-full flex flex-col gap-2 md:gap-3 px-3 md:px-7 py-3 md:py-5 relative overflow-hidden">
     <HibiCloud :size="120" float :duration="7" class="hidden md:block absolute -top-4 -right-6 text-sky-soft opacity-15 pointer-events-none z-40" aria-hidden="true" />
     <HibiCloud :size="90" float :duration="9" :delay="1.4" class="hidden md:block absolute bottom-4 -left-6 text-lavender opacity-15 pointer-events-none z-40" aria-hidden="true" />
     <HibiSparkle :size="16" twinkle :duration="2.4" class="hidden md:block absolute top-[14%] left-[10%] text-fg-subtle opacity-25 pointer-events-none z-40" />
@@ -184,13 +234,34 @@ const VIEW_OPTS = [
     <div class="relative z-10">
       <PageHero :icon="Cal" tone="sky" :title="headerLabel" :subtitle="`${eventsData.length} eventos`">
         <template #actions>
-          <div class="inline-flex items-center gap-1">
-            <button class="grid place-items-center size-9 rounded-[11px] bg-card text-sky-deep hover:bg-inset transition-[background-color]" aria-label="Anterior" @click="prev"><ChevronLeft class="size-4" :stroke-width="2" /></button>
-            <button class="h-9 px-3 rounded-[11px] bg-card text-[13px] font-semibold text-sky-deep hover:bg-inset" @click="cursor = new Date()">Hoy</button>
-            <button class="grid place-items-center size-9 rounded-[11px] bg-card text-sky-deep hover:bg-inset transition-[background-color]" aria-label="Siguiente" @click="next"><ChevronRight class="size-4" :stroke-width="2" /></button>
+          <!-- DESKTOP: barra rica con "Hoy" como boton aparte -->
+          <div class="hidden md:flex items-center gap-2">
+            <div class="inline-flex items-center gap-1">
+              <button class="grid place-items-center size-9 rounded-[11px] bg-card text-sky-deep hover:bg-inset transition-[background-color]" aria-label="Anterior" @click="prev"><ChevronLeft class="size-4" :stroke-width="2" /></button>
+              <button class="h-9 px-3 rounded-[11px] bg-card text-[13px] font-semibold text-sky-deep hover:bg-inset" @click="cursor = new Date()">Hoy</button>
+              <button class="grid place-items-center size-9 rounded-[11px] bg-card text-sky-deep hover:bg-inset transition-[background-color]" aria-label="Siguiente" @click="next"><ChevronRight class="size-4" :stroke-width="2" /></button>
+            </div>
+            <AppSegmented v-model="view" :options="VIEW_OPTS" />
+            <AppButton variant="primary" size="sm" @click="openCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>Evento</AppButton>
           </div>
-          <AppSegmented v-model="view" :options="VIEW_OPTS" />
-          <AppButton variant="primary" size="sm" @click="openCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template><span class="hidden sm:inline">Evento</span></AppButton>
+
+          <!-- MOVIL: barra compacta que CABE en 343px sin scroll -->
+          <div class="flex md:hidden items-center gap-1.5 w-full">
+            <button class="grid place-items-center size-9 rounded-[11px] bg-card text-sky-deep shrink-0" aria-label="Anterior" @click="prev"><ChevronLeft class="size-4" :stroke-width="2" /></button>
+            <button class="flex-1 h-9 px-2 rounded-[11px] bg-card text-[13px] font-bold text-sky-deep capitalize truncate" @click="cursor = new Date()">{{ format(cursor, 'MMM yy', { locale: es }) }}</button>
+            <button class="grid place-items-center size-9 rounded-[11px] bg-card text-sky-deep shrink-0" aria-label="Siguiente" @click="next"><ChevronRight class="size-4" :stroke-width="2" /></button>
+            <div class="inline-flex items-center gap-0.5 p-0.5 rounded-full bg-card shrink-0">
+              <button v-for="opt in VIEW_OPTS" :key="String(opt.value)" type="button"
+                :aria-label="opt.ariaLabel"
+                :aria-selected="view === opt.value"
+                class="grid place-items-center size-8 rounded-full transition-[background-color,color]"
+                :class="view === opt.value ? 'bg-sky-soft text-sky-deep' : 'text-fg-subtle'"
+                @click="view = opt.value as View">
+                <component :is="opt.icon" class="size-[15px]" :stroke-width="2" />
+              </button>
+            </div>
+            <button class="grid place-items-center size-9 rounded-full bg-sky text-[#1f4661] shrink-0" aria-label="Nuevo evento" @click="openCreate"><Plus class="size-[16px]" :stroke-width="2.3" /></button>
+          </div>
         </template>
       </PageHero>
     </div>
@@ -198,103 +269,245 @@ const VIEW_OPTS = [
     <div class="flex-1 min-h-0 flex gap-3">
       <!-- DÍA: 24h scroll interno -->
       <AppCard v-if="view === 'day'" class="flex-1 min-w-0 flex flex-col" :padded="false">
-        <div class="flex-1 min-h-0 overflow-y-auto scroll-area">
+        <!-- Franja de eventos de TODO EL DÍA (sin hora) -->
+        <div v-if="allDayEventsOn(cursor).length" class="shrink-0 border-b border-[var(--bg-muted)] px-3 md:px-4 py-2 flex flex-col gap-1.5">
+          <div v-for="ev in allDayEventsOn(cursor)" :key="ev.id"
+            class="flex items-center gap-2.5 px-3 py-2 rounded-[10px] min-w-0" :style="evStyle(ev)">
+            <span class="size-2.5 rounded-full shrink-0" :style="{ background: ev.color }" aria-hidden="true" />
+            <p class="flex-1 min-w-0 text-[13px] font-bold break-words">{{ ev.title }}</p>
+            <span class="shrink-0 text-[11.5px] font-semibold opacity-80">Todo el día</span>
+          </div>
+        </div>
+        <div ref="dayScrollRef" class="flex-1 min-h-0 overflow-y-auto scroll-area">
           <div class="relative" :style="{ height: HOURS.length * HOUR_H + 'px' }">
             <div v-for="h in HOURS" :key="h" class="absolute left-0 right-0 flex" :style="{ top: (h * HOUR_H) + 'px', height: HOUR_H + 'px' }">
-              <span class="w-16 shrink-0 text-right pr-3 pt-0.5 text-[11px] text-fg-subtle font-semibold tabular-nums">{{ String(h).padStart(2,'0') }}:00</span>
+              <span class="w-12 md:w-16 shrink-0 text-right pr-2 md:pr-3 pt-0.5 text-[10.5px] md:text-[11px] text-fg-subtle font-semibold tabular-nums">{{ String(h).padStart(2,'0') }}:00</span>
               <span class="flex-1 border-t border-[var(--bg-muted)]" />
             </div>
-            <div class="absolute left-16 right-4 top-0 bottom-0">
-              <div v-for="ev in eventsOn(cursor)" :key="ev.id"
-                class="absolute left-0 right-0 rounded-[10px] px-3 py-2 text-[12.5px] font-semibold overflow-hidden"
+            <div class="absolute left-12 md:left-16 right-2 md:right-4 top-0 bottom-0">
+              <div v-for="ev in timedEventsOn(cursor)" :key="ev.id"
+                class="absolute left-0 right-0 rounded-[10px] px-2.5 md:px-3 py-1.5 md:py-2 text-[12px] md:text-[12.5px] font-semibold overflow-hidden flex items-start gap-2"
                 :style="{ ...evStyle(ev), top: eventTop(ev) + 'px', height: eventHeight(ev) + 'px' }">
-                <p class="font-bold truncate">{{ ev.title }}</p>
-                <p v-if="ev.startTime" class="text-[11px] opacity-80 truncate">{{ ev.startTime }}{{ ev.endTime ? ' – ' + ev.endTime : '' }}</p>
+                <p class="flex-1 min-w-0 font-bold truncate">{{ ev.title }}</p>
+                <span class="shrink-0 text-[11px] opacity-80 tabular-nums whitespace-nowrap">{{ ev.startTime }}{{ ev.endTime ? ' – ' + ev.endTime : '' }}</span>
               </div>
             </div>
           </div>
         </div>
       </AppCard>
 
-      <!-- SEMANA: 24h scroll interno -->
-      <AppCard v-else-if="view === 'week'" class="flex-1 min-w-0 flex flex-col" :padded="false">
-        <div class="grid grid-cols-[64px_repeat(7,1fr)] gap-0 border-b border-[var(--bg-muted)] sticky top-0 bg-card z-10">
-          <div />
-          <div v-for="(d, i) in (() => { const s = startOfWeek(cursor, { weekStartsOn: 1 }); return Array.from({length:7},(_,j)=>addDays(s,j)) })()" :key="i" class="text-center py-2">
-            <p class="text-[10.5px] uppercase font-bold tracking-wide text-fg-subtle">{{ weekDays[i] }}</p>
-            <p class="text-[15px] font-extrabold mt-0.5" :class="isToday(d) ? 'text-sky-deep' : 'text-fg'">{{ format(d, 'd') }}</p>
+      <!-- SEMANA -->
+      <AppCard v-else-if="view === 'week'" class="flex-1 min-w-0 flex flex-col relative overflow-hidden" :padded="false">
+        <!-- MOVIL: parecido al mes (header LMXJVSD + 7 celdas con numero +
+             puntos). Tap a un dia abre el drill-down detalle. Sin scroll
+             horizontal: solo vertical. -->
+        <div class="md:hidden flex flex-col flex-1 min-h-0">
+          <div class="grid grid-cols-7 gap-1 px-2 pt-2 shrink-0">
+            <div v-for="d in weekDays" :key="d" class="text-center text-[11px] font-bold uppercase tracking-wide text-fg-subtle py-1.5">{{ d }}</div>
+          </div>
+          <div class="grid grid-cols-7 gap-1 shrink-0 p-2">
+            <button v-for="(d, i) in (() => { const s = startOfWeek(cursor, { weekStartsOn: 1 }); return Array.from({length:7},(_,j)=>addDays(s,j)) })()" :key="i" type="button"
+              class="day-cell flex flex-col items-center gap-1 p-2 min-h-[72px] rounded-[10px] transition-[background-color] text-left"
+              :class="[
+                isToday(d) ? 'bg-sky-soft' : 'bg-muted',
+                isSameDay(d, selected) ? 'outline outline-2 outline-sky-deep' : '',
+              ]"
+              @click="pickDay(d)">
+              <span class="text-[13px] font-bold size-7 grid place-items-center rounded-full"
+                :class="isToday(d) ? 'bg-sky text-[#1f4661]' : ''">{{ format(d, 'd') }}</span>
+              <div class="flex items-center justify-center gap-0.5 flex-wrap">
+                <span v-for="e in eventsOn(d).slice(0, 4)" :key="e.id"
+                  class="size-1.5 rounded-full shrink-0"
+                  :style="{ background: e.color }" />
+              </div>
+            </button>
+          </div>
+          <!-- Debajo del grid: lista de eventos de la semana, scroll vertical -->
+          <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-3 pb-3 pt-1 border-t border-[var(--bg-muted)]">
+            <div v-if="(() => { const s = startOfWeek(cursor, { weekStartsOn: 1 }); return Array.from({length:7},(_,j)=>addDays(s,j)).flatMap(eventsOn).length })() === 0" class="text-center text-fg-subtle italic text-[13px] py-8">Sin eventos esta semana</div>
+            <ul v-else class="flex flex-col gap-4 pt-2">
+              <li v-for="(d, i) in (() => { const s = startOfWeek(cursor, { weekStartsOn: 1 }); return Array.from({length:7},(_,j)=>addDays(s,j)) })().filter(d => eventsOn(d).length)" :key="i">
+                <div class="grid grid-cols-[72px_1fr] gap-3 items-center">
+                  <!-- Bloque de fecha (mismo que agenda) -->
+                  <div class="text-center rounded-[14px] px-2 py-3" :class="isToday(d) ? 'bg-sky-soft' : 'bg-muted'">
+                    <p class="text-[11px] uppercase font-bold tracking-wide" :class="isToday(d) ? 'text-sky-deep' : 'text-fg-muted'">{{ format(d, 'EEE', { locale: es }) }}</p>
+                    <p class="text-[26px] font-extrabold leading-none tabular-nums mt-1" :class="isToday(d) ? 'text-sky-deep' : 'text-fg'">{{ format(d, 'd') }}</p>
+                    <p class="text-[11px] font-bold capitalize mt-1" :class="isToday(d) ? 'text-sky-deep/80' : 'text-fg-muted'">{{ format(d, 'MMM', { locale: es }) }}</p>
+                  </div>
+                  <ul class="flex flex-col gap-1.5 w-full min-w-0">
+                    <li v-for="ev in eventsOn(d)" :key="ev.id"
+                      class="flex items-center gap-3 px-3.5 py-3 rounded-[14px] min-w-0"
+                      :style="evStyle(ev)">
+                      <span class="size-2.5 rounded-full shrink-0" :style="{ background: ev.color }" aria-hidden="true" />
+                      <p class="flex-1 min-w-0 text-[14px] font-bold break-words">{{ ev.title }}</p>
+                      <span class="shrink-0 text-[12px] font-semibold opacity-80 tabular-nums whitespace-nowrap">{{ ev.startTime ? ev.startTime : 'Todo el día' }}{{ ev.endTime ? ' – ' + ev.endTime : '' }}</span>
+                    </li>
+                  </ul>
+                </div>
+              </li>
+            </ul>
           </div>
         </div>
-        <div class="flex-1 min-h-0 overflow-y-auto scroll-area">
-          <div class="relative grid grid-cols-[64px_repeat(7,1fr)]" :style="{ height: HOURS.length * HOUR_H + 'px' }">
-            <div class="relative">
-              <span v-for="h in HOURS" :key="h" class="absolute right-3 text-[10.5px] text-fg-subtle font-semibold tabular-nums"
-                :style="{ top: (h * HOUR_H - 6) + 'px' }">{{ String(h).padStart(2,'0') }}</span>
+
+        <!-- DESKTOP: timeline 24h con 7 columnas -->
+        <div class="hidden md:flex flex-col flex-1 min-h-0">
+          <div class="grid grid-cols-[64px_repeat(7,1fr)] gap-0 border-b border-[var(--bg-muted)] bg-card z-10 shrink-0">
+            <div />
+            <div v-for="(d, i) in weekDaysArr" :key="i" class="text-center py-2">
+              <p class="text-[10.5px] uppercase font-bold tracking-wide text-fg-subtle">{{ weekDays[i] }}</p>
+              <p class="text-[15px] font-extrabold mt-0.5" :class="isToday(d) ? 'text-sky-deep' : 'text-fg'">{{ format(d, 'd') }}</p>
             </div>
-            <div v-for="(d, i) in (() => { const s = startOfWeek(cursor, { weekStartsOn: 1 }); return Array.from({length:7},(_,j)=>addDays(s,j)) })()" :key="i" class="relative border-l border-[var(--bg-muted)]">
-              <div v-for="h in HOURS" :key="h" class="absolute left-0 right-0 border-t border-[var(--bg-muted)]/60" :style="{ top: (h * HOUR_H) + 'px', height: HOUR_H + 'px' }" />
-              <div v-for="ev in eventsOn(d)" :key="ev.id"
-                class="absolute left-1 right-1 rounded-[8px] px-2 py-1 text-[11px] font-bold overflow-hidden"
-                :style="{ ...evStyle(ev), top: eventTop(ev) + 'px', height: eventHeight(ev) + 'px' }">
-                <p class="truncate">{{ ev.title }}</p>
-                <p v-if="ev.startTime" class="text-[10px] opacity-80 truncate">{{ ev.startTime }}</p>
+          </div>
+          <!-- Franja de eventos de TODO EL DÍA -->
+          <div v-if="weekAllDayCount > 0" class="grid grid-cols-[64px_repeat(7,1fr)] border-b border-[var(--bg-muted)] bg-card shrink-0">
+            <div class="flex items-center justify-end pr-3 text-[9.5px] text-fg-subtle font-bold uppercase tracking-wide">Todo el día</div>
+            <div v-for="(d, i) in weekDaysArr" :key="i" class="px-1 py-1.5 flex flex-col gap-1 border-l border-[var(--bg-muted)] min-w-0">
+              <span v-for="ev in allDayEventsOn(d)" :key="ev.id"
+                class="text-[10px] font-bold px-1.5 py-0.5 rounded truncate"
+                :style="evStyle(ev)">{{ ev.title }}</span>
+            </div>
+          </div>
+          <div ref="weekScrollRef" class="flex-1 min-h-0 overflow-y-auto scroll-area">
+            <div class="relative grid grid-cols-[64px_repeat(7,1fr)]" :style="{ height: HOURS.length * HOUR_H + 'px' }">
+              <div class="relative">
+                <span v-for="h in HOURS" :key="h" class="absolute right-3 text-[10.5px] text-fg-subtle font-semibold tabular-nums"
+                  :style="{ top: (h * HOUR_H - 6) + 'px' }">{{ String(h).padStart(2,'0') }}</span>
+              </div>
+              <div v-for="(d, i) in weekDaysArr" :key="i" class="relative border-l border-[var(--bg-muted)]">
+                <div v-for="h in HOURS" :key="h" class="absolute left-0 right-0 border-t border-[var(--bg-muted)]/60" :style="{ top: (h * HOUR_H) + 'px', height: HOUR_H + 'px' }" />
+                <div v-for="ev in timedEventsOn(d)" :key="ev.id"
+                  class="absolute left-1 right-1 rounded-[8px] px-2 py-1 text-[11px] font-bold overflow-hidden flex items-start gap-1.5"
+                  :style="{ ...evStyle(ev), top: eventTop(ev) + 'px', height: eventHeight(ev) + 'px' }">
+                  <p class="flex-1 min-w-0 truncate">{{ ev.title }}</p>
+                  <span class="shrink-0 text-[10px] opacity-80 tabular-nums whitespace-nowrap">{{ ev.startTime }}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
+
+        <!-- DRILL-DOWN MOVIL: panel del dia (mismo que en mes) -->
+        <Transition name="hibi-drill">
+          <div v-if="mobileDayDetail" class="md:hidden absolute inset-0 z-10 flex flex-col bg-card">
+            <header class="shrink-0 flex items-center gap-2 px-3 pt-3 pb-2 border-b border-[var(--bg-muted)]">
+              <button type="button" class="grid place-items-center size-9 rounded-full text-fg-muted hover:bg-muted" aria-label="Volver" @click="mobileDayDetail = false"><ChevronLeft class="size-[18px]" :stroke-width="2" /></button>
+              <div class="flex-1 min-w-0">
+                <p class="text-[11px] uppercase font-bold tracking-wide text-fg-subtle">{{ format(selected, 'EEEE', { locale: es }) }}</p>
+                <h2 class="text-[16px] font-extrabold text-fg leading-tight capitalize">{{ format(selected, "d 'de' MMMM", { locale: es }) }}</h2>
+              </div>
+              <button type="button" class="grid place-items-center size-9 rounded-full bg-sky text-[#1f4661]" aria-label="Nuevo evento" @click="openCreate"><Plus class="size-[16px]" :stroke-width="2.3" /></button>
+            </header>
+            <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-3 py-3">
+              <div v-if="!selectedEvents.length" class="h-full flex flex-col items-center justify-center text-center text-fg-subtle gap-3">
+                <HibiCloud :size="80" face class="text-sky-soft opacity-70" aria-hidden="true" />
+                <p class="text-[14px] font-semibold">Sin eventos este día</p>
+                <button type="button" class="text-[13px] font-bold text-sky-deep" @click="openCreate">Crear el primero</button>
+              </div>
+              <ul v-else class="flex flex-col gap-2">
+                <li v-for="e in selectedEvents" :key="e.id"
+                  class="flex items-center gap-3 px-3.5 py-3 rounded-[14px] min-w-0"
+                  :style="evStyle(e)">
+                  <span class="size-2.5 rounded-full shrink-0" :style="{ background: e.color }" aria-hidden="true" />
+                  <p class="flex-1 min-w-0 text-[14px] font-bold break-words">{{ e.title }}</p>
+                  <span class="shrink-0 text-[12px] font-semibold opacity-80 tabular-nums whitespace-nowrap">{{ e.startTime ? e.startTime : 'Todo el día' }}{{ e.endTime ? ' – ' + e.endTime : '' }}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </Transition>
       </AppCard>
 
       <!-- MES -->
-      <AppCard v-else-if="view === 'month'" class="flex-1 min-w-0 flex flex-col" :padded="false">
-        <div class="grid grid-cols-7 gap-1 px-3 pt-3 shrink-0">
-          <div v-for="d in weekDays" :key="d" class="text-center text-[11.5px] font-bold uppercase tracking-wide text-fg-subtle py-1.5">{{ d }}</div>
+      <AppCard v-else-if="view === 'month'" class="flex-1 min-w-0 flex flex-col relative overflow-hidden" :padded="false">
+        <!-- VISTA NORMAL DEL MES (siempre renderizada — el detalle se superpone en movil) -->
+        <div class="flex flex-col flex-1 min-h-0">
+          <div class="grid grid-cols-7 gap-1 px-2 md:px-3 pt-2 md:pt-3 shrink-0">
+            <div v-for="d in weekDays" :key="d" class="text-center text-[11px] md:text-[11.5px] font-bold uppercase tracking-wide text-fg-subtle py-1.5">{{ d }}</div>
+          </div>
+          <div class="grid grid-cols-7 gap-1 flex-1 min-h-0 auto-rows-fr p-2 md:p-3">
+            <button v-for="d in monthDays" :key="d.toISOString()" type="button"
+              class="day-cell flex flex-col items-center md:items-stretch gap-1 md:gap-1.5 p-1 md:p-1.5 rounded-[10px] transition-[background-color] text-left"
+              :class="[
+                isSameMonth(d, cursor) ? 'bg-muted text-fg hover:bg-inset' : 'bg-card text-fg-subtle hover:bg-muted',
+                isSameDay(d, selected) ? 'outline outline-2 outline-sky-deep' : '',
+              ]"
+              @click="pickDay(d)"
+            >
+              <span class="text-[12px] md:text-[12px] font-bold size-6 md:size-6 grid place-items-center rounded-full md:self-start"
+                :class="isToday(d) ? 'bg-sky text-[#1f4661]' : ''">{{ format(d, 'd') }}</span>
+              <!-- Movil: puntos de color (max 4) -->
+              <div class="flex md:hidden items-center justify-center gap-0.5 flex-wrap">
+                <span v-for="e in eventsOn(d).slice(0, 4)" :key="e.id"
+                  class="size-1.5 rounded-full shrink-0"
+                  :style="{ background: e.color }" />
+              </div>
+              <!-- Desktop: pildoras con texto (titulo izq, hora der) -->
+              <div class="hidden md:flex flex-col gap-1 overflow-hidden">
+                <span v-for="e in eventsOn(d).slice(0, 2)" :key="e.id"
+                  class="text-[10.5px] font-semibold px-1.5 py-0.5 rounded flex items-center gap-1 min-w-0"
+                  :style="evStyle(e)">
+                  <span class="flex-1 min-w-0 truncate">{{ e.title }}</span>
+                  <span v-if="e.startTime" class="shrink-0 tabular-nums opacity-80">{{ e.startTime }}</span>
+                </span>
+                <span v-if="eventsOn(d).length > 2" class="text-[10px] text-fg-subtle font-semibold pl-1">+ {{ eventsOn(d).length - 2 }} más</span>
+              </div>
+            </button>
+          </div>
         </div>
-        <div class="grid grid-cols-7 gap-1 flex-1 min-h-0 auto-rows-fr p-3">
-          <button v-for="d in monthDays" :key="d.toISOString()" type="button"
-            class="day-cell flex flex-col items-stretch gap-1 p-1.5 rounded-[10px] transition-[background-color] text-left"
-            :class="[
-              isSameMonth(d, cursor) ? 'bg-muted text-fg hover:bg-inset' : 'bg-card text-fg-subtle hover:bg-muted',
-              isSameDay(d, selected) ? 'outline outline-2 outline-sky-deep' : '',
-            ]"
-            @click="selected = d"
-          >
-            <span class="self-start text-[12px] font-bold size-6 grid place-items-center rounded-full"
-              :class="isToday(d) ? 'bg-sky text-[#1f4661]' : ''">{{ format(d, 'd') }}</span>
-            <div class="flex flex-col gap-1 overflow-hidden">
-              <span v-for="e in eventsOn(d).slice(0, 2)" :key="e.id"
-                class="text-[10.5px] font-semibold px-1.5 py-0.5 rounded truncate"
-                :style="evStyle(e)">{{ e.startTime ? e.startTime + ' · ' : '' }}{{ e.title }}</span>
-              <span v-if="eventsOn(d).length > 2" class="text-[10px] text-fg-subtle font-semibold pl-1">+ {{ eventsOn(d).length - 2 }} más</span>
+
+        <!-- DRILL-DOWN MOVIL: panel del dia se superpone con slide desde la derecha -->
+        <Transition name="hibi-drill">
+          <div v-if="mobileDayDetail" class="md:hidden absolute inset-0 z-10 flex flex-col bg-card">
+            <header class="shrink-0 flex items-center gap-2 px-3 pt-3 pb-2 border-b border-[var(--bg-muted)]">
+              <button type="button" class="grid place-items-center size-9 rounded-full text-fg-muted hover:bg-muted" aria-label="Volver al mes" @click="mobileDayDetail = false"><ChevronLeft class="size-[18px]" :stroke-width="2" /></button>
+              <div class="flex-1 min-w-0">
+                <p class="text-[11px] uppercase font-bold tracking-wide text-fg-subtle">{{ format(selected, 'EEEE', { locale: es }) }}</p>
+                <h2 class="text-[16px] font-extrabold text-fg leading-tight capitalize">{{ format(selected, "d 'de' MMMM", { locale: es }) }}</h2>
+              </div>
+              <button type="button" class="grid place-items-center size-9 rounded-full bg-sky text-[#1f4661]" aria-label="Nuevo evento" @click="openCreate"><Plus class="size-[16px]" :stroke-width="2.3" /></button>
+            </header>
+            <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-3 py-3">
+              <div v-if="!selectedEvents.length" class="h-full flex flex-col items-center justify-center text-center text-fg-subtle gap-3">
+                <HibiCloud :size="80" face class="text-sky-soft opacity-70" aria-hidden="true" />
+                <p class="text-[14px] font-semibold">Sin eventos este día</p>
+                <button type="button" class="text-[13px] font-bold text-sky-deep" @click="openCreate">Crear el primero</button>
+              </div>
+              <ul v-else class="flex flex-col gap-2">
+                <li v-for="e in selectedEvents" :key="e.id"
+                  class="flex items-center gap-3 px-3.5 py-3 rounded-[14px] min-w-0"
+                  :style="evStyle(e)">
+                  <span class="size-2.5 rounded-full shrink-0" :style="{ background: e.color }" aria-hidden="true" />
+                  <p class="flex-1 min-w-0 text-[14px] font-bold break-words">{{ e.title }}</p>
+                  <span class="shrink-0 text-[12px] font-semibold opacity-80 tabular-nums whitespace-nowrap">{{ e.startTime ? e.startTime : 'Todo el día' }}{{ e.endTime ? ' – ' + e.endTime : '' }}</span>
+                </li>
+              </ul>
             </div>
-          </button>
-        </div>
+          </div>
+        </Transition>
       </AppCard>
 
-      <!-- AGENDA: full ancho -->
+      <!-- AGENDA: bloque de fecha a la izq (centrado vertical) + eventos en
+           una linea (titulo izq / hora der). Ancho completo. -->
       <AppCard v-else class="flex-1 min-w-0 flex flex-col" :padded="false">
-        <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-5 md:px-8 py-5">
+        <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-4 md:px-8 py-4 md:py-5">
           <div v-if="!agendaDays.length" class="text-center text-fg-muted py-12">Nada por aquí.</div>
-          <ul v-else class="flex flex-col gap-6 w-full">
+          <ul v-else class="flex flex-col gap-5 md:gap-6 w-full">
             <li v-for="g in agendaDays" :key="g.date.toISOString()">
-              <div class="grid grid-cols-[88px_1fr] gap-4 items-start">
+              <div class="grid grid-cols-[72px_1fr] md:grid-cols-[88px_1fr] gap-3 md:gap-4 items-center">
                 <!-- Día grande -->
                 <div class="text-center bg-muted rounded-[14px] px-2 py-3">
                   <p class="text-[11px] uppercase font-bold tracking-wide text-fg-muted">{{ format(g.date, 'EEE', { locale: es }) }}</p>
-                  <p class="text-[28px] font-extrabold text-fg leading-none tabular-nums mt-1">{{ format(g.date, 'd') }}</p>
+                  <p class="text-[26px] md:text-[28px] font-extrabold text-fg leading-none tabular-nums mt-1">{{ format(g.date, 'd') }}</p>
                   <p class="text-[11px] font-bold text-fg-muted capitalize mt-1">{{ format(g.date, 'MMM', { locale: es }) }}</p>
                 </div>
-                <!-- Eventos full ancho -->
-                <ul class="flex flex-col gap-2 w-full">
+                <!-- Eventos: una linea, titulo izq + hora der, centrados verticalmente -->
+                <ul class="flex flex-col gap-2 w-full min-w-0">
                   <li v-for="ev in g.events" :key="ev.id"
-                    class="flex items-center gap-3 p-4 rounded-[14px]"
+                    class="flex items-center gap-3 px-3.5 md:px-4 py-3 md:py-3.5 rounded-[14px] min-w-0"
                     :style="evStyle(ev)">
-                    <span class="size-3 rounded-full shrink-0" :style="{ background: ev.color }" aria-hidden="true" />
-                    <div class="flex-1 min-w-0">
-                      <p class="text-[15px] font-bold truncate">{{ ev.title }}</p>
-                      <p class="text-[12.5px] font-semibold opacity-80">
-                        {{ ev.startTime ? ev.startTime : 'Todo el día' }}{{ ev.endTime ? ' – ' + ev.endTime : '' }}
-                      </p>
-                    </div>
+                    <span class="size-2.5 md:size-3 rounded-full shrink-0" :style="{ background: ev.color }" aria-hidden="true" />
+                    <p class="flex-1 min-w-0 text-[14px] md:text-[15px] font-bold break-words">{{ ev.title }}</p>
+                    <span class="shrink-0 text-[12px] md:text-[12.5px] font-semibold opacity-80 tabular-nums whitespace-nowrap">{{ ev.startTime ? ev.startTime : 'Todo el día' }}{{ ev.endTime ? ' – ' + ev.endTime : '' }}</span>
                   </li>
                 </ul>
               </div>
@@ -314,15 +527,13 @@ const VIEW_OPTS = [
             Sin eventos este día
           </div>
           <ul v-else class="flex flex-col gap-2">
-            <li v-for="e in selectedEvents" :key="e.id" class="flex items-start gap-3 p-3 rounded-[12px] bg-muted">
+            <li v-for="e in selectedEvents" :key="e.id" class="flex items-center gap-3 p-3 rounded-[12px] bg-muted min-w-0">
               <span class="relative inline-block shrink-0" :style="{ width: '54px', height: '37px' }" aria-hidden="true">
                 <HibiCloud :size="54" :body-opacity="0.25" :style="{ color: e.color || '#5aa6d2' }" class="absolute inset-0" />
                 <Clock class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" :style="{ width: '16px', height: '16px', color: e.color || '#5aa6d2' }" :stroke-width="2" />
               </span>
-              <div class="flex-1 min-w-0">
-                <p class="text-[14px] font-semibold text-fg truncate">{{ e.title }}</p>
-                <p class="text-[12px] text-fg-muted">{{ e.startTime || 'Todo el día' }}{{ e.endTime ? ' – ' + e.endTime : '' }}</p>
-              </div>
+              <p class="flex-1 min-w-0 text-[14px] font-semibold text-fg break-words">{{ e.title }}</p>
+              <span class="shrink-0 text-[12px] text-fg-muted tabular-nums whitespace-nowrap">{{ e.startTime || 'Todo el día' }}{{ e.endTime ? ' – ' + e.endTime : '' }}</span>
             </li>
           </ul>
         </div>
@@ -330,3 +541,25 @@ const VIEW_OPTS = [
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Drill-down movil: el detalle del dia se desliza desde la derecha y vuelve
+   por la derecha al cerrarse. Suave, sin rebote. */
+.hibi-drill-enter-active,
+.hibi-drill-leave-active {
+  transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+}
+.hibi-drill-enter-from {
+  transform: translateX(100%);
+}
+.hibi-drill-leave-to {
+  transform: translateX(100%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hibi-drill-enter-active,
+  .hibi-drill-leave-active {
+    transition: none;
+  }
+}
+</style>
