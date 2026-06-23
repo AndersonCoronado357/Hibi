@@ -46,7 +46,7 @@ const widgets = computed<Widget[]>(() => [
           <input
             id="quick-capture-mobile" v-model="quick"
             :placeholder="t('today.quickCapture')"
-            class="w-full h-12 rounded-full bg-card focus:bg-inset pl-5 pr-14 text-[15px] text-fg outline-none transition-[background-color] duration-200 ease-soft shadow-[0_2px_12px_rgba(0,0,0,0.04)] text-ellipsis-none"
+            class="w-full h-12 rounded-full bg-card pl-5 pr-14 text-[15px] text-fg outline-none shadow-[0_2px_12px_rgba(0,0,0,0.04)] text-ellipsis-none"
           />
           <button
             type="button" :aria-label="t('common.add')"
@@ -69,7 +69,7 @@ const widgets = computed<Widget[]>(() => [
                 <input
                   id="quick-capture" v-model="quick"
                   :placeholder="t('today.quickCapture')"
-                  class="w-full h-12 rounded-full bg-card focus:bg-inset pl-5 pr-14 text-[15px] text-fg outline-none transition-[background-color] duration-200 ease-soft"
+                  class="w-full h-12 rounded-full bg-card pl-5 pr-14 text-[15px] text-fg outline-none"
                 />
                 <button
                   type="button" :aria-label="t('common.add')"
