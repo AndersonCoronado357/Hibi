@@ -54,7 +54,7 @@ function google() {
 
 const steps = ['Tu correo', 'El enlace', 'Nueva clave']
 const fieldCls =
-  'w-full h-12 rounded-[14px] bg-muted hover:bg-inset focus:bg-inset pl-11 pr-4 text-[15px] text-fg outline-none transition-colors duration-200 ease-soft'
+  'w-full h-12 rounded-[14px] bg-muted hover:bg-inset pl-11 pr-4 text-[15px] text-fg outline-none transition-colors duration-200 ease-soft'
 const googleBtn =
   'w-full h-12 rounded-[14px] bg-muted hover:bg-sky-soft text-fg hover:text-sky-deep font-semibold inline-flex items-center justify-center gap-2.5 transition-colors'
 </script>
