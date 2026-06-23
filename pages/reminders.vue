@@ -74,7 +74,7 @@ function saveReminder() {
     <div class="flex flex-col gap-2">
       <label class="text-[12.5px] font-bold text-fg-muted px-1">¿Qué te recuerdo?</label>
       <input v-model="newTitle" type="text" placeholder="Tomar la pastilla, llamar a mamá…" autofocus
-        class="w-full h-14 rounded-[14px] bg-card focus:bg-muted px-4 text-[18px] font-semibold text-fg outline-none placeholder:text-fg-subtle" />
+        class="w-full h-14 rounded-[14px] bg-card px-4 text-[18px] font-semibold text-fg outline-none placeholder:text-fg-subtle" />
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -116,7 +116,7 @@ function saveReminder() {
     <div class="flex flex-col gap-2 flex-1 min-h-[160px]">
       <label class="text-[12.5px] font-bold text-fg-muted px-1">Notas</label>
       <textarea v-model="newNotes" placeholder="Detalles, contexto…"
-        class="w-full flex-1 min-h-[160px] rounded-[14px] bg-card focus:bg-muted px-4 py-3 text-[14.5px] text-fg outline-none resize-none"></textarea>
+        class="w-full flex-1 min-h-[160px] rounded-[14px] bg-card px-4 py-3 text-[14.5px] text-fg outline-none resize-none"></textarea>
     </div>
   </AppCreateView>
 
@@ -133,7 +133,7 @@ function saveReminder() {
     <div class="relative z-10">
       <PageHero :icon="BellRing" tone="peach" title="Recordatorios" :subtitle="`${remindersData.length} pendientes`">
         <template #actions>
-          <AppButton variant="primary" size="sm" @click="openCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>Nuevo</AppButton>
+          <AppButton variant="primary" size="sm" class="w-full md:w-auto" @click="openCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>Nuevo</AppButton>
         </template>
       </PageHero>
     </div>
@@ -151,8 +151,10 @@ function saveReminder() {
             <ul class="hibi-anim-float-down flex flex-col gap-3">
               <li v-for="r in inGroup(g)" :key="r.id"
                 class="grid grid-cols-[72px_1fr] gap-3 items-center">
-                <!-- Columna del marcador: solo la nube, sin línea (la nube ya es marker visual suficiente) -->
-                <div class="relative flex items-center justify-center">
+                <!-- Columna del marcador: la nube TAMBIÉN alterna hecho al tocarla -->
+                <button type="button" class="relative flex items-center justify-center cursor-pointer"
+                  :aria-label="r.done ? 'Marcar pendiente' : 'Marcar hecho'"
+                  @click="toggleDone(r)">
                   <HibiCloudIcon
                     :size="72"
                     :icon="r.done ? Check : (r.alarm ? AlarmClock : Bell)"
@@ -160,15 +162,15 @@ function saveReminder() {
                     :cloud-color="r.done ? 'text-mint' : (r.alarm ? 'text-pink-soft' : 'text-sky-soft')"
                     :icon-color="r.done ? 'text-[#34936a]' : (r.alarm ? 'text-pink-deep' : 'text-sky-deep')"
                     :icon-stroke="r.done ? 2.6 : 2" />
-                </div>
+                </button>
                 <!-- Tarjeta — click en cualquier punto = toggle hecho -->
                 <button type="button"
-                  class="bg-muted rounded-[14px] p-4 flex items-center justify-between gap-3 text-left transition-[background-color,opacity] hover:bg-inset w-full"
+                  class="min-w-0 bg-muted rounded-[14px] p-3.5 md:p-4 flex items-center justify-between gap-3 text-left transition-[background-color,opacity] hover:bg-inset w-full"
                   :class="r.done ? 'opacity-60' : ''"
                   @click="toggleDone(r)">
-                  <div class="min-w-0">
-                    <p class="text-[14.5px] font-bold text-fg truncate" :class="r.done ? 'line-through' : ''">{{ r.title }}</p>
-                    <p class="text-[12.5px] text-fg-muted mt-0.5" :class="r.done ? 'line-through' : ''">
+                  <div class="min-w-0 flex-1">
+                    <p class="text-[14.5px] font-bold text-fg break-words" :class="r.done ? 'line-through' : ''">{{ r.title }}</p>
+                    <p class="text-[12.5px] text-fg-muted mt-0.5 break-words" :class="r.done ? 'line-through' : ''">
                       {{ fmtWhen(r) }}<span v-if="r.pre">, <span class="font-semibold">{{ r.pre }}</span></span>
                     </p>
                   </div>
