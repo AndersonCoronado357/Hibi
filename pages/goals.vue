@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Plus, Target, Calendar, TrendingUp, Minus, Check, Hash, Palette, FileText, Folder } from '@lucide/vue'
+import { Plus, Target, Calendar, TrendingUp, Minus, Check, Hash, Palette, FileText, Folder, Trash2 } from '@lucide/vue'
 
 useHead({ title: 'Hibi — Objetivos' })
 
@@ -85,6 +85,7 @@ function openCreate() {
   view.value = 'create'
 }
 function cancelCreate() { view.value = 'list' }
+function removeGoal(id: string) { goalsData.value = goalsData.value.filter(g => g.id !== id) }
 
 function saveGoal() {
   const t = newTitle.value.trim(); if (!t) return
@@ -108,7 +109,7 @@ function saveGoal() {
     <div class="flex flex-col gap-2">
       <label class="text-[12.5px] font-bold text-fg-muted px-1">Título</label>
       <input v-model="newTitle" type="text" placeholder="¿Qué quieres conseguir?" autofocus
-        class="w-full h-14 rounded-[14px] bg-card focus:bg-muted px-4 text-[18px] font-semibold text-fg outline-none placeholder:text-fg-subtle" />
+        class="w-full h-14 rounded-[14px] bg-card px-4 text-[18px] font-semibold text-fg outline-none placeholder:text-fg-subtle" />
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div class="flex flex-col gap-2">
@@ -118,17 +119,17 @@ function saveGoal() {
       <div class="flex flex-col gap-2">
         <label class="text-[12.5px] font-bold text-fg-muted px-1">Área</label>
         <input v-model="newArea" type="text" placeholder="Salud, Estudio, Finanzas…"
-          class="w-full h-12 rounded-[12px] bg-card focus:bg-inset px-3 text-[14.5px] text-fg outline-none" />
+          class="w-full h-12 rounded-[12px] bg-card px-3 text-[14.5px] text-fg outline-none" />
       </div>
       <div class="flex flex-col gap-2">
         <label class="text-[12.5px] font-bold text-fg-muted px-1">Meta total</label>
         <input v-model="newTotalStr" type="number" min="1" placeholder="100"
-          class="w-full h-12 rounded-[12px] bg-card focus:bg-inset px-3 text-[14.5px] text-fg outline-none tabular-nums" />
+          class="w-full h-12 rounded-[12px] bg-card px-3 text-[14.5px] text-fg outline-none tabular-nums" />
       </div>
       <div class="flex flex-col gap-2">
         <label class="text-[12.5px] font-bold text-fg-muted px-1">Unidad</label>
         <input v-model="newUnit" type="text" placeholder="libros, km, COP, lecciones…"
-          class="w-full h-12 rounded-[12px] bg-card focus:bg-inset px-3 text-[14.5px] text-fg outline-none" />
+          class="w-full h-12 rounded-[12px] bg-card px-3 text-[14.5px] text-fg outline-none" />
       </div>
     </div>
     <div class="flex flex-col gap-2 flex-1 min-h-0">
@@ -140,7 +141,7 @@ function saveGoal() {
   </AppCreateView>
 
   <!-- VISTA NORMAL -->
-  <div v-else class="h-full w-full flex flex-col gap-3 px-4 md:px-7 py-5 overflow-hidden relative">
+  <div v-else class="h-full w-full flex flex-col gap-2 md:gap-3 px-3 md:px-7 py-3 md:py-5 overflow-hidden relative">
     <!-- Decoración cute -->
     <HibiCloud :size="150" float :duration="8" class="hidden md:block absolute -top-6 -right-8 text-lavender opacity-15 pointer-events-none z-40" aria-hidden="true" />
     <HibiCloud :size="90"  float :duration="10" :delay="1.2" class="hidden md:block absolute bottom-6 -left-6 text-sky-soft opacity-15 pointer-events-none z-40" aria-hidden="true" />
@@ -151,25 +152,29 @@ function saveGoal() {
     <div class="relative z-10">
       <PageHero :icon="Target" tone="lavender" title="Objetivos" :subtitle="`${goalsData.length} activos · avance medio ${goalsData.length ? Math.round(goalsData.reduce((a,g)=>a+g.progress,0)/goalsData.length) : 0}%`">
         <template #actions>
-          <AppButton variant="primary" size="sm" @click="openCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>Nuevo</AppButton>
+          <AppButton variant="primary" size="sm" class="w-full md:w-auto" @click="openCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>Nuevo</AppButton>
         </template>
       </PageHero>
     </div>
 
     <div class="hibi-anim-pop relative z-10 flex-1 min-h-0 overflow-y-auto scroll-area flex flex-col gap-3">
-      <AppCard v-for="g in goalsData" :key="g.id" class="!p-5">
+      <AppCard v-for="g in goalsData" :key="g.id" class="group/goal shrink-0 !p-4 md:!p-5">
         <div class="flex items-start gap-3 mb-4">
-          <HibiCloudIcon :size="62" :icon="Target" :icon-size="22" :cloud-color="g.color.split(' ')[0]" :icon-color="g.color.split(' ')[1]" :icon-stroke="1.9" class="shrink-0" />
+          <HibiCloudIcon :size="56" :icon="Target" :icon-size="20" :cloud-color="g.color.split(' ')[0]" :icon-color="g.color.split(' ')[1]" :icon-stroke="1.9" class="shrink-0" />
           <div class="flex-1 min-w-0">
-            <h3 class="text-[17px] font-extrabold text-fg leading-tight">{{ g.title }}</h3>
-            <div class="flex items-center gap-3 mt-1 text-[12.5px] text-fg-muted flex-wrap">
+            <h3 class="text-[16px] md:text-[17px] font-extrabold text-fg leading-tight">{{ g.title }}</h3>
+            <div class="flex items-center gap-2 md:gap-3 mt-1 text-[12px] md:text-[12.5px] text-fg-muted flex-wrap">
               <span class="inline-flex items-center gap-1"><Calendar class="size-3" :stroke-width="2" aria-hidden="true" />{{ g.target }}</span>
               <span v-if="g.area" class="text-[11px] font-bold px-2 h-6 grid place-items-center rounded-full" :class="g.color">{{ g.area }}</span>
             </div>
           </div>
-          <div class="text-right shrink-0">
-            <p class="text-[26px] font-extrabold leading-none tabular-nums" :style="{ color: g.ringColor }">{{ g.progress }}<span class="text-[14px] text-fg-muted">%</span></p>
-            <p class="text-[11px] text-fg-muted tabular-nums">{{ fmtCurrent(g) }} / {{ fmtTotal(g) }}</p>
+          <div class="flex items-start gap-1 shrink-0">
+            <div class="text-right">
+              <p class="text-[24px] md:text-[26px] font-extrabold leading-none tabular-nums" :style="{ color: g.ringColor }">{{ g.progress }}<span class="text-[14px] text-fg-muted">%</span></p>
+              <!-- current/total: largo en COP → solo desde sm -->
+              <p class="hidden sm:block text-[11px] text-fg-muted tabular-nums">{{ fmtCurrent(g) }} / {{ fmtTotal(g) }}</p>
+            </div>
+            <button type="button" class="grid place-items-center size-7 rounded-full text-fg-subtle md:opacity-0 md:group-hover/goal:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" aria-label="Eliminar objetivo" @click="removeGoal(g.id)"><Trash2 class="size-[14px]" :stroke-width="2" /></button>
           </div>
         </div>
 
@@ -203,7 +208,11 @@ function saveGoal() {
             :class="m.done ? 'text-fg' : 'text-fg-subtle'"
             :style="{ left: m.at + '%' }">{{ m.label }}</span>
         </div>
-        <p class="mt-2 text-[11.5px] text-fg-muted font-semibold flex items-center gap-1"><TrendingUp class="size-3" :stroke-width="2.2" />Arrastra la barra para aportar progreso</p>
+        <div class="mt-2 flex items-center justify-between gap-2">
+          <p class="text-[11.5px] text-fg-muted font-semibold inline-flex items-center gap-1"><TrendingUp class="size-3" :stroke-width="2.2" /><span class="hidden sm:inline">Arrastra la barra para aportar progreso</span><span class="sm:hidden">Arrastra para aportar</span></p>
+          <!-- En móvil el conteo va aquí (en el header se ocultaba por ser largo en COP) -->
+          <p class="sm:hidden text-[12px] text-fg-muted tabular-nums font-bold text-right">{{ fmtCurrent(g) }} / {{ fmtTotal(g) }}</p>
+        </div>
       </AppCard>
     </div>
   </div>
