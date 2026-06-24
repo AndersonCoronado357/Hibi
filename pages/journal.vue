@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Plus, BookHeart, Frown, Meh, Smile, Laugh, Angry, Sparkles, ChevronLeft, ChevronRight, BarChart3, NotebookPen } from '@lucide/vue'
+import { Plus, BookHeart, Frown, Meh, Smile, Laugh, Angry, Sparkles, ChevronLeft, ChevronRight, BarChart3, NotebookPen, CalendarDays, X } from '@lucide/vue'
 import { markRaw, type Component } from 'vue'
 import { format, subDays, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, differenceInCalendarDays } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -30,6 +30,7 @@ const moods: Mood[] = [
 ]
 
 const view = ref<'editor' | 'stats'>('editor')
+const showSideMobile = ref(false) // móvil: overlay con calendario + entradas
 
 const selectedDate = ref(today)
 const selectedEntry = computed(() => entries.value.find(e => isSameDay(e.date, selectedDate.value)))
@@ -134,7 +135,7 @@ function arcPath(idx: number, dist: typeof moodDist.value) {
 </script>
 
 <template>
-  <div class="h-full flex flex-col gap-3 px-4 md:px-7 py-5 relative overflow-hidden">
+  <div class="h-full flex flex-col gap-2 md:gap-3 px-3 md:px-7 py-3 md:py-5 relative overflow-hidden">
     <HibiCloud :size="130" float :duration="7" class="hidden md:block absolute -top-6 -right-6 text-pink-soft opacity-15 pointer-events-none z-40" aria-hidden="true" />
     <HibiCloud :size="70" float :duration="9" :delay="1.3" class="hidden md:block absolute bottom-8 left-8 text-lavender opacity-15 pointer-events-none z-40" aria-hidden="true" />
     <HibiHeart :size="20" beat :duration="2.4" class="hidden md:block absolute top-[20%] left-[8%] text-fg-subtle opacity-25 pointer-events-none z-40" />
@@ -148,43 +149,48 @@ function arcPath(idx: number, dist: typeof moodDist.value) {
             { value: 'editor', icon: NotebookPen, ariaLabel: 'Editor' },
             { value: 'stats',  icon: BarChart3,   ariaLabel: 'Estadísticas' },
           ]" />
-          <AppButton variant="primary" size="sm" @click="selectedDate = new Date(); view = 'editor'"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>Hoy</AppButton>
+          <AppButton variant="primary" size="sm" class="ml-auto" @click="selectedDate = new Date(); view = 'editor'"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>Hoy</AppButton>
         </template>
       </PageHero>
     </div>
 
     <!-- ─────── EDITOR ─────── -->
-    <div v-if="view === 'editor'" class="flex-1 min-h-0 flex flex-col lg:flex-row gap-3 overflow-hidden">
-      <AppCard class="flex-1 min-w-0 flex flex-col" :padded="false">
-        <header class="shrink-0 px-6 pt-6 pb-3 flex flex-wrap items-end justify-between gap-3">
-          <!-- Wrapper relative; el viejo sale en absolute mientras el nuevo entra en flujo normal -->
-          <div class="relative">
+    <div v-if="view === 'editor'" class="relative flex-1 min-h-0 flex flex-col lg:flex-row gap-2 lg:gap-3 overflow-hidden">
+      <AppCard class="min-h-0 flex-1 min-w-0 flex flex-col" :padded="false">
+        <!-- Cabecera compacta: fecha + ánimo + calendario en UNA fila (deja todo el alto para escribir) -->
+        <header class="shrink-0 px-3 md:px-6 pt-3 md:pt-6 pb-2 md:pb-3 flex items-center gap-2 md:gap-3">
+          <div class="relative shrink-0">
             <Transition name="hibi-fade">
               <div :key="format(selectedDate, 'yyyy-MM-dd')">
-                <p class="text-[12.5px] text-fg-muted font-semibold capitalize">{{ format(selectedDate, "EEEE", { locale: es }) }}</p>
-                <h2 class="text-[32px] font-extrabold text-fg leading-none tabular-nums">{{ format(selectedDate, 'd') }} <span class="text-[18px] text-fg-muted font-bold">{{ format(selectedDate, "MMM", { locale: es }) }}</span></h2>
+                <p class="hidden md:block text-[12.5px] text-fg-muted font-semibold capitalize">{{ format(selectedDate, "EEEE", { locale: es }) }}</p>
+                <h2 class="text-[22px] md:text-[32px] font-extrabold text-fg leading-none tabular-nums">{{ format(selectedDate, 'd') }} <span class="text-[14px] md:text-[18px] text-fg-muted font-bold">{{ format(selectedDate, "MMM", { locale: es }) }}</span></h2>
               </div>
             </Transition>
           </div>
-          <div class="inline-flex items-center gap-1.5 p-1 rounded-full bg-muted">
+          <div class="flex-1" />
+          <!-- Selector de ánimo compacto -->
+          <div class="flex items-center gap-0.5 md:gap-1.5 p-1 rounded-full bg-muted shrink-0">
             <button v-for="m in moods" :key="m.v" type="button"
               class="shrink-0 hibi-mood-btn"
               :aria-label="m.label" @click="draftMood = m.v as Entry['mood']">
               <HibiCloudIcon
-                :size="46"
+                :size="36"
                 :icon="m.icon"
-                :icon-size="18"
+                :icon-size="15"
                 :cloud-color="draftMood === m.v ? m.bg : 'text-card'"
                 :icon-color="draftMood === m.v ? m.color : 'text-fg-muted'"
                 :icon-stroke="1.8" />
             </button>
           </div>
+          <button type="button" class="lg:hidden grid place-items-center size-10 rounded-full bg-muted text-fg-muted active:bg-inset shrink-0" aria-label="Calendario y entradas" @click="showSideMobile = true">
+            <CalendarDays class="size-[19px]" :stroke-width="2" />
+          </button>
         </header>
 
-        <!-- Prompt -->
-        <div class="shrink-0 mx-6 mb-3 rounded-[12px] bg-sky-soft px-4 py-3 flex items-start gap-2.5">
-          <Sparkles class="size-[16px] text-sky-deep shrink-0 mt-0.5" :stroke-width="2.1" aria-hidden="true" />
-          <p class="flex-1 text-[14px] text-fg font-semibold">{{ prompt }}</p>
+        <!-- Prompt: sólo en PC (en celular el espacio es para escribir) -->
+        <div class="hidden md:flex shrink-0 mx-6 mb-3 rounded-[12px] bg-sky-soft px-4 py-3 items-center gap-2.5">
+          <Sparkles class="size-[16px] text-sky-deep shrink-0" :stroke-width="2.1" aria-hidden="true" />
+          <p class="flex-1 min-w-0 text-[14px] text-fg font-semibold truncate">{{ prompt }}</p>
           <div class="flex items-center gap-2 shrink-0">
             <button class="text-[12px] font-bold text-sky-deep hover:underline" @click="insertPrompt">Usar</button>
             <button class="text-[12px] font-bold text-fg-muted hover:underline" @click="newPrompt">Otro</button>
@@ -192,7 +198,7 @@ function arcPath(idx: number, dist: typeof moodDist.value) {
         </div>
 
         <!-- Editor enriquecido full — fade suave al cambiar de día, sin layout shift -->
-        <div class="flex-1 min-h-0 flex mx-6 mb-2 relative">
+        <div class="flex-1 min-h-0 flex mx-3 md:mx-6 mt-1 mb-2 relative">
           <Transition name="hibi-fade">
             <AppRichEditor
               :key="format(selectedDate, 'yyyy-MM-dd')"
@@ -203,14 +209,24 @@ function arcPath(idx: number, dist: typeof moodDist.value) {
           </Transition>
         </div>
 
-        <footer class="shrink-0 px-6 pb-5 pt-1 flex justify-end gap-2">
+        <footer class="shrink-0 px-4 md:px-6 pb-4 md:pb-5 pt-1 flex justify-end gap-2">
           <AppButton variant="primary" size="sm" @click="save">Guardar</AppButton>
         </footer>
       </AppCard>
 
-      <!-- Sidebar mes + entradas -->
-      <aside class="lg:w-[300px] shrink-0 flex flex-col gap-3 min-h-0">
-        <AppCard class="!p-4">
+      <!-- Sidebar mes + entradas — desktop fijo; móvil overlay deslizable -->
+      <aside class="flex-col"
+        :class="showSideMobile ? 'fixed inset-0 z-[60] flex bg-base' : 'hidden lg:flex w-full lg:w-[300px] shrink-0 gap-2 lg:gap-3 lg:min-h-0'">
+        <!-- Cabecera del sheet (sólo móvil) -->
+        <div v-if="showSideMobile" class="lg:hidden shrink-0 flex items-center justify-between px-4 pb-2" style="padding-top: max(0.9rem, env(safe-area-inset-top))">
+          <h3 class="text-[18px] font-extrabold text-fg">Calendario</h3>
+          <button type="button" class="grid place-items-center size-9 rounded-full bg-muted text-fg-muted" aria-label="Cerrar" @click="showSideMobile = false">
+            <X class="size-[18px]" :stroke-width="2" />
+          </button>
+        </div>
+        <!-- Cuerpo: en móvil ES el contenedor de scroll; en desktop, panel normal -->
+        <div class="flex flex-col gap-2 lg:gap-3" :class="showSideMobile ? 'flex-1 min-h-0 overflow-y-auto scroll-area px-4 pb-6' : 'lg:flex-1 lg:min-h-0'">
+        <AppCard class="!p-4 shrink-0">
           <div class="flex items-center justify-between mb-2">
             <button class="grid place-items-center size-7 rounded-[8px] text-fg-muted hover:bg-muted hover:text-fg" aria-label="Mes anterior" @click="cursor = subMonths(cursor, 1)"><ChevronLeft class="size-4" :stroke-width="2" /></button>
             <p class="text-[14px] font-bold text-fg capitalize">{{ format(cursor, 'MMMM yyyy', { locale: es }) }}</p>
@@ -230,18 +246,18 @@ function arcPath(idx: number, dist: typeof moodDist.value) {
                     isSameDay(d, selectedDate) ? 'outline outline-2 outline-offset-[-2px] outline-sky-deep' : '',
                     moodOn(d) ? moods[moodOn(d)! - 1]!.bg + ' ' + moods[moodOn(d)! - 1]!.color : '',
                   ]"
-                  @click="selectedDate = d">{{ format(d, 'd') }}</button>
+                  @click="selectedDate = d; showSideMobile = false">{{ format(d, 'd') }}</button>
               </div>
             </Transition>
           </div>
         </AppCard>
-        <AppCard class="flex-1 min-h-0 flex flex-col" :padded="false">
+        <AppCard class="shrink-0 lg:flex-1 lg:min-h-0 flex flex-col" :padded="false">
           <h3 class="px-4 pt-4 pb-2 text-[13px] font-bold text-fg-muted shrink-0">Entradas</h3>
-          <div class="hibi-anim-slide-right flex-1 min-h-0 overflow-y-auto scroll-area px-2 pb-3 flex flex-col gap-1">
+          <div class="hibi-anim-slide-right lg:flex-1 lg:min-h-0 lg:overflow-y-auto lg:scroll-area px-2 pb-3 flex flex-col gap-1">
             <button v-for="e in entries" :key="e.date.toISOString()"
               type="button" class="text-left p-3 rounded-[12px] flex gap-3 items-start transition-[background-color]"
               :class="isSameDay(e.date, selectedDate) ? 'bg-sky-soft' : 'hover:bg-muted'"
-              @click="selectedDate = e.date">
+              @click="selectedDate = e.date; showSideMobile = false">
               <HibiCloudIcon :size="52" :icon="moods[e.mood-1]!.icon" :icon-size="18" :cloud-color="moods[e.mood-1]!.bg" :icon-color="moods[e.mood-1]!.color" :icon-stroke="1.7" class="shrink-0" />
               <div class="flex-1 min-w-0">
                 <p class="text-[13px] font-bold text-fg capitalize">{{ format(e.date, "EEEE d", { locale: es }) }}</p>
@@ -250,13 +266,14 @@ function arcPath(idx: number, dist: typeof moodDist.value) {
             </button>
           </div>
         </AppCard>
+        </div>
       </aside>
     </div>
 
     <!-- ─────── GRÁFICA DE ÁNIMO ─────── usa todo el alto -->
-    <div v-else class="flex-1 min-h-0 flex flex-col md:flex-row gap-3 overflow-hidden">
+    <div v-else class="flex-1 min-h-0 flex flex-col md:flex-row gap-2 md:gap-3 overflow-y-auto md:overflow-hidden scroll-area">
       <!-- Izquierda: hero + radial -->
-      <AppCard class="!p-6 md:w-[420px] shrink-0 flex flex-col items-center gap-4 relative overflow-hidden">
+      <AppCard class="!p-5 md:!p-6 w-full md:w-[420px] shrink-0 flex flex-col items-center gap-4 relative overflow-hidden">
         <HibiCloud :size="160" class="hidden md:block absolute -top-6 -right-6 text-pink-soft opacity-15 pointer-events-none z-40" aria-hidden="true" />
         <div class="text-center relative z-10">
           <p class="text-[11.5px] font-bold text-fg-muted uppercase tracking-wide">Ánimo medio</p>
@@ -308,7 +325,7 @@ function arcPath(idx: number, dist: typeof moodDist.value) {
       </AppCard>
 
       <!-- Derecha: mapa de calor estilo GitHub interactivo -->
-      <AppCard class="!p-6 flex-1 min-w-0 flex flex-col">
+      <AppCard class="!p-5 md:!p-6 flex-1 min-w-0 min-h-[300px] md:min-h-0 flex flex-col">
         <header class="flex items-center justify-between mb-4 shrink-0">
           <h3 class="text-[14px] font-bold text-fg-muted">Mapa de ánimo · últimos 84 días</h3>
           <p v-if="heatSelected" class="text-[12.5px] font-semibold text-fg">
@@ -349,3 +366,8 @@ function arcPath(idx: number, dist: typeof moodDist.value) {
     </div>
   </div>
 </template>
+
+<style scoped>
+.hibi-no-sb { scrollbar-width: none; -ms-overflow-style: none; }
+.hibi-no-sb::-webkit-scrollbar { display: none; }
+</style>
