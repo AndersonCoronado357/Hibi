@@ -13,8 +13,10 @@ const props = withDefaults(
     label?: string
     size?: 'sm' | 'md'
     disabled?: boolean
+    /** Fondo del trigger: 'card' (blanco, por defecto) o 'muted' (azulito) */
+    tone?: 'card' | 'muted'
   }>(),
-  { placeholder: 'Selecciona…', size: 'md', disabled: false },
+  { placeholder: 'Selecciona…', size: 'md', disabled: false, tone: 'card' },
 )
 
 const emit = defineEmits<{ 'update:modelValue': [v: string | number] }>()
@@ -25,15 +27,13 @@ const popoverRef = ref<HTMLElement | null>(null)
 const activeIndex = ref(-1)
 const id = useId()
 
-const popPos = ref({ top: 0, left: 0, width: 0 })
-
 const selected = computed(() => props.options.find(o => o.value === props.modelValue))
 
-function recalcPos() {
-  if (!triggerRef.value) return
-  const r = triggerRef.value.getBoundingClientRect()
-  popPos.value = { top: r.bottom + 6, left: r.left, width: r.width }
-}
+// Auto-flip arriba/abajo segun espacio en el viewport.
+const { pos: popPos, recalc: recalcPos } = usePopoverPosition(triggerRef, {
+  matchTriggerWidth: true,
+  desiredHeight: 280,
+})
 
 function toggle() {
   if (props.disabled) return
@@ -82,6 +82,7 @@ onBeforeUnmount(() => {
 
 const heightClass = computed(() => props.size === 'sm' ? 'h-10' : 'h-12')
 const textClass = computed(() => props.size === 'sm' ? 'text-[13.5px]' : 'text-[14.5px]')
+const bgClass = computed(() => props.tone === 'muted' ? 'bg-muted' : 'bg-card')
 </script>
 
 <template>
@@ -94,8 +95,8 @@ const textClass = computed(() => props.size === 'sm' ? 'text-[13.5px]' : 'text-[
       :disabled="disabled"
       :aria-expanded="open"
       :aria-haspopup="'listbox'"
-      class="w-full rounded-[12px] bg-muted hover:bg-inset focus:bg-inset px-3 pr-9 flex items-center justify-between outline-none transition-[background-color] duration-150 disabled:opacity-50 relative"
-      :class="[heightClass, textClass]"
+      class="hibi-no-hover w-full rounded-[12px] px-3 pr-9 flex items-center justify-between outline-none disabled:opacity-50 relative"
+      :class="[heightClass, textClass, bgClass]"
       @click="toggle"
       @keydown.down.prevent="move(1)"
       @keydown.up.prevent="move(-1)"
@@ -114,8 +115,8 @@ const textClass = computed(() => props.size === 'sm' ? 'text-[13.5px]' : 'text-[
           v-if="open"
           ref="popoverRef"
           role="listbox"
-          class="fixed z-[200] rounded-[14px] py-1.5 max-h-[280px] overflow-y-auto scroll-area"
-          :style="{ top: popPos.top + 'px', left: popPos.left + 'px', width: popPos.width + 'px', background: 'var(--bg-pop)' }"
+          class="fixed z-[200] rounded-[14px] py-1.5 overflow-y-auto scroll-area"
+          :style="{ top: popPos.top + 'px', left: popPos.left + 'px', width: popPos.width + 'px', maxHeight: popPos.maxHeight + 'px', background: 'var(--bg-pop)' }"
         >
           <button
             v-for="(o, i) in options"
@@ -145,4 +146,6 @@ const textClass = computed(() => props.size === 'sm' ? 'text-[13.5px]' : 'text-[
   transform-origin: top center;
 }
 .hibi-pop-enter-from, .hibi-pop-leave-to { opacity: 0; transform: translateY(-4px); }
+/* Si abre hacia arriba, invertimos el origen del transform */
+.hibi-pop-enter-active.up, .hibi-pop-leave-active.up { transform-origin: bottom center; }
 </style>

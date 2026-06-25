@@ -15,8 +15,10 @@ const props = withDefaults(
     placeholder?: string
     size?: 'sm' | 'md'
     disabled?: boolean
+    /** Fondo del trigger: 'card' (blanco, por defecto) o 'muted' (azulito) */
+    tone?: 'card' | 'muted'
   }>(),
-  { placeholder: 'Elegir fecha', size: 'md', disabled: false },
+  { placeholder: 'Elegir fecha', size: 'md', disabled: false, tone: 'card' },
 )
 const emit = defineEmits<{ 'update:modelValue': [v: string] }>()
 
@@ -24,12 +26,12 @@ const open = ref(false)
 const triggerRef = ref<HTMLElement | null>(null)
 const popoverRef = ref<HTMLElement | null>(null)
 const id = useId()
-const popPos = ref({ top: 0, left: 0 })
-function recalcPos() {
-  if (!triggerRef.value) return
-  const r = triggerRef.value.getBoundingClientRect()
-  popPos.value = { top: r.bottom + 6, left: r.left }
-}
+// Calendario aprox 360px alto x 280px ancho. Auto-flip.
+const { pos: popPos, recalc: recalcPos } = usePopoverPosition(triggerRef, {
+  desiredHeight: 360,
+  desiredWidth: 280,
+  matchTriggerWidth: false,
+})
 
 const parsed = computed(() => {
   if (!props.modelValue) return null
@@ -84,6 +86,7 @@ const display = computed(() => parsed.value ? format(parsed.value, "d 'de' MMM y
 // Estándar global de altura para inputs/selects/dates: h-12 (md) / h-10 (sm)
 const heightClass = computed(() => props.size === 'sm' ? 'h-10' : 'h-12')
 const textClass = computed(() => props.size === 'sm' ? 'text-[13.5px]' : 'text-[14.5px]')
+const bgClass = computed(() => props.tone === 'muted' ? 'bg-muted' : 'bg-card')
 </script>
 
 <template>
@@ -95,8 +98,8 @@ const textClass = computed(() => props.size === 'sm' ? 'text-[13.5px]' : 'text-[
       type="button"
       :disabled="disabled"
       :aria-expanded="open"
-      class="w-full rounded-[12px] bg-muted hover:bg-inset focus:bg-inset pl-10 pr-3 flex items-center outline-none transition-[background-color] duration-150 disabled:opacity-50"
-      :class="[heightClass, textClass]"
+      class="hibi-no-hover w-full rounded-[12px] pl-10 pr-3 flex items-center outline-none disabled:opacity-50"
+      :class="[heightClass, textClass, bgClass]"
       @click="toggle"
     >
       <Calendar class="absolute left-3 size-[16px] text-fg-subtle" :stroke-width="1.9" aria-hidden="true" />
@@ -112,8 +115,8 @@ const textClass = computed(() => props.size === 'sm' ? 'text-[13.5px]' : 'text-[
         ref="popoverRef"
         role="dialog"
         aria-label="Elegir fecha"
-        class="fixed z-[200] rounded-[16px] p-3 w-[280px]"
-        :style="{ top: popPos.top + 'px', left: popPos.left + 'px', background: 'var(--bg-pop)' }"
+        class="fixed z-[200] rounded-[16px] p-3 w-[280px] overflow-y-auto scroll-area"
+        :style="{ top: popPos.top + 'px', left: popPos.left + 'px', maxHeight: popPos.maxHeight + 'px', background: 'var(--bg-pop)' }"
       >
         <div class="flex items-center justify-between mb-2">
           <button type="button" class="grid place-items-center size-8 rounded-[10px] text-fg-muted hover:bg-muted hover:text-fg transition-[background-color]" aria-label="Mes anterior" @click="cursor = subMonths(cursor, 1)"><ChevronLeft class="size-4" :stroke-width="2" /></button>
