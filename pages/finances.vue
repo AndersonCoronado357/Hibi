@@ -50,12 +50,29 @@ const subscriptions = ref<Sub[]>([
 
 const totalMonth = computed(() => expenses.value.reduce((a, t) => a + Math.abs(t.amount), 0))
 const totalSubs = computed(() => subscriptions.value.reduce((a, s) => a + s.amount, 0))
-const fmt = (v: number) => v.toLocaleString('es-CO', { style:'currency', currency:'COP', maximumFractionDigits: 0 })
+// Formato COP manual: garantiza el punto de miles ($ 180.000) en cualquier
+// entorno (algunos webviews no agrupan con toLocaleString('es-CO')).
+const fmt = (v: number) => {
+  const neg = v < 0
+  const digits = Math.abs(Math.round(v)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  return (neg ? '-' : '') + '$ ' + digits
+}
 
 type Tab = 'expenses' | 'subs'
 type View = 'list' | 'categories'
 const tab = ref<Tab>('expenses')
 const view = ref<View>('list')
+const showForm = ref(false) // formulario colapsable de alta
+
+// Desglose por categoría para la tarjeta de resumen
+const byCat = computed(() => {
+  const map: Record<string, number> = {}
+  for (const t of expenses.value) map[t.cat] = (map[t.cat] || 0) + Math.abs(t.amount)
+  return Object.entries(map)
+    .map(([key, amount]) => ({ key, amount, meta: CAT_META[key], pct: Math.round((amount / (totalMonth.value || 1)) * 100) }))
+    .filter(c => c.meta)
+    .sort((a, b) => b.amount - a.amount)
+})
 
 // CRUD categorías
 const editingCatKey = ref<string | null>(null)
@@ -89,24 +106,99 @@ function deleteCat(key: string) {
 
 const newTitle = ref(''); const newAmount = ref<number | null>(null); const newCat = ref('food'); const newDate = ref('')
 const newSubTitle = ref(''); const newSubAmount = ref<number | null>(null); const newSubDate = ref(''); const newSubCat = ref('ocio')
+const editId = ref<string | null>(null) // si != null, el form edita ese ítem
 let nextId = 100
+
+function resetForm() {
+  editId.value = null
+  newTitle.value = ''; newAmount.value = null; newCat.value = 'food'; newDate.value = ''
+  newSubTitle.value = ''; newSubAmount.value = null; newSubCat.value = 'ocio'; newSubDate.value = ''
+}
+function switchTab(v: Tab) { tab.value = v; view.value = 'list'; showForm.value = false; resetForm() }
+function toggleForm() { if (showForm.value) { showForm.value = false; resetForm() } else { resetForm(); showForm.value = true } }
+// El botón "+ Gasto/Suscripción" se mantiene SIEMPRE visible (incluso en
+// Categorías) para que la barra no se mueva; desde Categorías vuelve a la lista.
+function newEntry() {
+  if (view.value === 'categories') { view.value = 'list'; resetForm(); showForm.value = true; return }
+  toggleForm()
+}
+
+// Editor único (gasto o suscripción) según la pestaña activa → un solo overlay
+const entryTitle = computed<string>({
+  get: () => tab.value === 'subs' ? newSubTitle.value : newTitle.value,
+  set: (v) => { if (tab.value === 'subs') newSubTitle.value = v; else newTitle.value = v },
+})
+const entryAmount = computed<number | null>({
+  get: () => tab.value === 'subs' ? newSubAmount.value : newAmount.value,
+  set: (v) => { if (tab.value === 'subs') newSubAmount.value = v; else newAmount.value = v },
+})
+const entryDate = computed<string>({
+  get: () => tab.value === 'subs' ? newSubDate.value : newDate.value,
+  set: (v) => { if (tab.value === 'subs') newSubDate.value = v; else newDate.value = v },
+})
+const entryCat = computed<string>({
+  get: () => tab.value === 'subs' ? newSubCat.value : newCat.value,
+  set: (v) => { if (tab.value === 'subs') newSubCat.value = v; else newCat.value = v },
+})
+// Monto mostrado con punto de miles EN VIVO (el input type="number" no lo permite)
+const entryAmountDisplay = computed<string>({
+  get: () => {
+    const v = entryAmount.value
+    if (v === null || v === undefined || Number.isNaN(v)) return ''
+    return Math.abs(Math.round(v)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  },
+  set: (s) => {
+    const digits = (s || '').replace(/\D/g, '')
+    entryAmount.value = digits ? Number(digits) : null
+  },
+})
+const entryValid = computed(() => !!entryTitle.value.trim() && !!entryAmount.value)
+function saveEntry() { if (tab.value === 'subs') addSub(); else addExpense() }
+function closeForm() { showForm.value = false; resetForm() }
 
 function addExpense() {
   const t = newTitle.value.trim(); const a = newAmount.value
   if (!t || !a) return
-  expenses.value.unshift({ id: 't' + (nextId++), title: t, cat: newCat.value, date: newDate.value || 'Hoy', amount: -Math.abs(Number(a)) })
-  newTitle.value = ''; newAmount.value = null
+  if (editId.value) {
+    const it = expenses.value.find(x => x.id === editId.value)
+    if (it) { it.title = t; it.cat = newCat.value; it.date = newDate.value || it.date; it.amount = -Math.abs(Number(a)) }
+  } else {
+    expenses.value.unshift({ id: 't' + (nextId++), title: t, cat: newCat.value, date: newDate.value || 'Hoy', amount: -Math.abs(Number(a)) })
+  }
+  showForm.value = false; resetForm()
 }
+function startEditExpense(t: Tx) {
+  editId.value = t.id; newTitle.value = t.title; newAmount.value = Math.abs(t.amount); newCat.value = t.cat; newDate.value = ''
+  showForm.value = true
+}
+function removeExpense(id: string) {
+  expenses.value = expenses.value.filter(x => x.id !== id)
+  if (editId.value === id) { showForm.value = false; resetForm() }
+}
+
 function addSub() {
   const t = newSubTitle.value.trim(); const a = newSubAmount.value
   if (!t || !a) return
-  subscriptions.value.unshift({ id: 's' + (nextId++), title: t, amount: Math.abs(Number(a)), nextCharge: newSubDate.value || 'Próximo mes', cat: newSubCat.value })
-  newSubTitle.value = ''; newSubAmount.value = null
+  if (editId.value) {
+    const it = subscriptions.value.find(x => x.id === editId.value)
+    if (it) { it.title = t; it.amount = Math.abs(Number(a)); it.cat = newSubCat.value; it.nextCharge = newSubDate.value || it.nextCharge }
+  } else {
+    subscriptions.value.unshift({ id: 's' + (nextId++), title: t, amount: Math.abs(Number(a)), nextCharge: newSubDate.value || 'Próximo mes', cat: newSubCat.value })
+  }
+  showForm.value = false; resetForm()
+}
+function startEditSub(s: Sub) {
+  editId.value = s.id; newSubTitle.value = s.title; newSubAmount.value = s.amount; newSubCat.value = s.cat; newSubDate.value = ''
+  showForm.value = true
+}
+function removeSub(id: string) {
+  subscriptions.value = subscriptions.value.filter(x => x.id !== id)
+  if (editId.value === id) { showForm.value = false; resetForm() }
 }
 </script>
 
 <template>
-  <div class="h-full w-full flex flex-col gap-3 px-4 md:px-7 py-5 overflow-hidden relative">
+  <div class="h-full w-full flex flex-col gap-2 md:gap-3 px-3 md:px-7 py-3 md:py-5 overflow-hidden relative">
     <!-- Decoración cute -->
     <HibiCloud :size="150" float :duration="8" class="hidden md:block absolute -top-6 -right-8 text-mint opacity-15 pointer-events-none z-40" aria-hidden="true" />
     <HibiCloud :size="90"  float :duration="10" :delay="1.2" class="hidden md:block absolute bottom-6 -left-6 text-cream opacity-15 pointer-events-none z-40" aria-hidden="true" />
@@ -118,10 +210,10 @@ function addSub() {
     <div class="relative z-10">
       <PageHero :icon="Wallet" tone="mint" title="Finanzas" :subtitle="`Junio · ${fmt(totalMonth)} gastado`">
         <template #actions>
-          <AppSegmented :model-value="tab" :options="[{ value: 'expenses', label: 'Gastos' }, { value: 'subs', label: 'Suscripciones' }]" @update:model-value="(v) => { tab = v as Tab; view = 'list' }" />
-          <AppButton variant="secondary" size="sm" @click="view = view === 'categories' ? 'list' : 'categories'">
-            <template #icon><Settings2 class="size-[15px]" :stroke-width="2.2" /></template>
-            Categorías
+          <AppSegmented :model-value="tab" :options="[{ value: 'expenses', label: 'Gastos' }, { value: 'subs', label: 'Suscripciones' }]" @update:model-value="(v) => switchTab(v as Tab)" />
+          <AppButton variant="primary" size="sm" class="ml-auto shrink-0" @click="newEntry">
+            <template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>
+            {{ tab === 'subs' ? 'Suscripción' : 'Gasto' }}
           </AppButton>
         </template>
       </PageHero>
@@ -137,137 +229,220 @@ function addSub() {
           <span class="text-[13.5px] font-bold">Atrás</span>
         </button>
         <div class="flex-1 min-w-0">
-          <h2 class="text-[16px] font-extrabold text-fg truncate">Parametrizar categorías</h2>
-          <p class="text-[12.5px] text-fg-muted truncate">Crea, edita y elimina categorías. Cada una con su icono y color.</p>
+          <h2 class="text-[16px] font-extrabold text-fg truncate">Categorías</h2>
+          <p class="hidden sm:block text-[12.5px] text-fg-muted truncate">Crea, edita y elimina; cada una con su icono y color.</p>
         </div>
-        <AppButton variant="primary" size="sm" @click="startNewCat">
+        <AppButton variant="primary" size="sm" class="shrink-0" @click="startNewCat">
           <template #icon><Plus class="size-[15px]" :stroke-width="2.3" /></template>Nueva
         </AppButton>
       </header>
 
-      <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-5 pb-5">
-        <!-- Editor inline cuando se crea/edita -->
-        <div v-if="editingCatKey" class="rounded-[16px] bg-muted p-4 mb-4 flex flex-col gap-3">
-          <div class="flex items-center gap-3">
-            <span class="grid place-items-center size-12 rounded-[14px] shrink-0" :style="{ background: catDraft.color + '22', color: catDraft.color }">
-              <component :is="ICON_GALLERY.find(g => g.key === catDraft.iconKey)?.icon || ShoppingBag" class="size-[20px]" :stroke-width="1.9" />
-            </span>
-            <input v-model="catDraft.name" type="text" placeholder="Nombre de la categoría"
-              class="flex-1 h-12 rounded-[12px] bg-card focus:bg-inset px-3 text-[14.5px] font-semibold text-fg outline-none" />
-            <button class="grid place-items-center size-12 rounded-[12px] text-fg-muted hover:text-fg hover:bg-card" aria-label="Cancelar" @click="editingCatKey = null"><X class="size-[18px]" :stroke-width="2.2" /></button>
-            <button class="grid place-items-center size-12 rounded-[12px] bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white" aria-label="Guardar" @click="saveCat"><Check class="size-[18px]" :stroke-width="2.4" /></button>
-          </div>
-          <div>
-            <p class="text-[11.5px] font-bold text-fg-muted uppercase tracking-wide mb-2">Icono</p>
-            <!-- Galería: iconos compactos, NO cuadrados gigantes -->
-            <div class="flex items-center gap-1.5 flex-wrap">
-              <button v-for="g in ICON_GALLERY" :key="g.key" type="button"
-                class="grid place-items-center size-9 rounded-[10px] bg-card transition-[background-color]"
-                :class="catDraft.iconKey === g.key ? 'ring-2 ring-fg' : 'hover:bg-inset'"
-                @click="catDraft.iconKey = g.key">
-                <component :is="g.icon" class="size-[15px] text-fg" :stroke-width="2" />
-              </button>
+      <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-3 md:px-5 pb-5">
+        <!-- Lista de categorías: filas amplias (sin nada inline) -->
+        <ul class="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+          <li v-for="(meta, key) in CAT_META" :key="key" class="p-3 rounded-[16px] bg-muted flex items-center gap-3">
+            <div role="button" tabindex="0" class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer outline-none rounded-[12px] focus-visible:ring-2 focus-visible:ring-sky-deep" @click="startEditCat(key)" @keydown.enter.prevent="startEditCat(key)" @keydown.space.prevent="startEditCat(key)">
+              <span class="grid place-items-center size-12 rounded-[14px] shrink-0" :style="{ background: meta.color + '22', color: meta.color }">
+                <component :is="meta.icon" class="size-[22px]" :stroke-width="1.9" />
+              </span>
+              <div class="flex-1 min-w-0">
+                <p class="text-[15px] font-bold text-fg truncate">{{ meta.name }}</p>
+                <p class="text-[12px] text-fg-muted">{{ expenses.filter(t => t.cat === key).length }} movimientos</p>
+              </div>
             </div>
-          </div>
-          <div>
-            <p class="text-[11.5px] font-bold text-fg-muted uppercase tracking-wide mb-2">Color</p>
-            <AppColorPicker v-model="catDraft.color" format="hex" />
-          </div>
-        </div>
-
-        <!-- Galería de categorías -->
-        <ul class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          <li v-for="(meta, key) in CAT_META" :key="key" class="p-3 rounded-[14px] bg-muted flex items-center gap-3 group">
-            <span class="grid place-items-center size-12 rounded-[14px] shrink-0" :style="{ background: meta.color + '22', color: meta.color }">
-              <component :is="meta.icon" class="size-[20px]" :stroke-width="1.9" />
-            </span>
-            <div class="flex-1 min-w-0">
-              <p class="text-[14px] font-bold text-fg truncate">{{ meta.name }}</p>
-              <p class="text-[11.5px] text-fg-muted">Click para editar</p>
-            </div>
-            <button class="grid place-items-center size-8 rounded-[9px] text-fg-subtle hover:text-fg hover:bg-card opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Editar" @click="startEditCat(key)"><Settings2 class="size-[14px]" :stroke-width="2" /></button>
-            <button class="grid place-items-center size-8 rounded-[9px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Eliminar" @click="deleteCat(key)"><Trash2 class="size-[14px]" :stroke-width="2" /></button>
+            <button type="button" class="grid place-items-center size-10 rounded-[11px] bg-card text-fg-subtle active:text-pink-deep shrink-0" aria-label="Eliminar categoría" @click.stop="deleteCat(key)"><Trash2 class="size-[16px]" :stroke-width="2" /></button>
           </li>
         </ul>
       </div>
     </AppCard>
 
     <!-- GASTOS -->
-    <div v-else-if="tab === 'expenses'" class="relative z-10 flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
-      <!-- Form inline siempre visible -->
-      <AppCard class="shrink-0 !p-3">
-        <form class="grid grid-cols-1 md:grid-cols-[1fr_130px_200px_200px_auto] gap-2 items-center" @submit.prevent="addExpense">
-          <input v-model="newTitle" type="text" placeholder="Concepto del gasto"
-            class="h-12 rounded-[12px] bg-muted focus:bg-inset px-3 text-[14.5px] font-semibold text-fg outline-none" />
-          <input v-model.number="newAmount" type="number" step="any" min="0" placeholder="0 COP"
-            class="h-12 rounded-[12px] bg-muted focus:bg-inset px-3 text-[14.5px] text-fg outline-none tabular-nums text-right" />
-          <AppDate v-model="newDate" placeholder="Fecha" />
-          <AppSelect v-model="newCat" :options="CAT_OPTS" placeholder="Categoría" />
-          <button type="submit" :disabled="!newTitle.trim() || !newAmount"
-            class="h-12 px-4 rounded-[12px] bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white font-bold text-[13.5px] disabled:opacity-40 transition-[background-color,color] inline-flex items-center gap-1.5">
-            <TrendingDown class="size-[15px]" :stroke-width="2.2" />Anotar
+    <div v-else-if="tab === 'expenses'" class="relative z-10 flex-1 min-h-0 flex flex-col gap-2 md:gap-3 overflow-hidden">
+      <!-- Resumen compacto: total + barra (sin saturar) -->
+      <AppCard class="shrink-0 !p-4 md:!p-5 flex flex-col gap-2.5">
+        <div class="flex items-end justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-[11.5px] font-bold text-fg-muted uppercase tracking-wide">Gastado en junio</p>
+            <p class="text-[26px] md:text-[28px] font-extrabold text-fg leading-none tabular-nums mt-0.5">{{ fmt(totalMonth) }}</p>
+          </div>
+          <button type="button" class="shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-muted text-fg-muted text-[12.5px] font-bold" @click="view = 'categories'">
+            <Settings2 class="size-[14px]" :stroke-width="2.2" /> Categorías
           </button>
-        </form>
+        </div>
+        <div class="h-3 rounded-full overflow-hidden flex bg-muted">
+          <div v-for="c in byCat" :key="c.key" class="h-full first:rounded-l-full last:rounded-r-full" :style="{ width: c.pct + '%', background: c.meta!.color }" :title="`${c.meta!.name} ${c.pct}%`" />
+        </div>
       </AppCard>
-      <AppCard class="flex-1 min-w-0 flex flex-col" :padded="false">
-        <header class="px-5 pt-5 pb-3 shrink-0 flex items-center justify-between">
-          <h2 class="text-[14px] font-bold text-fg">Movimientos de junio</h2>
-          <span class="text-[13px] font-extrabold text-fg tabular-nums">{{ fmt(totalMonth) }}</span>
+
+      <!-- Lista de movimientos: llena el alto disponible -->
+      <AppCard class="flex-1 min-h-0 min-w-0 flex flex-col" :padded="false">
+        <header class="px-4 md:px-5 pt-4 md:pt-5 pb-2 md:pb-3 shrink-0 flex items-center justify-between">
+          <h2 class="text-[14px] font-bold text-fg">Movimientos</h2>
+          <span class="text-[12.5px] font-bold text-fg-muted tabular-nums">{{ expenses.length }} este mes</span>
         </header>
-        <ul class="flex-1 min-h-0 overflow-y-auto scroll-area px-3 pb-3 flex flex-col">
-          <li v-for="t in expenses" :key="t.id" class="flex items-center gap-3 p-3 rounded-[12px] hover:bg-muted transition-[background-color]">
-            <!-- Icono dentro de NUBE Hibi, color de la categoría -->
-            <span class="relative inline-block shrink-0" :style="{ width: '54px', height: '37px' }" aria-hidden="true">
-              <HibiCloud :size="54" :body-opacity="0.25" :style="{ color: CAT_META[t.cat]?.color || '#bf8f2e' }" class="absolute inset-0" />
-              <component :is="CAT_META[t.cat]?.icon || ShoppingBag" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-                :style="{ width: '17px', height: '17px', color: CAT_META[t.cat]?.color || '#bf8f2e' }" :stroke-width="2" />
-            </span>
-            <div class="flex-1 min-w-0">
-              <p class="text-[14px] font-semibold text-fg truncate">{{ t.title }}</p>
-              <p class="text-[12px] text-fg-muted">{{ t.date }} · {{ CAT_META[t.cat]?.name }}</p>
+        <ul class="flex-1 min-h-0 overflow-y-auto scroll-area px-2 md:px-3 pb-3 flex flex-col">
+          <li v-for="t in expenses" :key="t.id" class="group/tx flex items-center gap-2 p-2 rounded-[12px] hover:bg-muted transition-[background-color]">
+            <div role="button" tabindex="0" class="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer text-left outline-none rounded-[10px] focus-visible:ring-2 focus-visible:ring-sky-deep" @click="startEditExpense(t)" @keydown.enter.prevent="startEditExpense(t)" @keydown.space.prevent="startEditExpense(t)">
+              <span class="relative inline-block shrink-0" :style="{ width: '54px', height: '37px' }" aria-hidden="true">
+                <HibiCloud :size="54" :body-opacity="0.25" :style="{ color: CAT_META[t.cat]?.color || '#bf8f2e' }" class="absolute inset-0" />
+                <component :is="CAT_META[t.cat]?.icon || ShoppingBag" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                  :style="{ width: '17px', height: '17px', color: CAT_META[t.cat]?.color || '#bf8f2e' }" :stroke-width="2" />
+              </span>
+              <div class="flex-1 min-w-0">
+                <p class="text-[14px] font-semibold text-fg truncate">{{ t.title }}</p>
+                <p class="text-[12px] text-fg-muted truncate">{{ t.date }} · {{ CAT_META[t.cat]?.name }}</p>
+              </div>
+              <span class="text-[15px] font-bold text-fg tabular-nums shrink-0">{{ fmt(t.amount) }}</span>
             </div>
-            <span class="text-[15px] font-bold text-fg tabular-nums">{{ fmt(t.amount) }}</span>
+            <button type="button" class="shrink-0 grid place-items-center size-8 rounded-[9px] text-fg-subtle md:opacity-0 md:group-hover/tx:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" aria-label="Eliminar gasto" @click.stop="removeExpense(t.id)"><Trash2 class="size-[15px]" :stroke-width="2" /></button>
           </li>
         </ul>
       </AppCard>
     </div>
 
     <!-- SUSCRIPCIONES -->
-    <div v-else class="relative z-10 flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
-      <AppCard class="shrink-0 !p-3">
-        <form class="grid grid-cols-1 md:grid-cols-[1fr_130px_200px_200px_auto] gap-2 items-center" @submit.prevent="addSub">
-          <input v-model="newSubTitle" type="text" placeholder="Nombre del servicio"
-            class="h-12 rounded-[12px] bg-muted focus:bg-inset px-3 text-[14.5px] font-semibold text-fg outline-none" />
-          <input v-model.number="newSubAmount" type="number" step="any" min="0" placeholder="0 COP/mes"
-            class="h-12 rounded-[12px] bg-muted focus:bg-inset px-3 text-[14.5px] text-fg outline-none tabular-nums text-right" />
-          <AppDate v-model="newSubDate" placeholder="Próximo cobro" />
-          <AppSelect v-model="newSubCat" :options="CAT_OPTS" placeholder="Categoría" />
-          <button type="submit" :disabled="!newSubTitle.trim() || !newSubAmount"
-            class="h-12 px-4 rounded-[12px] bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white font-bold text-[13.5px] disabled:opacity-40 transition-[background-color,color] inline-flex items-center gap-1.5">
-            <Repeat class="size-[15px]" :stroke-width="2.2" />Crear
-          </button>
-        </form>
+    <div v-else class="relative z-10 flex-1 min-h-0 flex flex-col gap-2 md:gap-3 overflow-hidden">
+      <!-- Resumen suscripciones (compacto) -->
+      <AppCard class="shrink-0 !p-4 md:!p-5 flex items-end justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-[11.5px] font-bold text-fg-muted uppercase tracking-wide">Gasto mensual recurrente</p>
+          <p class="text-[26px] md:text-[28px] font-extrabold text-fg leading-none tabular-nums mt-0.5">{{ fmt(totalSubs) }}<span class="text-[15px] text-fg-muted font-bold">/mes</span></p>
+        </div>
+        <span class="shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-mint text-[#34936a] text-[12.5px] font-bold">
+          <Repeat class="size-[14px]" :stroke-width="2.2" /> {{ subscriptions.length }} activas
+        </span>
       </AppCard>
-      <AppCard class="flex-1 min-w-0 flex flex-col" :padded="false">
-        <header class="px-5 pt-5 pb-3 shrink-0 flex items-center justify-between">
+
+      <!-- Lista: llena el alto disponible -->
+      <AppCard class="flex-1 min-h-0 min-w-0 flex flex-col" :padded="false">
+        <header class="px-4 md:px-5 pt-4 md:pt-5 pb-2 md:pb-3 shrink-0">
           <h2 class="text-[14px] font-bold text-fg">Suscripciones activas</h2>
-          <span class="text-[13px] font-extrabold text-fg tabular-nums">{{ fmt(totalSubs) }}/mes</span>
         </header>
-        <ul class="flex-1 min-h-0 overflow-y-auto scroll-area px-3 pb-3 flex flex-col">
-          <li v-for="s in subscriptions" :key="s.id" class="flex items-center gap-3 p-3 rounded-[12px] hover:bg-muted transition-[background-color]">
-            <span class="relative inline-block shrink-0" :style="{ width: '54px', height: '37px' }" aria-hidden="true">
-              <HibiCloud :size="54" :body-opacity="0.25" :style="{ color: CAT_META[s.cat]?.color || '#bf8f2e' }" class="absolute inset-0" />
-              <Repeat class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-                :style="{ width: '17px', height: '17px', color: CAT_META[s.cat]?.color || '#bf8f2e' }" :stroke-width="2" />
-            </span>
-            <div class="flex-1 min-w-0">
-              <p class="text-[14px] font-semibold text-fg truncate">{{ s.title }}</p>
-              <p class="text-[12px] text-fg-muted">Próximo cobro {{ s.nextCharge }}</p>
+        <ul class="flex-1 min-h-0 overflow-y-auto scroll-area px-2 md:px-3 pb-3 flex flex-col">
+          <li v-for="s in subscriptions" :key="s.id" class="group/sub flex items-center gap-2 p-2 rounded-[12px] hover:bg-muted transition-[background-color]">
+            <div role="button" tabindex="0" class="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer text-left outline-none rounded-[10px] focus-visible:ring-2 focus-visible:ring-sky-deep" @click="startEditSub(s)" @keydown.enter.prevent="startEditSub(s)" @keydown.space.prevent="startEditSub(s)">
+              <span class="relative inline-block shrink-0" :style="{ width: '54px', height: '37px' }" aria-hidden="true">
+                <HibiCloud :size="54" :body-opacity="0.25" :style="{ color: CAT_META[s.cat]?.color || '#bf8f2e' }" class="absolute inset-0" />
+                <Repeat class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                  :style="{ width: '17px', height: '17px', color: CAT_META[s.cat]?.color || '#bf8f2e' }" :stroke-width="2" />
+              </span>
+              <div class="flex-1 min-w-0">
+                <p class="text-[14px] font-semibold text-fg truncate">{{ s.title }}</p>
+                <p class="text-[12px] text-fg-muted truncate">Próximo cobro {{ s.nextCharge }} · {{ CAT_META[s.cat]?.name }}</p>
+              </div>
+              <span class="text-[15px] font-bold text-fg tabular-nums shrink-0">{{ fmt(s.amount) }}</span>
             </div>
-            <span class="text-[15px] font-bold text-fg tabular-nums">{{ fmt(s.amount) }}</span>
+            <button type="button" class="shrink-0 grid place-items-center size-8 rounded-[9px] text-fg-subtle md:opacity-0 md:group-hover/sub:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" aria-label="Eliminar suscripción" @click.stop="removeSub(s.id)"><Trash2 class="size-[15px]" :stroke-width="2" /></button>
           </li>
         </ul>
       </AppCard>
     </div>
+
+    <!-- EDITOR DE GASTO / SUSCRIPCIÓN: pantalla completa (móvil) / modal (PC). Nada inline. -->
+    <ClientOnly>
+      <Teleport to="body">
+        <Transition name="hibi-fade">
+          <div v-if="showForm" class="fixed inset-0 z-[60] bg-base md:bg-fg/30 md:grid md:place-items-center md:p-6">
+            <div class="h-full md:h-auto md:max-h-[88vh] w-full md:max-w-[460px] bg-base md:rounded-[24px] flex flex-col overflow-hidden">
+              <header class="shrink-0 flex items-center justify-between px-4 pb-3" style="padding-top: max(1rem, env(safe-area-inset-top))">
+                <button type="button" class="grid place-items-center size-10 rounded-full bg-muted text-fg-muted" aria-label="Cerrar" @click="closeForm"><X class="size-[19px]" :stroke-width="2.2" /></button>
+                <h2 class="text-[16px] font-extrabold text-fg">{{ tab === 'subs' ? (editId ? 'Editar suscripción' : 'Nueva suscripción') : (editId ? 'Editar gasto' : 'Nuevo gasto') }}</h2>
+                <div class="size-10" aria-hidden="true" />
+              </header>
+              <form class="flex-1 min-h-0 overflow-y-auto scroll-area px-5 pb-4 flex flex-col gap-5" @submit.prevent="saveEntry">
+                <!-- Concepto / Servicio -->
+                <div>
+                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">{{ tab === 'subs' ? 'Servicio' : 'Concepto' }}</label>
+                  <input v-model="entryTitle" type="text" :placeholder="tab === 'subs' ? 'Nombre del servicio' : 'Concepto del gasto'" autofocus
+                    class="w-full h-[52px] rounded-[14px] bg-muted px-4 text-[16px] font-semibold text-fg outline-none placeholder:text-fg-subtle"
+                    @keydown.enter.prevent="entryValid && saveEntry()" />
+                </div>
+                <!-- Monto (formato COP con punto de miles en vivo) -->
+                <div>
+                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">{{ tab === 'subs' ? 'Monto mensual' : 'Monto' }}</label>
+                  <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[16px] font-semibold text-fg-muted pointer-events-none">$</span>
+                    <input v-model="entryAmountDisplay" type="text" inputmode="numeric" placeholder="0"
+                      class="w-full h-[52px] rounded-[14px] bg-muted pl-9 pr-4 text-[16px] font-semibold text-fg outline-none tabular-nums placeholder:text-fg-subtle" />
+                  </div>
+                </div>
+                <!-- Fecha / Próximo cobro -->
+                <div>
+                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">{{ tab === 'subs' ? 'Próximo cobro' : 'Fecha' }}</label>
+                  <AppDate v-model="entryDate" :placeholder="tab === 'subs' ? 'Próximo cobro' : 'Fecha'" tone="muted" class="w-full" />
+                </div>
+                <!-- Categoría -->
+                <div>
+                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">Categoría</label>
+                  <AppSelect v-model="entryCat" :options="CAT_OPTS" placeholder="Categoría" tone="muted" class="w-full" />
+                </div>
+              </form>
+              <div class="shrink-0 flex gap-2 px-5 pt-3" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom))">
+                <button type="button" class="flex-1 h-12 rounded-[14px] bg-muted text-fg font-bold text-[15px]" @click="closeForm">Cancelar</button>
+                <button type="button" :disabled="!entryValid" class="flex-1 h-12 rounded-[14px] bg-sky-deep text-white font-bold text-[15px] disabled:opacity-40 inline-flex items-center justify-center gap-2" @click="saveEntry">
+                  <Check class="size-[17px]" :stroke-width="2.4" /> {{ editId ? 'Guardar' : (tab === 'subs' ? 'Crear' : 'Anotar') }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Transition>
+      </Teleport>
+    </ClientOnly>
+
+    <!-- EDITOR DE CATEGORÍA: pantalla completa (móvil) / modal (PC). Nada inline. -->
+    <ClientOnly>
+      <Teleport to="body">
+        <Transition name="hibi-fade">
+          <div v-if="editingCatKey" class="fixed inset-0 z-[60] bg-base md:bg-fg/30 md:grid md:place-items-center md:p-6">
+            <div class="h-full md:h-auto md:max-h-[88vh] w-full md:max-w-[460px] bg-base md:rounded-[24px] flex flex-col overflow-hidden">
+              <header class="shrink-0 flex items-center justify-between px-4 pb-3" style="padding-top: max(1rem, env(safe-area-inset-top))">
+                <button type="button" class="grid place-items-center size-10 rounded-full bg-muted text-fg-muted" aria-label="Cerrar" @click="editingCatKey = null"><X class="size-[19px]" :stroke-width="2.2" /></button>
+                <h2 class="text-[16px] font-extrabold text-fg">{{ editingCatKey === '__new__' ? 'Nueva categoría' : 'Editar categoría' }}</h2>
+                <div class="size-10" aria-hidden="true" />
+              </header>
+              <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-5 pb-4 flex flex-col gap-5">
+                <!-- Vista previa grande -->
+                <div class="flex justify-center pt-1">
+                  <span class="grid place-items-center size-20 rounded-[24px]" :style="{ background: catDraft.color + '22', color: catDraft.color }">
+                    <component :is="ICON_GALLERY.find(g => g.key === catDraft.iconKey)?.icon || ShoppingBag" class="size-9" :stroke-width="1.8" />
+                  </span>
+                </div>
+                <!-- Nombre -->
+                <div>
+                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">Nombre</label>
+                  <input v-model="catDraft.name" type="text" placeholder="Nombre de la categoría" autofocus
+                    class="w-full h-[52px] rounded-[14px] bg-muted px-4 text-[16px] font-semibold text-fg outline-none placeholder:text-fg-subtle"
+                    @keydown.enter.prevent="saveCat" />
+                </div>
+                <!-- Icono -->
+                <div>
+                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">Icono</label>
+                  <div class="grid grid-cols-5 sm:grid-cols-6 gap-2">
+                    <button v-for="g in ICON_GALLERY" :key="g.key" type="button"
+                      class="grid place-items-center aspect-square rounded-[14px] bg-muted transition-[background-color]"
+                      :class="catDraft.iconKey === g.key ? 'ring-2 ring-offset-2 ring-offset-base' : ''"
+                      :style="catDraft.iconKey === g.key ? { '--tw-ring-color': catDraft.color, color: catDraft.color, background: catDraft.color + '22' } : {}"
+                      @click="catDraft.iconKey = g.key">
+                      <component :is="g.icon" class="size-[21px]" :class="catDraft.iconKey === g.key ? '' : 'text-fg'" :stroke-width="2" />
+                    </button>
+                  </div>
+                </div>
+                <!-- Color -->
+                <div>
+                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">Color</label>
+                  <AppColorPicker v-model="catDraft.color" format="hex" />
+                </div>
+              </div>
+              <div class="shrink-0 flex gap-2 px-5 pt-3" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom))">
+                <button type="button" class="flex-1 h-12 rounded-[14px] bg-muted text-fg font-bold text-[15px]" @click="editingCatKey = null">Cancelar</button>
+                <button type="button" :disabled="!catDraft.name.trim()" class="flex-1 h-12 rounded-[14px] bg-sky-deep text-white font-bold text-[15px] disabled:opacity-40 inline-flex items-center justify-center gap-2" @click="saveCat">
+                  <Check class="size-[17px]" :stroke-width="2.4" /> Guardar
+                </button>
+              </div>
+            </div>
+          </div>
+        </Transition>
+      </Teleport>
+    </ClientOnly>
   </div>
 </template>
