@@ -77,25 +77,14 @@ function isActive(to: string) {
             v-for="item in rest"
             :key="item.key"
             type="button"
-            class="ms-tile flex flex-col items-center justify-center gap-1.5 h-[88px] rounded-[18px] bg-muted hover:bg-sky-soft transition-colors"
-            :class="{ active: isActive(item.to) }"
+            class="flex flex-col items-center justify-center gap-1.5 h-[88px] rounded-[18px] transition-colors"
+            :class="isActive(item.to) ? 'bg-sky-soft' : 'bg-muted hover:bg-sky-soft'"
             @click="navigate(item.to)"
           >
             <span class="grid place-items-center size-10 rounded-[13px] bg-card text-sky-deep">
               <component :is="item.icon" class="size-[20px]" :stroke-width="1.9" />
             </span>
             <span class="text-[12px] font-semibold text-fg leading-none">{{ t(`nav.${item.key}`) }}</span>
-          </button>
-          <button
-            type="button"
-            class="ms-tile flex flex-col items-center justify-center gap-1.5 h-[88px] rounded-[18px] bg-muted hover:bg-sky-soft transition-colors"
-            :class="{ active: isActive(settings.to) }"
-            @click="navigate(settings.to)"
-          >
-            <span class="grid place-items-center size-10 rounded-[13px] bg-card text-sky-deep">
-              <component :is="settings.icon" class="size-[20px]" :stroke-width="1.9" />
-            </span>
-            <span class="text-[12px] font-semibold text-fg leading-none">{{ t('nav.settings') }}</span>
           </button>
         </div>
       </section>
@@ -104,10 +93,6 @@ function isActive(to: string) {
 </template>
 
 <style scoped>
-.ms-tile.active {
-  background-color: var(--color-sky-soft);
-  color: var(--color-sky-deep);
-}
 .ms-fade-enter-active,
 .ms-fade-leave-active {
   transition: opacity 0.24s ease;
