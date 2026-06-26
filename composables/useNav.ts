@@ -12,6 +12,7 @@ import {
   ListChecks,
   Wallet,
   Music,
+  Cloud,
   Settings,
 } from '@lucide/vue'
 
@@ -39,6 +40,7 @@ export function useNav() {
     { key: 'lists', to: '/lists', icon: markRaw(ListChecks) },
     { key: 'finances', to: '/finances', icon: markRaw(Wallet) },
     { key: 'spotify', to: '/spotify', icon: markRaw(Music) },
+    { key: 'hibi', to: '/hibi', icon: markRaw(Cloud) },
   ]
 
   const settings: NavItem = { key: 'settings', to: '/settings', icon: markRaw(Settings) }
