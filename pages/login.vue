@@ -13,6 +13,8 @@ const transitionName = computed(() =>
   mode.value === 'forgot' || prevMode.value === 'forgot' ? 'lift' : 'swap',
 )
 
+const { login, register, forgot, loginWithGoogle } = useAuth()
+
 const name = ref('')
 const identifier = ref('')
 const email = ref('')
@@ -29,28 +31,43 @@ function go(to: Mode) {
   notice.value = ''
 }
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
-const validEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
-
 async function submit() {
   error.value = ''
   notice.value = ''
-  // Modo demo: aún no hay backend real. Entrar/Crear cuenta van directos al
-  // dashboard. Recuperar solo muestra la confirmación (acción aparte).
-  if (mode.value === 'forgot') {
-    loading.value = true
-    await sleep(500)
-    loading.value = false
-    notice.value = 'Si el correo existe te enviaremos un enlace. Revisa también spam.'
-    return
-  }
   loading.value = true
-  await navigateTo('/inicio')
+  try {
+    if (mode.value === 'forgot') {
+      await forgot(email.value)
+      notice.value = 'Si el correo existe te enviaremos un enlace. Revisa también spam.'
+    } else if (mode.value === 'register') {
+      await register({ name: name.value, email: email.value, password: password.value })
+      await navigateTo('/inicio')
+    } else {
+      await login(identifier.value, password.value)
+      await navigateTo('/inicio')
+    }
+  } catch (e: any) {
+    error.value = e?.data?.message || e?.data?.statusMessage || 'Algo salió mal. Inténtalo de nuevo.'
+  } finally {
+    loading.value = false
+  }
 }
 
 function google() {
-  notice.value = 'El acceso con Google se activa al configurar Supabase.'
+  loginWithGoogle()
 }
+
+const googleErrors: Record<string, string> = {
+  'google-off': 'El acceso con Google aún no está configurado.',
+  'google-state': 'La sesión de Google expiró. Inténtalo otra vez.',
+  'google-email': 'Google no compartió un correo válido.',
+  google: 'No se pudo continuar con Google. Inténtalo otra vez.',
+}
+const route = useRoute()
+onMounted(() => {
+  const err = route.query.error
+  if (err) error.value = googleErrors[String(err)] || 'No se pudo continuar con Google.'
+})
 
 const steps = ['Tu correo', 'El enlace', 'Nueva clave']
 const fieldCls =
