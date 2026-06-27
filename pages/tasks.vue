@@ -1,28 +1,15 @@
 <script setup lang="ts">
 import {
-  Plus, ListTodo, LayoutGrid, Inbox, Flag, CheckCircle2, Clock, ChevronDown, Calendar as CalIcon, FileText,
+  Plus, ListTodo, LayoutGrid, Inbox, Flag, CheckCircle2, Clock, ChevronDown, Trash2, List,
   CalendarDays, CalendarClock, CalendarOff,
 } from '@lucide/vue'
+import { format, parseISO, isValid } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 useHead({ title: 'Hibi — Tareas' })
 
 type Status = 'pending' | 'done'
-interface Task {
-  id: string; title: string; due?: string
-  priority: 0 | 1 | 2 | 3; status: Status
-  notes?: string
-}
-
-const tasks = ref<Task[]>([
-  { id: 't1', title: 'Diseñar las cards del dashboard', due: 'Hoy', priority: 3, status: 'pending', notes: 'Probar variantes con la nube de Hibi en la esquina.' },
-  { id: 't2', title: 'Comprar pan y leche', due: 'Hoy', priority: 1, status: 'pending' },
-  { id: 't3', title: 'Llamar al médico', due: 'Mañana', priority: 2, status: 'pending' },
-  { id: 't4', title: 'Repasar fotos del viaje', priority: 0, status: 'pending' },
-  { id: 't5', title: 'Preparar la presentación del jueves', due: 'Vie', priority: 3, status: 'pending' },
-  { id: 't6', title: 'Responder al correo de Ana', due: 'Hoy', priority: 2, status: 'pending' },
-  { id: 't7', title: 'Sacar al perro', priority: 1, status: 'done' },
-  { id: 't8', title: 'Pagar la factura de la luz', due: 'Vie', priority: 2, status: 'pending' },
-])
+const { tasks, createTask, updateTask, removeTask, toggleDone, isLoading } = useTasks()
 
 type View = 'list' | 'kanban' | 'create'
 const view = ref<View>('list')
@@ -30,23 +17,53 @@ const COLUMNS: { key: Status; title: string; bg: string; text: string; dotBg: st
   { key: 'pending', title: 'Pendiente', bg: 'bg-sky-soft',  text: 'text-sky-deep',   dotBg: '#5aa6d2' },
   { key: 'done',    title: 'Hecho',     bg: 'bg-mint',      text: 'text-[#34936a]',  dotBg: '#34936a' },
 ]
-const grouped = computed(() => {
-  const m: Record<Status, Task[]> = { pending: [], done: [] }
-  tasks.value.forEach((t) => m[t.status].push(t)); return m
-})
+
 const PRIORITY_TONE = ['text-fg-subtle', 'text-[#34936a]', 'text-sky-deep', 'text-[#c5733f]', 'text-pink-deep']
 const PRIORITY_BG = ['bg-muted text-fg', 'bg-mint text-[#34936a]', 'bg-sky-soft text-sky-deep', 'bg-peach text-[#c5733f]', 'bg-pink-soft text-pink-deep']
 const PRIORITY_LABEL = ['Sin prioridad', 'Baja', 'Media', 'Alta', 'Urgente']
-function toggleDone(t: Task) { t.status = t.status === 'done' ? 'pending' : 'done' }
+
+const doneCount = computed(() => tasks.value.filter((t) => t.status === 'done').length)
+
+// Fecha ISO (yyyy-MM-dd) → etiqueta amable (Hoy / Mañana / Ayer / "12 de jul")
+function formatDue(d: string | null): string | null {
+  if (!d) return null
+  const dt = parseISO(d); if (!isValid(dt)) return null
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const diff = Math.round((dt.getTime() - today.getTime()) / 86400000)
+  if (diff === 0) return 'Hoy'
+  if (diff === 1) return 'Mañana'
+  if (diff === -1) return 'Ayer'
+  return format(dt, "d 'de' MMM", { locale: es })
+}
 
 const filters = [
+  { value: 'Todas', label: 'Todas', icon: List },
   { value: 'Hoy', label: 'Hoy', icon: CalendarDays },
   { value: 'Próximas', label: 'Próximas', icon: CalendarClock },
   { value: 'Sin fecha', label: 'Sin fecha', icon: CalendarOff },
   { value: 'Importantes', label: 'Importantes', icon: Flag },
   { value: 'Hechas', label: 'Hechas', icon: CheckCircle2 },
 ]
-const activeFilter = ref('Hoy')
+const activeFilter = ref('Todas')
+
+const todayStr = () => format(new Date(), 'yyyy-MM-dd')
+const filteredTasks = computed(() => {
+  const t0 = todayStr()
+  return tasks.value.filter((t) => {
+    switch (activeFilter.value) {
+      case 'Hoy': return t.dueDate === t0
+      case 'Próximas': return !!t.dueDate && t.dueDate > t0
+      case 'Sin fecha': return !t.dueDate
+      case 'Importantes': return t.priority >= 2
+      case 'Hechas': return t.status === 'done'
+      default: return true
+    }
+  })
+})
+const grouped = computed(() => {
+  const m: Record<Status, Task[]> = { pending: [], done: [] }
+  filteredTasks.value.forEach((t) => m[t.status].push(t)); return m
+})
 
 const expandedId = ref<string | null>(null)
 function toggleRow(id: string) { expandedId.value = expandedId.value === id ? null : id }
@@ -56,20 +73,21 @@ const newTitle = ref('')
 const newDue = ref('')
 const newPriorityStr = ref<'0'|'1'|'2'|'3'>('0')
 const newNotes = ref('')
-let nextId = 100
+const saving = ref(false)
 function openCreate() {
   newTitle.value = ''; newDue.value = ''; newPriorityStr.value = '0'; newNotes.value = ''
   view.value = 'create'
 }
 function cancelCreate() { view.value = 'list' }
-function saveTask() {
-  const title = newTitle.value.trim(); if (!title) return
-  tasks.value.unshift({
-    id: 't' + (nextId++), title, due: newDue.value || undefined,
-    priority: Number(newPriorityStr.value) as 0|1|2|3, status: 'pending',
-    notes: newNotes.value || undefined,
-  })
-  view.value = 'list'
+async function saveTask() {
+  const title = newTitle.value.trim(); if (!title || saving.value) return
+  saving.value = true
+  try {
+    await createTask({ title, dueDate: newDue.value || null, priority: Number(newPriorityStr.value), notes: newNotes.value || null })
+    view.value = 'list'
+  } finally {
+    saving.value = false
+  }
 }
 
 // DnD MANUAL: no usamos el draggable nativo del browser (que aplica opacity al
@@ -121,7 +139,7 @@ function onPointerMove(e: PointerEvent) {
 function onPointerUp() {
   if (draggingId.value && dragOverCol.value) {
     const t = tasks.value.find(x => x.id === draggingId.value)
-    if (t) t.status = dragOverCol.value
+    if (t && t.status !== dragOverCol.value) updateTask(t.id, { status: dragOverCol.value })
   }
   if (dragClone) { dragClone.remove(); dragClone = null }
   draggingId.value = null
@@ -137,7 +155,7 @@ function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
   <!-- CREAR -->
   <AppCreateView v-if="view === 'create'"
     title="Nueva tarea" subtitle="Captúrala rápido"
-    :disabled="!newTitle.trim()"
+    :disabled="!newTitle.trim() || saving"
     @close="cancelCreate" @save="saveTask">
     <div class="flex flex-col gap-2">
       <label class="text-[12.5px] font-bold text-fg-muted px-1">Título</label>
@@ -179,7 +197,7 @@ function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
     <HibiHeart :size="16" beat :duration="2.6" class="hidden md:block absolute bottom-[22%] right-[8%] text-fg-subtle opacity-25 pointer-events-none z-40" />
 
     <div class="relative z-10 flex flex-col gap-3">
-      <PageHero :icon="ListTodo" tone="mint" title="Tareas" :subtitle="`${tasks.length} en total · ${grouped.done.length} hechas`">
+      <PageHero :icon="ListTodo" tone="mint" title="Tareas" :subtitle="`${tasks.length} en total · ${doneCount} hechas`">
         <template #actions>
           <!-- Filtros: mismo estilo que el toggle de vista (AppSegmented).
                Con icono: en movil se muestra solo el icono (sin texto), asi
@@ -203,8 +221,20 @@ function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
 
     <!-- LISTA: cada tarea = AppCard independiente -->
     <div v-if="view === 'list'" class="relative z-10 flex-1 min-h-0 overflow-y-auto scroll-area">
-      <ul class="flex flex-col gap-2 hibi-cascade pb-2">
-        <li v-for="t in tasks" :key="t.id">
+      <!-- Cargando -->
+      <div v-if="isLoading && !tasks.length" class="flex flex-col gap-2 pb-2">
+        <div v-for="n in 4" :key="n" class="h-[68px] rounded-[18px] bg-muted/60 animate-pulse" />
+      </div>
+      <!-- Vacío -->
+      <div v-else-if="!filteredTasks.length" class="h-full min-h-[240px] flex flex-col items-center justify-center text-center gap-3 py-10">
+        <HibiCloudIcon :size="96" :icon="ListTodo" :icon-size="34" cloud-color="text-sky-soft" icon-color="text-sky-deep" :icon-stroke="1.7" />
+        <div>
+          <p class="text-[15px] font-extrabold text-fg">{{ activeFilter === 'Todas' ? 'Aún no hay tareas' : 'Nada por aquí' }}</p>
+          <p class="text-[13px] text-fg-muted mt-0.5">{{ activeFilter === 'Todas' ? 'Crea la primera con el botón “Nueva”.' : 'Prueba con otro filtro.' }}</p>
+        </div>
+      </div>
+      <ul v-else class="flex flex-col gap-2 hibi-cascade pb-2">
+        <li v-for="t in filteredTasks" :key="t.id">
           <AppCard class="!p-0 overflow-hidden transition-[background-color]"
             :class="expandedId === t.id ? '!bg-muted' : ''">
             <div role="button" tabindex="0" class="w-full flex items-center gap-3 p-4 text-left cursor-pointer outline-none focus-visible:bg-muted"
@@ -235,7 +265,7 @@ function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
                   <span class="inline-flex items-center gap-1.5 px-2.5 h-6 rounded-full text-[11.5px] font-bold" :class="[statusOf(t.status).bg, statusOf(t.status).text]">
                     <span class="size-1.5 rounded-full" :style="{ background: statusOf(t.status).dotBg }" />{{ statusOf(t.status).title }}
                   </span>
-                  <span v-if="t.due" class="inline-flex items-center gap-1 text-fg-muted"><Clock class="size-3" aria-hidden="true" />{{ t.due }}</span>
+                  <span v-if="formatDue(t.dueDate)" class="inline-flex items-center gap-1 text-fg-muted"><Clock class="size-3" aria-hidden="true" />{{ formatDue(t.dueDate) }}</span>
                   <span v-if="t.priority > 0" class="inline-flex items-center gap-1 text-fg-muted">
                     <Flag class="size-3" :class="PRIORITY_TONE[t.priority]" :stroke-width="2.3" />
                     {{ PRIORITY_LABEL[t.priority] }}
@@ -246,12 +276,19 @@ function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
             </div>
             <!-- Detalle expandible — v-if para que el grid trick anime altura -->
             <Transition name="hibi-acc">
-              <div v-if="expandedId === t.id" class="px-4 pb-4 pt-0">
+              <div v-if="expandedId === t.id" class="px-4 pb-4 pt-0 flex flex-col gap-3">
                 <div v-if="t.notes" class="rounded-[10px] bg-card px-3 py-2.5">
                   <p class="text-[11px] text-fg-muted font-semibold uppercase tracking-wide mb-1">Notas</p>
                   <p class="text-[13.5px] text-fg whitespace-pre-wrap">{{ t.notes }}</p>
                 </div>
                 <p v-else class="text-[12.5px] text-fg-subtle italic">Sin notas</p>
+                <div class="flex justify-end">
+                  <button type="button"
+                    class="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[12.5px] font-bold text-pink-deep bg-pink-soft hover:bg-pink transition-[background-color] outline-none focus-visible:ring-2 focus-visible:ring-pink-deep"
+                    @click.stop="removeTask(t.id)">
+                    <Trash2 class="size-[14px]" :stroke-width="2.2" aria-hidden="true" />Eliminar
+                  </button>
+                </div>
               </div>
             </Transition>
           </AppCard>
@@ -283,7 +320,7 @@ function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
               @pointerdown="onCardPointerDown($event, t)">
               <p class="text-[13.5px] font-semibold text-fg leading-snug">{{ t.title }}</p>
               <div class="flex items-center justify-between mt-2 text-[11.5px] text-fg-muted">
-                <span v-if="t.due" class="inline-flex items-center gap-1"><Clock class="size-3" aria-hidden="true" />{{ t.due }}</span>
+                <span v-if="formatDue(t.dueDate)" class="inline-flex items-center gap-1"><Clock class="size-3" aria-hidden="true" />{{ formatDue(t.dueDate) }}</span>
                 <Flag v-if="t.priority > 0" class="size-3 ml-auto" :class="PRIORITY_TONE[t.priority]" :stroke-width="2.3" aria-hidden="true" />
               </div>
             </article>
