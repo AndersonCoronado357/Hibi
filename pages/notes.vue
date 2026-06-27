@@ -1,87 +1,103 @@
 <script setup lang="ts">
 import { Search, Plus, Folder, FolderOpen, Pin, Calendar, ChevronRight, ChevronLeft, ChevronDown, NotebookPen, Type, Trash2 } from '@lucide/vue'
+import { format, parseISO, isValid, isToday, isYesterday } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 useHead({ title: 'Hibi — Notas' })
 
-interface NoteFolder { id: string; name: string; count: number; color: string }
-const folders = ref<NoteFolder[]>([
-  { id: 'f1', name: 'Diario', count: 12, color: '#5aa6d2' },
-  { id: 'f2', name: 'Trabajo', count: 7, color: '#c5733f' },
-  { id: 'f3', name: 'Ideas', count: 14, color: '#db8aa3' },
-  { id: 'f4', name: 'Recetas', count: 5, color: '#34936a' },
-  { id: 'f5', name: 'Lecturas', count: 9, color: '#7a63c0' },
-])
+const {
+  folders, notes, notesLoading,
+  createFolder, removeFolder, createNote: apiCreateNote, updateNote, removeNote,
+} = useNotes()
 
-interface Note { id: string; folder: string; title: string; content: string; preview: string; updated: string; pinned?: boolean }
-const notesData = ref<Note[]>([
-  { id: 'n1', folder: 'f3', title: 'Idea: planificador de viajes con IA',
-    content: '<p>Una app que reciba destino y preferencias y proponga itinerario día por día.</p><h2>Funcionalidades clave</h2><ul><li>Sugerencias por estación</li><li>Reservas inteligentes</li><li>Notas compartidas</li></ul>',
-    preview: 'Una app que reciba destino y preferencias y proponga itinerario…', updated: 'Hoy 14:32', pinned: true },
-  { id: 'n2', folder: 'f1', title: 'Domingo tranquilo',
-    content: '<p>Mañana de café con libro. La luz entraba muy suave por la ventana.</p>',
-    preview: 'Mañana de café con libro…', updated: 'Ayer 20:10' },
-  { id: 'n3', folder: 'f2', title: 'Notas de la reunión Q3',
-    content: '<h2>Puntos clave</h2><ul><li>Lanzamiento octubre</li><li>Equipos asignados</li><li>Retro mensual</li></ul>',
-    preview: 'Puntos clave: lanzamiento octubre…', updated: 'Vie 17:45' },
-  { id: 'n4', folder: 'f4', title: 'Pasta al limón',
-    content: '<p>Pasta, 1 limón (ralladura + zumo), parmesano, pimienta negra, perejil.</p>',
-    preview: 'Pasta, 1 limón…', updated: '2 jun' },
-  { id: 'n5', folder: 'f5', title: 'El infinito en un junco',
-    content: '<p>Capítulo 4, el papiro y la memoria.</p><blockquote>Anotar la cita sobre Alejandría.</blockquote>',
-    preview: 'Capítulo 4, el papiro y la memoria…', updated: '28 may' },
-])
-const selectedFolder = ref('f3')
-const selectedNoteId = ref<string | null>('n1')
-const filtered = computed(() => notesData.value.filter(n => n.folder === selectedFolder.value))
-const selected = computed<Note | null>(() => notesData.value.find(n => n.id === selectedNoteId.value) || null)
 const search = ref('')
+const selectedFolder = ref<string>('')
+const selectedNoteId = ref<string | null>(null)
 
-let nextNoteId = 100
+// Selección inicial de carpeta cuando cargan
+watchEffect(() => {
+  if (!selectedFolder.value && folders.value.length) selectedFolder.value = folders.value[0]!.id
+})
 
-// Crear: la nota se crea VACÍA en la carpeta actual y se abre en el editor
-// normal (no hay pantalla de creación aparte). El título se escribe ahí.
-function createNote() {
-  const id = 'n' + (nextNoteId++)
-  notesData.value.unshift({
-    id, folder: selectedFolder.value, title: '', content: '', preview: 'Sin contenido aún', updated: 'Ahora',
-  })
-  selectedNoteId.value = id
+function stripHtml(html: string) { return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() }
+function previewOf(content: string) { const t = stripHtml(content); return t ? t.slice(0, 140) : 'Sin contenido aún' }
+function updatedLabel(iso: string) {
+  const d = parseISO(iso); if (!isValid(d)) return ''
+  if (isToday(d)) return 'Hoy ' + format(d, 'HH:mm')
+  if (isYesterday(d)) return 'Ayer ' + format(d, 'HH:mm')
+  return format(d, "d 'de' MMM", { locale: es })
+}
+function toView(n: Note) {
+  return { id: n.id, folder: n.folderId, title: n.title, content: n.content, pinned: !!n.pinned, preview: previewOf(n.content), updated: updatedLabel(n.updatedAt) }
+}
+type NoteView = ReturnType<typeof toView>
+
+const filtered = computed<NoteView[]>(() => {
+  const q = search.value.trim().toLowerCase()
+  return notes.value
+    .filter((n) => n.folderId === selectedFolder.value)
+    .filter((n) => !q || n.title.toLowerCase().includes(q) || stripHtml(n.content).toLowerCase().includes(q))
+    .map(toView)
+})
+const selected = computed<NoteView | null>(() => {
+  const n = notes.value.find((x) => x.id === selectedNoteId.value)
+  return n ? toView(n) : null
+})
+
+// Mantener seleccionada una nota válida de la carpeta actual
+watch(filtered, () => {
+  if (!selectedNoteId.value || !filtered.value.some((n) => n.id === selectedNoteId.value)) {
+    selectedNoteId.value = filtered.value[0]?.id ?? null
+  }
+}, { immediate: true })
+
+// Crear: la nota se crea VACÍA en la carpeta actual y se abre en el editor.
+async function createNote() {
+  if (!selectedFolder.value) return
   mobileToolbarOpen.value = false
-  mobileEditorOpen.value = true // en móvil abre el editor; en desktop es inocuo
+  const n = await apiCreateNote({ folderId: selectedFolder.value, title: '', content: '' })
+  selectedNoteId.value = n.id
+  mobileEditorOpen.value = true
 }
 
 // Eliminar nota. Si era la seleccionada, pasa a la primera de la carpeta.
-function deleteNote(id: string) {
-  const idx = notesData.value.findIndex(n => n.id === id)
-  if (idx === -1) return
-  notesData.value.splice(idx, 1)
+async function deleteNote(id: string) {
+  const wasSelected = selectedNoteId.value === id
   mobileEditorOpen.value = false
-  if (selectedNoteId.value === id) selectedNoteId.value = filtered.value[0]?.id ?? null
+  await removeNote(id)
+  if (wasSelected) selectedNoteId.value = filtered.value.find((n) => n.id !== id)?.id ?? null
 }
 
 // Eliminar carpeta (y sus notas). No se borra la última carpeta.
-function deleteFolder(id: string) {
+async function deleteFolder(id: string) {
   if (folders.value.length <= 1) return
-  notesData.value = notesData.value.filter(n => n.folder !== id)
-  folders.value = folders.value.filter(f => f.id !== id)
+  const noteIds = notes.value.filter((n) => n.folderId === id).map((n) => n.id)
+  await Promise.all(noteIds.map((nid) => removeNote(nid)))
+  await removeFolder(id)
   if (selectedFolder.value === id) {
-    selectedFolder.value = folders.value[0]!.id
-    selectedNoteId.value = filtered.value[0]?.id ?? null
+    selectedFolder.value = folders.value.find((f) => f.id !== id)?.id ?? ''
+    selectedNoteId.value = null
   }
 }
 
-// Edición en vivo de la nota seleccionada
+// Guardado en vivo: título al perder foco; contenido con debounce + flush al
+// cambiar de nota (evita una petición por tecla). El editor no reinicia el
+// cursor porque solo reescribe si el HTML difiere.
+let pendingContent: { id: string; content: string } | null = null
+const flushContent = () => { if (pendingContent) { updateNote(pendingContent.id, { content: pendingContent.content }); pendingContent = null } }
+const debouncedFlush = useDebounceFn(flushContent, 500)
 function onEditContent(html: string) {
   if (!selected.value) return
-  selected.value.content = html
-  selected.value.preview = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 140)
-  selected.value.updated = 'Ahora'
+  pendingContent = { id: selected.value.id, content: html }
+  debouncedFlush()
 }
 function onEditTitle(e: Event) {
   if (!selected.value) return
   const v = (e.target as HTMLElement).innerText.trim()
-  if (v) selected.value.title = v
+  updateNote(selected.value.id, { title: v })
 }
+watch(selectedNoteId, () => flushContent())
+onBeforeUnmount(() => flushContent())
 
 // Paneles colapsables (desktop)
 const showFolders = ref(true)
@@ -104,11 +120,10 @@ function openFolderMobile(id: string) {
   creatingFolder.value = false
   mobileFolderOpen.value = true
 }
-const folderCount = (id: string) => notesData.value.filter(n => n.folder === id).length
+const folderCount = (id: string) => notes.value.filter(n => n.folderId === id).length
 
 // Crear carpeta: inline (sin pantalla aparte). Tocar "+" abre un mini panel
 // con nombre + selector de color PERSONALIZADO (AppColorPicker hex).
-let nextFolderId = 100
 const creatingFolder = ref(false)
 const newFolderName = ref('')
 const newFolderColor = ref('#5aa6d2')
@@ -122,12 +137,11 @@ function startCreateFolder() {
     })
   })
 }
-function confirmCreateFolder() {
+async function confirmCreateFolder() {
   const name = newFolderName.value.trim()
   if (!name) { creatingFolder.value = false; showFolderColor.value = false; return }
-  const id = 'f' + (nextFolderId++)
-  folders.value.push({ id, name, count: 0, color: newFolderColor.value })
-  selectedFolder.value = id
+  const f = await createFolder({ name, color: newFolderColor.value })
+  selectedFolder.value = f.id
   creatingFolder.value = false
   newFolderName.value = ''
   showFolderColor.value = false
@@ -223,7 +237,7 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
             >
               <component :is="selectedFolder === f.id ? FolderOpen : Folder" class="size-[17px]" :style="{ color: f.color }" :stroke-width="1.8" aria-hidden="true" />
               <span class="flex-1 text-left text-[14px] font-semibold truncate">{{ f.name }}</span>
-              <span class="text-[11px] font-bold text-fg-subtle group-hover/folder:opacity-0 transition-opacity">{{ f.count }}</span>
+              <span class="text-[11px] font-bold text-fg-subtle group-hover/folder:opacity-0 transition-opacity">{{ folderCount(f.id) }}</span>
             </button>
             <button v-if="folders.length > 1" type="button"
               class="absolute top-1/2 right-1.5 -translate-y-1/2 grid place-items-center size-7 rounded-[8px] text-fg-subtle opacity-0 group-hover/folder:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]"
