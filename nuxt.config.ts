@@ -8,6 +8,22 @@ export default defineNuxtConfig({
   // El 3000 está reservado para otra app del usuario
   devServer: { port: 3100 },
 
+  // Secrets solo-servidor. En prod los inyecta acmsy (useAcmsyAuth:true);
+  // en dev salen del .env local. NUNCA hardcodear credenciales ni localhost.
+  runtimeConfig: {
+    databaseUrl: process.env.DATABASE_URL || '',
+    sessionSecret: process.env.SESSION_SECRET || '',
+    googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+    googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    resendApiKey: process.env.RESEND_API_KEY || '',
+    mailFrom: process.env.MAIL_FROM || 'noreply@acmsy.com',
+    origin: process.env.ORIGIN || '',
+    acmsySubdomain: process.env.ACMSY_SUBDOMAIN || 'hibi',
+    aiApiUrl: process.env.AI_API_URL || '',
+    aiApiKey: process.env.AI_API_KEY || '',
+    ollamaUrl: process.env.OLLAMA_URL || 'http://127.0.0.1:11434',
+  },
+
   modules: [
     '@pinia/nuxt',
     '@vueuse/nuxt',
