@@ -12,7 +12,10 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "typecheck": "nuxt typecheck",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push"
   },
   "dependencies": {
     "@lucide/vue": "^1.17.0",
@@ -27,8 +30,10 @@
     "@vueuse/motion": "^3.0.3",
     "@vueuse/nuxt": "^14.3.0",
     "date-fns": "^4.4.0",
+    "drizzle-orm": "^0.45.2",
     "nuxt": "^3.21.7",
     "pinia": "^3.0.4",
+    "postgres": "^3.4.9",
     "reka-ui": "^2.9.9",
     "vee-validate": "^4.15.1",
     "vue": "^3.5.35",
@@ -38,6 +43,7 @@
   "devDependencies": {
     "@nuxt/kit": "^3.21.7",
     "@tailwindcss/vite": "^4.3.0",
+    "drizzle-kit": "^0.31.10",
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3",
     "vue-tsc": "^3.3.3"
