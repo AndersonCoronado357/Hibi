@@ -12,8 +12,22 @@ const langOptions = [
 ]
 function onLang(v: string | number) { setLocale(String(v) as 'es' | 'en') }
 
-const profileName = ref('Tu nombre')
+const { user, logout } = useAuth()
+const profileName = ref('')
 const avatarSrc = ref<string | null>(null)
+watchEffect(() => {
+  if (user.value) {
+    if (!profileName.value) profileName.value = user.value.name || ''
+    if (!avatarSrc.value && user.value.avatar) avatarSrc.value = user.value.avatar
+  }
+})
+
+const loggingOut = ref(false)
+async function onLogout() {
+  if (loggingOut.value) return
+  loggingOut.value = true
+  try { await logout() } finally { loggingOut.value = false }
+}
 const avatarFileRef = ref<HTMLInputElement | null>(null)
 function pickAvatar() { avatarFileRef.value?.click() }
 function onAvatarChange(e: Event) {
@@ -94,11 +108,11 @@ const NOTIF_ITEMS = [
           </div>
         </button>
 
-        <button type="button" class="w-full flex items-center gap-4 px-4 py-4 rounded-[16px] bg-pink-soft hover:bg-pink transition-[background-color] outline-none focus-visible:ring-2 focus-visible:ring-pink-deep text-left">
+        <button type="button" :disabled="loggingOut" class="w-full flex items-center gap-4 px-4 py-4 rounded-[16px] bg-pink-soft hover:bg-pink transition-[background-color] outline-none focus-visible:ring-2 focus-visible:ring-pink-deep text-left disabled:opacity-60" @click="onLogout">
           <HibiCloudIcon :size="68" :icon="LogOut" :icon-size="24" cloud-color="text-pink-soft" icon-color="text-pink-deep" :icon-stroke="1.9" class="shrink-0" />
           <div class="flex-1 min-w-0">
             <p class="text-[15px] font-extrabold text-pink-deep leading-tight">Cerrar sesión</p>
-            <p class="text-[12px] font-bold text-pink-deep/80 mt-0.5">En este dispositivo</p>
+            <p class="text-[12px] font-bold text-pink-deep/80 mt-0.5">{{ loggingOut ? 'Saliendo…' : 'En este dispositivo' }}</p>
           </div>
         </button>
       </div>

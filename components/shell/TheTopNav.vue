@@ -6,6 +6,8 @@
 const { items, settings } = useNav()
 const { t } = useI18n()
 const route = useRoute()
+const { user } = useAuth()
+const avatarName = computed(() => user.value?.name || user.value?.email || 'Hibi')
 
 function isActive(to: string) {
   return route.path.startsWith(to)
@@ -85,7 +87,9 @@ const currentTitle = computed(() => {
       <component :is="settings.icon" class="size-[20px]" :stroke-width="isActive(settings.to) ? 2.2 : 1.8" />
     </NuxtLink>
 
-    <AppAvatar name="Hibi User" :size="36" />
+    <NuxtLink :to="settings.to" :aria-label="t('nav.settings')" class="shrink-0">
+      <AppAvatar :name="avatarName" :src="user?.avatar ?? undefined" :size="36" />
+    </NuxtLink>
   </header>
 </template>
 
