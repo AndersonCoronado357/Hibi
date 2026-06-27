@@ -1,41 +1,47 @@
 <script setup lang="ts">
-import { Plus, BellRing, AlarmClock, Bell, Check, Clock, Layers, Volume2, FileText } from '@lucide/vue'
+import { Plus, BellRing, AlarmClock, Bell, Check, Clock, Layers, Volume2, FileText, Trash2 } from '@lucide/vue'
 
 useHead({ title: 'Hibi — Recordatorios' })
 
-interface Reminder { id: string; title: string; date: string; time?: string; group: 'Hoy' | 'Mañana' | 'Esta semana' | 'Más adelante'; alarm?: boolean; pre?: string; notes?: string; done?: boolean }
+const { reminders, createReminder, removeReminder, toggleDone, isLoading } = useReminders()
+
+type Group = 'Hoy' | 'Mañana' | 'Esta semana' | 'Más adelante'
 const today = new Date()
 const iso = (d: Date) => d.toISOString().slice(0, 10)
-const dPlus = (n: number) => { const x = new Date(today); x.setDate(x.getDate()+n); return iso(x) }
-const remindersData = ref<Reminder[]>([
-  { id: 'r1', title: 'Tomar la pastilla', date: iso(today), time: '14:00', group: 'Hoy', alarm: true, pre: '10 min antes' },
-  { id: 'r2', title: 'Llamar a mamá', date: iso(today), time: '19:30', group: 'Hoy' },
-  { id: 'r3', title: 'Yoga online', date: dPlus(1), time: '07:30', group: 'Mañana', pre: '15 min antes' },
-  { id: 'r4', title: 'Reunión con Diego', date: dPlus(1), time: '11:00', group: 'Mañana' },
-  { id: 'r5', title: 'Renovar el carnet', date: dPlus(4), time: '10:00', group: 'Esta semana' },
-  { id: 'r6', title: 'Cumple de Lu', date: dPlus(5), group: 'Esta semana', alarm: true },
-  { id: 'r7', title: 'Revisar suscripción Netflix', date: dPlus(8), group: 'Más adelante' },
-])
+const dPlus = (n: number) => { const x = new Date(today); x.setDate(x.getDate() + n); return iso(x) }
+
+// El grupo se DERIVA de remindDate (no se guarda): Hoy / Mañana / Esta semana / Más adelante.
+function groupOf(remindDate: string): Group {
+  const t0 = iso(today)
+  if (remindDate <= t0) return 'Hoy'
+  if (remindDate === dPlus(1)) return 'Mañana'
+  if (remindDate <= dPlus(7)) return 'Esta semana'
+  return 'Más adelante'
+}
+
 function fmtWhen(r: Reminder) {
   try {
-    const d = new Date(r.date)
+    const d = new Date(r.remindDate + 'T00:00:00')
     const dateStr = d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })
     return r.time ? `${dateStr} · ${r.time}` : dateStr
-  } catch { return r.date + (r.time ? ' ' + r.time : '') }
+  } catch { return r.remindDate + (r.time ? ' ' + r.time : '') }
 }
-function toggleDone(r: Reminder) { r.done = !r.done }
-const groups: Reminder['group'][] = ['Hoy', 'Mañana', 'Esta semana', 'Más adelante']
-function inGroup(g: Reminder['group']) { return remindersData.value.filter(r => r.group === g) }
+
+const groups: Group[] = ['Hoy', 'Mañana', 'Esta semana', 'Más adelante']
+function inGroup(g: Group) {
+  return reminders.value.filter(r => groupOf(r.remindDate) === g)
+}
+// Solo mostramos las cabeceras de grupo que tengan al menos un recordatorio.
+const activeGroups = computed(() => groups.filter(g => inGroup(g).length > 0))
 
 const view = ref<'list' | 'create'>('list')
 const newTitle = ref('')
 const newDate = ref(iso(today))
 const newTime = ref('09:00')
-const newGroup = ref<Reminder['group']>('Hoy')
 const newAlarm = ref(false)
 const newPre = ref('')
 const newNotes = ref('')
-const GROUP_OPTS = groups.map(g => ({ value: g, label: g }))
+const saving = ref(false)
 const PRE_OPTS = [
   { value: '', label: 'A la hora exacta' },
   { value: '5 min antes', label: '5 min antes' },
@@ -45,22 +51,28 @@ const PRE_OPTS = [
   { value: '1 hora antes', label: '1 hora antes' },
   { value: '1 día antes', label: '1 día antes' },
 ]
-let nextId = 100
 function openCreate() {
-  newTitle.value = ''; newDate.value = iso(today); newTime.value = '09:00'; newGroup.value = 'Hoy'
+  newTitle.value = ''; newDate.value = iso(today); newTime.value = '09:00'
   newAlarm.value = false; newPre.value = ''; newNotes.value = ''
   view.value = 'create'
 }
 function cancelCreate() { view.value = 'list' }
-function saveReminder() {
-  const t = newTitle.value.trim(); if (!t) return
-  remindersData.value.unshift({
-    id: 'r' + (nextId++), title: t, date: newDate.value, time: newTime.value,
-    group: newGroup.value, alarm: newAlarm.value,
-    pre: newPre.value || undefined,
-    notes: newNotes.value || undefined,
-  })
-  view.value = 'list'
+async function saveReminder() {
+  const t = newTitle.value.trim(); if (!t || saving.value) return
+  saving.value = true
+  try {
+    await createReminder({
+      title: t,
+      remindDate: newDate.value,
+      time: newTime.value || null,
+      alarm: newAlarm.value,
+      pre: newPre.value || null,
+      notes: newNotes.value || null,
+    })
+    view.value = 'list'
+  } finally {
+    saving.value = false
+  }
 }
 </script>
 
@@ -69,7 +81,7 @@ function saveReminder() {
   <AppCreateView v-if="view === 'create'"
     title="Nuevo recordatorio"
     subtitle="Para que no se te pase"
-    :disabled="!newTitle.trim()"
+    :disabled="!newTitle.trim() || saving"
     @close="cancelCreate" @save="saveReminder">
     <div class="flex flex-col gap-2">
       <label class="text-[12.5px] font-bold text-fg-muted px-1">¿Qué te recuerdo?</label>
@@ -92,15 +104,6 @@ function saveReminder() {
           <AppCheck v-model="newAlarm" label="Alarma sonora" />
           <span class="text-[13.5px] font-semibold text-fg cursor-pointer" @click="newAlarm = !newAlarm">{{ newAlarm ? 'Activada' : 'Desactivada' }}</span>
         </div>
-      </div>
-    </div>
-
-    <div class="flex flex-col gap-2">
-      <label class="text-[12.5px] font-bold text-fg-muted px-1">Grupo</label>
-      <div class="flex flex-wrap gap-1.5">
-        <button v-for="g in groups" :key="g" type="button"
-          class="hibi-chip bg-muted text-fg" :class="newGroup === g ? 'is-active' : ''"
-          @click="newGroup = g">{{ g }}</button>
       </div>
     </div>
 
@@ -131,7 +134,7 @@ function saveReminder() {
 
     <!-- Toolbar -->
     <div class="relative z-10">
-      <PageHero :icon="BellRing" tone="peach" title="Recordatorios" :subtitle="`${remindersData.length} pendientes`">
+      <PageHero :icon="BellRing" tone="peach" title="Recordatorios" :subtitle="`${reminders.length} pendientes`">
         <template #actions>
           <AppButton variant="primary" size="sm" class="w-full md:w-auto" @click="openCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>Nuevo</AppButton>
         </template>
@@ -141,8 +144,25 @@ function saveReminder() {
     <!-- Timeline full ancho -->
     <AppCard class="relative z-10 flex-1 min-h-0 flex flex-col" :padded="false">
       <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-5 md:px-8 py-5">
-        <div class="w-full">
-          <div v-for="(g, gi) in groups" :key="g" :class="gi > 0 ? 'mt-7' : ''">
+        <!-- Cargando: pulso suave con el mismo layout del timeline -->
+        <div v-if="isLoading && !reminders.length" class="w-full flex flex-col gap-3">
+          <div v-for="n in 5" :key="n" class="grid grid-cols-[72px_1fr] gap-3 items-center">
+            <div class="size-[72px] rounded-full bg-muted/70 animate-pulse mx-auto" />
+            <div class="h-[64px] rounded-[14px] bg-muted/60 animate-pulse" />
+          </div>
+        </div>
+
+        <!-- Vacío: mismo lenguaje visual cute -->
+        <div v-else-if="!reminders.length" class="h-full min-h-[280px] flex flex-col items-center justify-center text-center gap-3 py-10">
+          <HibiCloudIcon :size="96" :icon="Bell" :icon-size="34" cloud-color="text-sky-soft" icon-color="text-sky-deep" :icon-stroke="1.7" />
+          <div>
+            <p class="text-[15px] font-extrabold text-fg">Nada que recordar… por ahora</p>
+            <p class="text-[13px] text-fg-muted mt-0.5">Crea el primero con el botón “Nuevo”.</p>
+          </div>
+        </div>
+
+        <div v-else class="w-full">
+          <div v-for="(g, gi) in activeGroups" :key="g" :class="gi > 0 ? 'mt-7' : ''">
             <div class="flex items-center justify-between mb-3 px-1">
               <h2 class="text-[15px] font-extrabold text-fg">{{ g }}</h2>
               <span class="text-[11.5px] text-fg-muted font-bold">{{ inGroup(g).length }}</span>
@@ -150,7 +170,7 @@ function saveReminder() {
             <!-- Grid: col 1 = 48px (línea + bolita centradas), col 2 = 1fr (contenido) -->
             <ul class="hibi-anim-float-down flex flex-col gap-3">
               <li v-for="r in inGroup(g)" :key="r.id"
-                class="grid grid-cols-[72px_1fr] gap-3 items-center">
+                class="group/rem grid grid-cols-[72px_1fr] gap-3 items-center">
                 <!-- Columna del marcador: la nube TAMBIÉN alterna hecho al tocarla -->
                 <button type="button" class="relative flex items-center justify-center cursor-pointer"
                   :aria-label="r.done ? 'Marcar pendiente' : 'Marcar hecho'"
@@ -174,18 +194,31 @@ function saveReminder() {
                       {{ fmtWhen(r) }}<span v-if="r.pre">, <span class="font-semibold">{{ r.pre }}</span></span>
                     </p>
                   </div>
-                  <span class="shrink-0 relative inline-block" :style="{ width: '44px', height: '30px' }">
-                    <Transition name="hibi-check">
-                      <HibiCloudIcon
-                        :key="r.done ? 'on' : 'off'"
-                        :size="44"
-                        :icon="Check"
-                        :icon-size="16"
-                        :cloud-color="r.done ? 'text-mint' : 'text-muted'"
-                        :icon-color="r.done ? 'text-[#34936a]' : 'text-transparent'"
-                        :icon-stroke="2.3"
-                        class="absolute inset-0" />
-                    </Transition>
+                  <span class="shrink-0 flex items-center gap-1.5">
+                    <span class="relative inline-block" :style="{ width: '44px', height: '30px' }">
+                      <Transition name="hibi-check">
+                        <HibiCloudIcon
+                          :key="r.done ? 'on' : 'off'"
+                          :size="44"
+                          :icon="Check"
+                          :icon-size="16"
+                          :cloud-color="r.done ? 'text-mint' : 'text-muted'"
+                          :icon-color="r.done ? 'text-[#34936a]' : 'text-transparent'"
+                          :icon-stroke="2.3"
+                          class="absolute inset-0" />
+                      </Transition>
+                    </span>
+                    <!-- Eliminar: discreto, aparece al pasar el cursor -->
+                    <span
+                      role="button"
+                      tabindex="0"
+                      class="grid place-items-center size-8 rounded-[10px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft transition-[background-color,color,opacity] opacity-0 group-hover/rem:opacity-100 focus-visible:opacity-100 outline-none"
+                      aria-label="Eliminar recordatorio"
+                      @click.stop="removeReminder(r.id)"
+                      @keydown.enter.stop.prevent="removeReminder(r.id)"
+                      @keydown.space.stop.prevent="removeReminder(r.id)">
+                      <Trash2 class="size-[15px]" :stroke-width="2.1" aria-hidden="true" />
+                    </span>
                   </span>
                 </button>
               </li>
