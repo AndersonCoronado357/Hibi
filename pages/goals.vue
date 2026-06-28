@@ -1,62 +1,55 @@
 <script setup lang="ts">
 import { Plus, Target, Calendar, TrendingUp, Minus, Check, Hash, Palette, FileText, Folder, Trash2 } from '@lucide/vue'
+import { format, parseISO, isValid } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 useHead({ title: 'Hibi — Objetivos' })
 
-interface Milestone { label: string; at: number; done: boolean }
-interface Goal {
-  id: string; title: string; target: string; progress: number
-  color: string; ringColor: string
-  unit: string; current: number; total: number
-  milestones: Milestone[]
-  area?: string
-}
-const goalsData = ref<Goal[]>([
-  { id: 'g1', title: 'Leer 12 libros en el año', target: 'Dic 2026', progress: 58, color: 'bg-sky-soft text-sky-deep', ringColor: 'var(--color-sky-deep)', area: 'Lecturas', unit: 'libros', current: 7, total: 12, milestones: [
-    { label: '1', at: 8, done: true }, { label: '3', at: 25, done: true }, { label: '6', at: 50, done: true }, { label: '9', at: 75, done: false }, { label: '12', at: 100, done: false },
-  ]},
-  { id: 'g2', title: 'Aprender japonés básico', target: 'Sep 2026', progress: 32, color: 'bg-pink-soft text-pink-deep', ringColor: 'var(--color-pink-deep)', area: 'Estudio', unit: 'lecciones', current: 48, total: 150, milestones: [
-    { label: 'Hiragana', at: 20, done: true }, { label: 'Katakana', at: 40, done: false }, { label: 'Kanji N5', at: 70, done: false }, { label: 'N5', at: 100, done: false },
-  ]},
-  { id: 'g3', title: 'Correr una media maratón', target: 'Oct 2026', progress: 71, color: 'bg-mint text-[#34936a]', ringColor: '#34936a', area: 'Salud', unit: 'km', current: 15, total: 21, milestones: [
-    { label: '5 km', at: 24, done: true }, { label: '10 km', at: 48, done: true }, { label: '15 km', at: 71, done: true }, { label: '21 km', at: 100, done: false },
-  ]},
-  { id: 'g4', title: 'Ahorrar 12.000.000 COP', target: 'Dic 2026', progress: 45, color: 'bg-peach text-[#c5733f]', ringColor: '#c5733f', area: 'Finanzas', unit: 'COP', current: 5400000, total: 12000000, milestones: [
-    { label: '2M', at: 17, done: true }, { label: '4M', at: 33, done: true }, { label: '8M', at: 67, done: false }, { label: '12M', at: 100, done: false },
-  ]},
-])
+const { goals, isLoading, createGoal, removeGoal: apiRemoveGoal, setLocalCurrent, saveCurrent } = useGoals()
 
-// Drag de la barra para aportar
+// Vista: progreso e hitos derivados de current/total.
+const goalsData = computed(() => goals.value.map((g) => {
+  const progress = g.total > 0 ? Math.round((g.current / g.total) * 100) : 0
+  return { ...g, progress, milestones: (g.milestones ?? []).map((m) => ({ ...m, done: progress >= m.at })) }
+}))
+type GoalView = (typeof goalsData)['value'][number]
+
+// Drag de la barra para aportar: refleja al instante en la caché y persiste al soltar.
 const dragGoalId = ref<string | null>(null)
-function onBarPointerDown(e: PointerEvent, g: Goal) {
+let dragCurrent = 0
+function updateFromPointer(e: PointerEvent, g: GoalView) {
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  const pct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100))
+  // CURRENT en unidades enteras a partir del total; progreso = current/total.
+  dragCurrent = Math.round((pct / 100) * g.total)
+  setLocalCurrent(g.id, dragCurrent)
+}
+function onBarPointerDown(e: PointerEvent, g: GoalView) {
   dragGoalId.value = g.id
   ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
   updateFromPointer(e, g)
 }
-function onBarPointerMove(e: PointerEvent, g: Goal) {
+function onBarPointerMove(e: PointerEvent, g: GoalView) {
   if (dragGoalId.value !== g.id) return
   updateFromPointer(e, g)
 }
 function onBarPointerUp(e: PointerEvent) {
+  if (dragGoalId.value) saveCurrent(dragGoalId.value, dragCurrent)
   dragGoalId.value = null
   ;(e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId)
 }
-function updateFromPointer(e: PointerEvent, g: Goal) {
-  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-  const pct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100))
-  // Calcular CURRENT a partir del total (unidades enteras), luego progress = current/total
-  // Así un 97% del slider con 12 libros se redondea a 11/12 (91.7%), no a 12/12.
-  g.current = Math.round((pct / 100) * g.total)
-  g.progress = Math.round((g.current / g.total) * 100)
-  g.milestones.forEach(m => { m.done = g.progress >= m.at })
-}
-function fmtCurrent(g: Goal) {
+function fmtCurrent(g: GoalView) {
   if (g.unit === 'COP') return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(g.current)
   return `${g.current} ${g.unit}`
 }
-function fmtTotal(g: Goal) {
+function fmtTotal(g: GoalView) {
   if (g.unit === 'COP') return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(g.total)
   return `${g.total} ${g.unit}`
+}
+function fmtTarget(target: string) {
+  if (!target) return 'Sin fecha'
+  if (/^\d{4}-\d{2}-\d{2}$/.test(target)) { const d = parseISO(target); if (isValid(d)) return format(d, "d 'de' MMM yyyy", { locale: es }) }
+  return target
 }
 
 const TONES = [
@@ -77,7 +70,6 @@ const newArea = ref('')
 const newUnit = ref('')
 const newTotalStr = ref('100')
 const newNotes = ref('')
-let nextId = 100
 function openCreate() {
   newTitle.value = ''; newTarget.value = ''; newToneStr.value = '0'
   newGoalColor.value = '#5aa6d2'
@@ -85,15 +77,13 @@ function openCreate() {
   view.value = 'create'
 }
 function cancelCreate() { view.value = 'list' }
-function removeGoal(id: string) { goalsData.value = goalsData.value.filter(g => g.id !== id) }
+function removeGoal(id: string) { apiRemoveGoal(id) }
 
-function saveGoal() {
+async function saveGoal() {
   const t = newTitle.value.trim(); if (!t) return
-  goalsData.value.unshift({
-    id: 'g' + (nextId++), title: t, target: newTarget.value || 'Sin fecha',
-    progress: 0, color: 'bg-sky-soft text-sky-deep', ringColor: newGoalColor.value,
-    area: newArea.value || undefined,
-    unit: newUnit.value, current: 0, total: Number(newTotalStr.value) || 100, milestones: [],
+  await createGoal({
+    title: t, target: newTarget.value || '', area: newArea.value || null,
+    unit: newUnit.value || '', total: Number(newTotalStr.value) || 100, ringColor: newGoalColor.value,
   })
   view.value = 'list'
 }
@@ -164,7 +154,7 @@ function saveGoal() {
           <div class="flex-1 min-w-0">
             <h3 class="text-[16px] md:text-[17px] font-extrabold text-fg leading-tight">{{ g.title }}</h3>
             <div class="flex items-center gap-2 md:gap-3 mt-1 text-[12px] md:text-[12.5px] text-fg-muted flex-wrap">
-              <span class="inline-flex items-center gap-1"><Calendar class="size-3" :stroke-width="2" aria-hidden="true" />{{ g.target }}</span>
+              <span class="inline-flex items-center gap-1"><Calendar class="size-3" :stroke-width="2" aria-hidden="true" />{{ fmtTarget(g.target) }}</span>
               <span v-if="g.area" class="text-[11px] font-bold px-2 h-6 grid place-items-center rounded-full" :class="g.color">{{ g.area }}</span>
             </div>
           </div>
