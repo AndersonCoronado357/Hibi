@@ -1,24 +1,32 @@
 <script setup lang="ts">
-import { Plus, BookHeart, Frown, Meh, Smile, Laugh, Angry, Sparkles, ChevronLeft, ChevronRight, BarChart3, NotebookPen, CalendarDays, X } from '@lucide/vue'
+import { Plus, BookHeart, Frown, Meh, Smile, Laugh, Angry, Sparkles, ChevronLeft, ChevronRight, BarChart3, NotebookPen, CalendarDays, X, Trash2 } from '@lucide/vue'
 import { markRaw, type Component } from 'vue'
-import { format, subDays, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, differenceInCalendarDays } from 'date-fns'
+import { format, subDays, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, differenceInCalendarDays, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
+import type { JournalEntry } from '~/composables/useJournal'
 
 useHead({ title: 'Hibi — Diario' })
 
-interface Entry { date: Date; mood: 1|2|3|4|5; energy: 1|2|3|4|5; preview: string; body: string }
 const today = new Date()
-const entries = ref<Entry[]>([
-  { date: today, mood: 4, energy: 4, preview: 'Mañana productiva. Café temprano, lectura, paseo largo.', body: '<p>Mañana productiva. Café temprano, lectura, paseo largo por el parque.</p><p>Me senté en el banco de siempre con un libro. Volví a pensar en lo del trabajo. Mejor mañana.</p>' },
-  { date: subDays(today, 1), mood: 3, energy: 3, preview: 'Día tranquilo, mucho trabajo de pantalla.', body: '<p>Día tranquilo, mucho trabajo de pantalla. Por la noche peli con Lu.</p>' },
-  { date: subDays(today, 2), mood: 5, energy: 4, preview: 'Comida en casa de los abuelos.', body: '<p>Comida en casa de los abuelos. La luz de junio entrando por la ventana.</p>' },
-  { date: subDays(today, 3), mood: 2, energy: 2, preview: 'Cabeza pesada, dormí mal.', body: '<p>Cabeza pesada, dormí mal. Salí poco. Cocinar me ordenó la tarde.</p>' },
-  { date: subDays(today, 4), mood: 4, energy: 5, preview: 'Volví a correr 5K sin parar.', body: '<p>Volví a correr 5K sin parar. Muy buen ánimo, ganas de seguir.</p>' },
-  { date: subDays(today, 5), mood: 3, energy: 3, preview: 'Domingo tranquilo.', body: '<p>Domingo tranquilo, descanso.</p>' },
-  { date: subDays(today, 6), mood: 4, energy: 4, preview: 'Cena con amigos.', body: '<p>Cena con amigos. Hablamos mucho de viajes.</p>' },
-  { date: subDays(today, 8), mood: 2, energy: 3, preview: 'Lluvia todo el día.', body: '<p>Lluvia todo el día. Día gris.</p>' },
-  { date: subDays(today, 10), mood: 5, energy: 5, preview: 'Llegó la oferta de trabajo.', body: '<p>Llegó la oferta. Mucha alegría.</p>' },
-])
+
+// ─── Datos reales (persistidos por usuario) ───
+const { entries: rows, isLoading, createEntry, updateEntry, removeEntry } = useJournal()
+
+// Adaptamos las filas reales a la forma que consume el template/analítica:
+// añadimos `date` (Date) y `preview` (texto sin HTML) sin tocar el markup.
+interface Entry { id: string; date: Date; entryDate: string; mood: 1|2|3|4|5; energy: 1|2|3|4|5; preview: string; body: string }
+const stripHtml = (html: string) => (html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 140)
+const entries = computed<Entry[]>(() =>
+  (rows.value ?? []).map((r: JournalEntry) => ({
+    id: r.id,
+    date: parseISO(r.entryDate),
+    entryDate: r.entryDate,
+    mood: (r.mood as 1|2|3|4|5) ?? 3,
+    energy: (r.energy as 1|2|3|4|5) ?? 3,
+    body: r.body ?? '',
+    preview: stripHtml(r.body),
+  })),
+)
 
 interface Mood { v: 1|2|3|4|5; icon: Component; label: string; color: string; bg: string; hex: string }
 const moods: Mood[] = [
@@ -29,6 +37,8 @@ const moods: Mood[] = [
   { v: 5, icon: markRaw(Laugh), label: 'Genial',  color: 'text-sky-deep',   bg: 'bg-sky-soft',  hex: '#5aa6d2' },
 ]
 
+const emptyIcon = markRaw(BookHeart)
+
 const view = ref<'editor' | 'stats'>('editor')
 const showSideMobile = ref(false) // móvil: overlay con calendario + entradas
 
@@ -36,11 +46,21 @@ const selectedDate = ref(today)
 const selectedEntry = computed(() => entries.value.find(e => isSameDay(e.date, selectedDate.value)))
 const draftMood = ref<Entry['mood']>(selectedEntry.value?.mood ?? 3)
 const draftBody = ref(selectedEntry.value?.body || '')
-watch(selectedDate, () => {
+// Al cambiar de día (o al llegar los datos), recargamos el borrador desde la fila real.
+// `loadingDraft` evita que el watcher de draftBody dispare un guardado espurio
+// cuando el cambio viene de cargar (no de escribir el usuario).
+let loadingDraft = false
+function syncDraft() {
   const e = entries.value.find(x => isSameDay(x.date, selectedDate.value))
+  loadingDraft = true
   draftMood.value = e?.mood ?? 3
   draftBody.value = e?.body || ''
-})
+  nextTick(() => { loadingDraft = false })
+}
+watch(selectedDate, syncDraft)
+// Cuando llegan/actualizan las filas del servidor, refrescamos el borrador del día
+// seleccionado SOLO si aún no hay cambios locales sin guardar (evita pisar lo escrito).
+watch(rows, () => { if (!dirty.value) syncDraft() })
 
 const PROMPTS = [
   'Qué fue lo mejor del día.', 'Por qué te sentiste así.', 'Una persona por la que te sientes agradecido.',
@@ -66,17 +86,59 @@ const monthDays = computed(() => {
 })
 const moodOn = (d: Date) => entries.value.find(e => isSameDay(e.date, d))?.mood ?? null
 
-function save() {
-  const idx = entries.value.findIndex(e => isSameDay(e.date, selectedDate.value))
-  const stripped = draftBody.value.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 140)
-  if (idx >= 0) {
-    entries.value[idx]!.mood = draftMood.value
-    entries.value[idx]!.body = draftBody.value
-    entries.value[idx]!.preview = stripped
-  } else {
-    entries.value.unshift({ date: selectedDate.value, mood: draftMood.value, energy: 3, body: draftBody.value, preview: stripped })
+// ─── Persistencia real (autosave con debounce + guardado optimista) ───
+const dirty = ref(false)
+let saveTimer: ReturnType<typeof setTimeout> | null = null
+let saving = false
+
+// Escribe (crea o actualiza) la entrada del día seleccionado con el borrador actual.
+async function persist() {
+  if (saving) return
+  saving = true
+  dirty.value = false
+  const entryDate = format(selectedDate.value, 'yyyy-MM-dd')
+  const existing = entries.value.find(e => isSameDay(e.date, selectedDate.value))
+  try {
+    if (existing) {
+      await updateEntry(existing.id, { mood: draftMood.value, body: draftBody.value })
+    } else {
+      await createEntry({ entryDate, mood: draftMood.value, energy: 3, body: draftBody.value })
+    }
+  } finally {
+    saving = false
+    // Si hubo más ediciones mientras guardábamos, reprograma otro guardado.
+    if (dirty.value) queueSave()
   }
 }
+
+// Debounce ~500ms para no disparar un PATCH por cada tecla.
+function queueSave() {
+  dirty.value = true
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => { saveTimer = null; persist() }, 500)
+}
+
+// Guardado inmediato (botón "Guardar").
+function save() {
+  if (saveTimer) { clearTimeout(saveTimer); saveTimer = null }
+  persist()
+}
+
+// El editor y el selector de ánimo escriben en el borrador y programan el guardado.
+watch(draftBody, () => { if (!loadingDraft) queueSave() })
+function setMood(v: Entry['mood']) { draftMood.value = v; queueSave() }
+
+// Borrar la entrada del día seleccionado.
+async function removeSelected() {
+  const existing = entries.value.find(e => isSameDay(e.date, selectedDate.value))
+  if (!existing) return
+  if (saveTimer) { clearTimeout(saveTimer); saveTimer = null }
+  dirty.value = false
+  await removeEntry(existing.id)
+  syncDraft()
+}
+
+onBeforeUnmount(() => { if (saveTimer) clearTimeout(saveTimer) })
 
 // ─── Gráfica de ánimo: barras horizontales últimos 30 días ───
 const chartDays = computed(() => {
@@ -172,7 +234,7 @@ function arcPath(idx: number, dist: typeof moodDist.value) {
           <div class="flex items-center gap-0.5 md:gap-1.5 p-1 rounded-full bg-muted shrink-0">
             <button v-for="m in moods" :key="m.v" type="button"
               class="shrink-0 hibi-mood-btn"
-              :aria-label="m.label" @click="draftMood = m.v as Entry['mood']">
+              :aria-label="m.label" @click="setMood(m.v as Entry['mood'])">
               <HibiCloudIcon
                 :size="36"
                 :icon="m.icon"
@@ -209,7 +271,13 @@ function arcPath(idx: number, dist: typeof moodDist.value) {
           </Transition>
         </div>
 
-        <footer class="shrink-0 px-4 md:px-6 pb-4 md:pb-5 pt-1 flex justify-end gap-2">
+        <footer class="shrink-0 px-4 md:px-6 pb-4 md:pb-5 pt-1 flex items-center justify-end gap-2">
+          <Transition name="hibi-fade">
+            <span v-if="dirty" class="mr-auto text-[12px] text-fg-subtle font-semibold">Guardando…</span>
+          </Transition>
+          <AppButton v-if="selectedEntry" variant="ghost" size="sm" aria-label="Borrar entrada" @click="removeSelected">
+            <template #icon><Trash2 class="size-[15px]" :stroke-width="2.1" /></template>Borrar
+          </AppButton>
           <AppButton variant="primary" size="sm" @click="save">Guardar</AppButton>
         </footer>
       </AppCard>
@@ -254,7 +322,24 @@ function arcPath(idx: number, dist: typeof moodDist.value) {
         <AppCard class="shrink-0 lg:flex-1 lg:min-h-0 flex flex-col" :padded="false">
           <h3 class="px-4 pt-4 pb-2 text-[13px] font-bold text-fg-muted shrink-0">Entradas</h3>
           <div class="hibi-anim-slide-right lg:flex-1 lg:min-h-0 lg:overflow-y-auto lg:scroll-area px-2 pb-3 flex flex-col gap-1">
-            <button v-for="e in entries" :key="e.date.toISOString()"
+            <!-- Cargando: pulso suave con la forma de las entradas -->
+            <template v-if="isLoading">
+              <div v-for="n in 4" :key="'sk'+n" class="p-3 rounded-[12px] flex gap-3 items-start animate-pulse">
+                <div class="size-[52px] rounded-full bg-muted shrink-0"></div>
+                <div class="flex-1 min-w-0 space-y-2 pt-1">
+                  <div class="h-3 w-1/2 rounded-full bg-muted"></div>
+                  <div class="h-2.5 w-full rounded-full bg-muted"></div>
+                </div>
+              </div>
+            </template>
+            <!-- Vacío: aún sin entradas -->
+            <div v-else-if="!entries.length" class="px-3 py-8 flex flex-col items-center text-center gap-2">
+              <HibiCloudIcon :size="56" :icon="emptyIcon" :icon-size="20" cloud-color="text-pink-soft" icon-color="text-pink-deep" :icon-stroke="1.7" />
+              <p class="text-[13px] font-bold text-fg">Aún no hay entradas</p>
+              <p class="text-[12px] text-fg-muted leading-snug">Escribe cómo fue tu día y pulsa Guardar.</p>
+            </div>
+            <!-- Entradas reales -->
+            <button v-for="e in entries" v-else :key="e.id"
               type="button" class="text-left p-3 rounded-[12px] flex gap-3 items-start transition-[background-color]"
               :class="isSameDay(e.date, selectedDate) ? 'bg-sky-soft' : 'hover:bg-muted'"
               @click="selectedDate = e.date; showSideMobile = false">
