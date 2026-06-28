@@ -62,13 +62,31 @@ function tileStyle(h: { tone: string; ringColor: string }) {
   return { background: h.ringColor + '33', color: h.ringColor }
 }
 
-function gen(prob: number) { return Array.from({ length: 49 }, () => Math.random() < prob) }
-const habitsData = ref<Habit[]>([
-  { id: 'h1', name: 'Beber agua',     ...ICONS.Droplet!,  log: gen(0.85), best: 28 },
-  { id: 'h2', name: 'Leer 20 min',    ...ICONS.BookOpen!, log: gen(0.62), best: 18 },
-  { id: 'h3', name: 'Meditar',        ...ICONS.Brain!,    log: gen(0.50), best: 21 },
-  { id: 'h4', name: 'Estiramientos',  ...ICONS.StretchHorizontal!, log: gen(0.36), best: 14 },
-])
+const { habits, completions, isLoading, createHabit, removeHabit: apiRemoveHabit, toggle: apiToggle } = useHabits()
+
+// Set de "habitId|yyyy-MM-dd" para consulta O(1) de las marcas.
+const doneSet = computed(() => {
+  const s = new Set<string>()
+  for (const c of completions.value) s.add(c.habitId + '|' + c.day)
+  return s
+})
+function resolveIcon(name: string): Component {
+  return ICON_GALLERY.find(g => g.key === name)?.icon || ICONS[name]?.icon || markRaw(Droplet)
+}
+function bestRun(log: boolean[]) {
+  let s = 0, m = 0
+  for (let k = log.length - 1; k >= 0; k--) { if (log[k]) { s++; m = Math.max(m, s) } else s = 0 }
+  return m
+}
+// Cada hábito con su log[49] (índice 48 = hoy) derivado de las marcas + best.
+const habitsData = computed<Habit[]>(() => habits.value.map((h) => {
+  const log: boolean[] = []
+  for (let i = 0; i < 49; i++) {
+    const d = subDays(today, 48 - i)
+    log.push(doneSet.value.has(h.id + '|' + format(d, 'yyyy-MM-dd')))
+  }
+  return { id: h.id, name: h.name, icon: resolveIcon(h.icon), tone: '', iconColor: '', ringColor: h.ringColor, log, best: bestRun(log) }
+}))
 
 // ───── Tracker semanal: 7 columnas (L–D) × N filas (hábitos) ─────
 const weekCursor = ref(startOfWeek(new Date(), { weekStartsOn: 1 }))
@@ -86,14 +104,8 @@ function done(h: Habit, d: Date) {
   return h.log[i] === true
 }
 function toggle(h: Habit, d: Date) {
-  const i = dayIndex(d); if (i < 0 || i > 48) return
-  h.log[i] = !h.log[i]
-  // recomputar best streak desde el final
-  let s = 0, max = 0
-  for (let k = h.log.length - 1; k >= 0; k--) {
-    if (h.log[k]) { s++; max = Math.max(max, s) } else { s = 0 }
-  }
-  if (max > h.best) h.best = max
+  if (!isSameDay(d, today)) return
+  apiToggle(h.id, format(d, 'yyyy-MM-dd'))
 }
 function streak(h: Habit) {
   let s = 0
@@ -196,25 +208,15 @@ const view = ref<'tracker' | 'analytics' | 'create'>('tracker')
 const newName = ref('')
 const newIconStr = ref('Droplet')
 const newCustomColor = ref('#5aa6d2')
-let nextId = 100
 function openCreate() {
   newName.value = ''; newIconStr.value = 'Droplet'
   newCustomColor.value = '#5aa6d2'
   view.value = 'create'
 }
 function cancelCreate() { view.value = 'tracker' }
-function saveHabit() {
+async function saveHabit() {
   const n = newName.value.trim(); if (!n) return
-  const baseIcon = ICON_GALLERY.find(g => g.key === newIconStr.value)?.icon
-    || ICONS[newIconStr.value]?.icon
-    || ICONS.Droplet!.icon
-  habitsData.value.push({
-    id: 'h' + (nextId++), name: n,
-    icon: baseIcon,
-    tone: '', iconColor: '',  // vacíos: se renderizan con tileStyle(h)
-    ringColor: newCustomColor.value,
-    log: new Array(49).fill(false), best: 0,
-  } as Habit)
+  await createHabit({ name: n, icon: newIconStr.value, ringColor: newCustomColor.value })
   view.value = 'tracker'
 }
 
@@ -242,9 +244,7 @@ const heatmap = computed(() => {
 const totalDone = computed(() => habitsData.value.reduce((a, h) => a + h.log.filter(Boolean).length, 0))
 const totalSlots = computed(() => habitsData.value.length * 49)
 const overallRate = computed(() => totalSlots.value ? Math.round((totalDone.value / totalSlots.value) * 100) : 0)
-function removeHabit(id: string) {
-  habitsData.value = habitsData.value.filter(h => h.id !== id)
-}
+function removeHabit(id: string) { apiRemoveHabit(id) }
 </script>
 
 <template>
@@ -337,8 +337,16 @@ function removeHabit(id: string) {
 
     <AppCard class="relative z-10 flex-1 min-h-0 flex flex-col" :padded="false">
       <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-3 md:px-4 py-3 flex flex-col">
+        <!-- Vacío -->
+        <div v-if="!habitsData.length && !isLoading" class="flex-1 flex flex-col items-center justify-center text-center gap-3 py-10">
+          <HibiCloudIcon :size="96" :icon="Flame" :icon-size="34" cloud-color="text-pink-soft" icon-color="text-pink-deep" :icon-stroke="1.8" />
+          <div>
+            <p class="text-[15px] font-extrabold text-fg">Aún no hay hábitos</p>
+            <p class="text-[13px] text-fg-muted mt-0.5">Crea el primero con el botón “Nuevo”.</p>
+          </div>
+        </div>
         <!-- ───── DESKTOP: tabla hábito × 7 días ───── -->
-        <div class="hidden md:flex md:flex-col">
+        <div v-if="habitsData.length" class="hidden md:flex md:flex-col">
           <!-- HEADER -->
           <div class="grid grid-cols-[minmax(180px,1fr)_repeat(7,minmax(0,1fr))] gap-x-1.5 shrink-0">
             <span class="text-[12px] font-bold text-fg-muted uppercase tracking-wide pb-3 self-end">Hábito</span>
@@ -382,7 +390,7 @@ function removeHabit(id: string) {
         </div>
 
         <!-- ───── MÓVIL: una tarjeta por hábito, semana debajo a todo el ancho ───── -->
-        <div class="md:hidden flex flex-col gap-2">
+        <div v-if="habitsData.length" class="md:hidden flex flex-col gap-2">
           <article v-for="h in habitsData" :key="h.id" class="rounded-[14px] bg-muted/50 p-3">
             <div class="flex items-center gap-2.5 mb-3">
               <HibiCloudIcon :size="44" :icon="h.icon" :icon-size="16" :cloud-color="h.tone || 'text-sky-soft'" :icon-color="h.iconColor || 'text-sky-deep'" :icon-stroke="2" class="shrink-0" :style="!h.tone ? { color: h.ringColor } : undefined" />

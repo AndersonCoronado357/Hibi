@@ -3,32 +3,68 @@ import { Play, Pause, RotateCcw, Timer, ChevronDown, Sparkles, ListChecks, Plus,
 
 useHead({ title: 'Hibi — Enfoque' })
 
-interface Preset { id: string; label: string; focus: number; short: number; long: number; color: string; ringColor: string }
+// Datos reales por usuario (presets configurables + sesiones registradas).
+const {
+  presets, presetsLoading, createPreset, updatePreset, removePreset,
+  todaySessions, sessionsLoading, logSession,
+} = useFocus()
+
 type View = 'timer' | 'presets'
 const view = ref<View>('timer')
-const presets = ref<Preset[]>([
-  { id: 'p1', label: 'Clásico',  focus: 25, short: 5, long: 15, color: 'bg-sky-soft text-sky-deep',  ringColor: 'var(--color-sky-deep)' },
-  { id: 'p2', label: 'Largo',    focus: 50, short: 10, long: 20, color: 'bg-mint text-[#34936a]',    ringColor: '#34936a' },
-  { id: 'p3', label: 'Sprint',   focus: 15, short: 3, long: 10, color: 'bg-pink-soft text-pink-deep', ringColor: 'var(--color-pink-deep)' },
-])
 
 type Mode = 'focus' | 'short' | 'long'
-const activePresetId = ref('p1')
-const activePreset = computed(() => presets.value.find(p => p.id === activePresetId.value) || presets.value[0]!)
+const activePresetId = ref<string>('')
+const activePreset = computed(() => presets.value.find(p => p.id === activePresetId.value) || presets.value[0])
+// El preset activo por defecto es el primero disponible.
+watch(presets, (list) => {
+  if (!list.length) { activePresetId.value = ''; return }
+  if (!list.some(p => p.id === activePresetId.value)) activePresetId.value = list[0]!.id
+}, { immediate: true })
+
 const mode = ref<Mode>('focus')
 const totalSec = computed(() => {
   const p = activePreset.value
+  if (!p) return 25 * 60
   return (mode.value === 'focus' ? p.focus : mode.value === 'short' ? p.short : p.long) * 60
 })
 const remaining = ref(totalSec.value)
 const running = ref(false)
-const task = ref('Preparar la presentación del jueves')
-const sessionsToday = ref(3)
+const task = ref('')
+
+const sessionsToday = computed(() => todaySessions.value.length)
+
+// Tiempo relativo suave para la lista "Sesiones de hoy".
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const min = Math.floor(diff / 60000)
+  if (min < 1) return 'Recién'
+  if (min < 60) return `Hace ${min} min`
+  const h = Math.floor(min / 60)
+  return `Hace ${h} ${h === 1 ? 'hora' : 'horas'}`
+}
 
 let interval: ReturnType<typeof setInterval> | undefined
-function start() { if (running.value) return; running.value = true; interval = setInterval(() => { remaining.value -= 1; if (remaining.value <= 0) { remaining.value = 0; stop(); sessionsToday.value++ } }, 1000) }
+function start() {
+  if (running.value) return
+  running.value = true
+  interval = setInterval(() => {
+    remaining.value -= 1
+    if (remaining.value <= 0) { remaining.value = 0; finishSession() }
+  }, 1000)
+}
 function stop() { running.value = false; if (interval) clearInterval(interval) }
 function reset() { stop(); remaining.value = totalSec.value }
+
+// Al terminar una sesión de foco: persistir para que aparezca en "hoy".
+function finishSession() {
+  const p = activePreset.value
+  stop()
+  if (mode.value === 'focus' && p) {
+    logSession({ task: task.value.trim() || null, minutes: p.focus })
+  }
+  remaining.value = totalSec.value
+}
+
 watch([mode, activePresetId], () => { reset() })
 onBeforeUnmount(() => { if (interval) clearInterval(interval) })
 
@@ -38,17 +74,21 @@ const progress = computed(() => 1 - remaining.value / totalSec.value)
 const r = 160
 const c = 2 * Math.PI * r
 
+// Tono por defecto para el timer cuando aún no hay preset activo.
+const activeTone = computed(() => activePreset.value?.color || 'bg-sky-soft text-sky-deep')
+const activeRing = computed(() => activePreset.value?.ringColor || '#5aa6d2')
+
 // ─── CRUD de presets ───
 const editingId = ref<string | null>(null)
 const editLabel = ref(''); const editFocus = ref(25); const editShort = ref(5); const editLong = ref(15)
 const TONES = [
-  { tone: 'bg-sky-soft text-sky-deep',  ringColor: 'var(--color-sky-deep)' },
+  { tone: 'bg-sky-soft text-sky-deep',  ringColor: '#5aa6d2' },
   { tone: 'bg-mint text-[#34936a]',     ringColor: '#34936a' },
-  { tone: 'bg-pink-soft text-pink-deep', ringColor: 'var(--color-pink-deep)' },
+  { tone: 'bg-pink-soft text-pink-deep', ringColor: '#db8aa3' },
   { tone: 'bg-peach text-[#c5733f]',    ringColor: '#c5733f' },
   { tone: 'bg-lavender text-[#7a63c0]', ringColor: '#7a63c0' },
 ]
-function startEdit(p: Preset) {
+function startEdit(p: typeof presets.value[number]) {
   editingId.value = p.id
   editLabel.value = p.label
   editFocus.value = p.focus; editShort.value = p.short; editLong.value = p.long
@@ -63,24 +103,20 @@ function saveEdit() {
   const label = editLabel.value.trim(); if (!label) return
   if (editingId.value === 'new') {
     const next = TONES[presets.value.length % TONES.length]!
-    presets.value.push({ id: 'p' + Math.random().toString(36).slice(2, 7), label, focus: editFocus.value, short: editShort.value, long: editLong.value, color: next.tone, ringColor: next.ringColor })
-  } else {
-    const p = presets.value.find(x => x.id === editingId.value); if (!p) return
-    p.label = label; p.focus = editFocus.value; p.short = editShort.value; p.long = editLong.value
+    createPreset({ label, focus: editFocus.value, short: editShort.value, long: editLong.value, color: next.tone, ringColor: next.ringColor })
+  } else if (editingId.value) {
+    updatePreset(editingId.value, { label, focus: editFocus.value, short: editShort.value, long: editLong.value })
   }
   editingId.value = null
 }
-function deletePreset(p: Preset) {
+function deletePreset(p: typeof presets.value[number]) {
   if (presets.value.length <= 1) return
-  presets.value = presets.value.filter(x => x.id !== p.id)
-  if (activePresetId.value === p.id) activePresetId.value = presets.value[0]!.id
+  if (activePresetId.value === p.id) {
+    const rest = presets.value.filter(x => x.id !== p.id)
+    if (rest[0]) activePresetId.value = rest[0].id
+  }
+  removePreset(p.id)
 }
-
-const sessions = [
-  { id: 's1', task: 'Diseñar dashboard', mins: 25, ago: 'Hace 1 hora' },
-  { id: 's2', task: 'Leer documentación', mins: 25, ago: 'Hace 2 horas' },
-  { id: 's3', task: 'Stand-up equipo', mins: 15, ago: 'Hace 3 horas' },
-]
 </script>
 
 <template>
@@ -105,6 +141,18 @@ const sessions = [
           <button class="inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white font-bold text-[13.5px] transition-[background-color,color]" @click="startNew"><Plus class="size-[15px]" :stroke-width="2.4" />Nuevo</button>
         </header>
         <ul class="flex-1 min-h-0 overflow-y-auto scroll-area px-5 pb-5 flex flex-col gap-2">
+          <!-- Carga -->
+          <template v-if="presetsLoading && !presets.length">
+            <li v-for="n in 3" :key="'sk' + n">
+              <div class="flex items-center gap-3 p-3 rounded-[14px] bg-muted animate-pulse">
+                <div class="size-[60px] rounded-full bg-inset shrink-0"></div>
+                <div class="flex-1 min-w-0 space-y-2">
+                  <div class="h-3.5 w-1/3 rounded-full bg-inset"></div>
+                  <div class="h-3 w-2/3 rounded-full bg-inset"></div>
+                </div>
+              </div>
+            </li>
+          </template>
           <li v-for="p in presets" :key="p.id">
             <div v-if="editingId === p.id" class="bg-muted rounded-[14px] p-2 flex items-center gap-2 flex-wrap">
               <input v-model="editLabel" type="text" placeholder="Nombre" class="flex-1 h-11 rounded-[10px] bg-card px-3 text-[14px] font-semibold text-fg outline-none" />
@@ -143,6 +191,17 @@ const sessions = [
               <button class="grid place-items-center size-11 rounded-[10px] bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white" aria-label="Crear" @click="saveEdit"><Check class="size-4" :stroke-width="2.5" /></button>
             </div>
           </li>
+          <!-- Vacío -->
+          <li v-if="!presetsLoading && !presets.length && editingId !== 'new'">
+            <div class="grid place-items-center text-center py-12 px-6 gap-3">
+              <HibiCloudIcon :size="70" :icon="Timer" :icon-size="24" cloud-color="bg-sky-soft" icon-color="text-sky-deep" :icon-stroke="1.9" />
+              <div>
+                <p class="text-[14.5px] font-bold text-fg">Sin presets todavía</p>
+                <p class="text-[12.5px] text-fg-muted mt-0.5">Crea tu primer ritmo de pomodoro.</p>
+              </div>
+              <button class="inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white font-bold text-[13.5px] transition-[background-color,color]" @click="startNew"><Plus class="size-[15px]" :stroke-width="2.4" />Crear preset</button>
+            </div>
+          </li>
         </ul>
       </AppCard>
     </template>
@@ -154,14 +213,14 @@ const sessions = [
       <div class="relative w-full mb-3 md:mb-0 md:absolute md:top-6 md:left-6 md:right-6 md:w-auto flex items-center justify-between gap-3">
         <div class="inline-flex p-1 rounded-full bg-muted gap-0.5 md:gap-1">
           <button type="button" class="h-9 px-2.5 md:px-4 rounded-full text-[12px] md:text-[13px] font-semibold whitespace-nowrap transition-[background-color,color]"
-            :class="mode === 'focus' ? `bg-card ${activePreset.color.split(' ')[1]}` : 'text-fg-muted hover:text-fg'"
-            @click="mode = 'focus'">Foco ({{ activePreset.focus }})</button>
+            :class="mode === 'focus' ? `bg-card ${activeTone.split(' ')[1]}` : 'text-fg-muted hover:text-fg'"
+            @click="mode = 'focus'">Foco ({{ activePreset?.focus ?? 25 }})</button>
           <button type="button" class="h-9 px-2.5 md:px-4 rounded-full text-[12px] md:text-[13px] font-semibold whitespace-nowrap transition-[background-color,color]"
             :class="mode === 'short' ? 'bg-card text-[#34936a]' : 'text-fg-muted hover:text-fg'"
-            @click="mode = 'short'">Corto ({{ activePreset.short }})</button>
+            @click="mode = 'short'">Corto ({{ activePreset?.short ?? 5 }})</button>
           <button type="button" class="h-9 px-2.5 md:px-4 rounded-full text-[12px] md:text-[13px] font-semibold whitespace-nowrap transition-[background-color,color]"
             :class="mode === 'long' ? 'bg-card text-pink-deep' : 'text-fg-muted hover:text-fg'"
-            @click="mode = 'long'">Largo ({{ activePreset.long }})</button>
+            @click="mode = 'long'">Largo ({{ activePreset?.long ?? 15 }})</button>
         </div>
         <div class="text-right shrink-0">
           <p class="text-[11px] md:text-[12px] font-bold text-fg-muted leading-tight">Sesiones</p>
@@ -178,7 +237,7 @@ const sessions = [
             :size="520"
             :stroke-width="5"
             track-color="var(--bg-muted)"
-            :progress-color="activePreset.ringColor"
+            :progress-color="activeRing"
             :progress="progress"
             class="w-full h-auto max-w-full"
           />
@@ -218,7 +277,10 @@ const sessions = [
           </button>
         </div>
         <!-- Select con todos los presets (scroll si hay muchos) -->
-        <AppSelect v-model="activePresetId" :options="presets.map(p => ({ value: p.id, label: `${p.label} · ${p.focus}/${p.short}/${p.long}` }))" />
+        <AppSelect v-if="presets.length" v-model="activePresetId" :options="presets.map(p => ({ value: p.id, label: `${p.label} · ${p.focus}/${p.short}/${p.long}` }))" />
+        <button v-else class="w-full inline-flex items-center justify-center gap-1.5 h-11 rounded-[12px] bg-muted text-fg-muted hover:bg-inset hover:text-fg text-[13px] font-bold transition-[background-color,color]" @click="view = 'presets'">
+          <Plus class="size-[15px]" :stroke-width="2.4" /> Crear un preset
+        </button>
       </AppCard>
 
       <AppCard class="lg:flex-1 lg:min-h-0 flex flex-col" :padded="false">
@@ -227,13 +289,29 @@ const sessions = [
           <h3 class="text-[14px] font-bold text-fg">Sesiones de hoy</h3>
         </header>
         <div class="lg:flex-1 lg:min-h-0 lg:overflow-y-auto lg:scroll-area px-3 pb-4 flex flex-col gap-1.5">
-          <div v-for="s in sessions" :key="s.id" class="flex items-center gap-3 p-3 rounded-[12px] bg-muted">
+          <!-- Carga -->
+          <template v-if="sessionsLoading && !todaySessions.length">
+            <div v-for="n in 3" :key="'ss' + n" class="flex items-center gap-3 p-3 rounded-[12px] bg-muted animate-pulse">
+              <span class="size-9 rounded-[11px] bg-inset shrink-0"></span>
+              <div class="flex-1 min-w-0 space-y-2">
+                <div class="h-3 w-2/3 rounded-full bg-inset"></div>
+                <div class="h-2.5 w-1/3 rounded-full bg-inset"></div>
+              </div>
+            </div>
+          </template>
+          <div v-for="s in todaySessions" :key="s.id" class="flex items-center gap-3 p-3 rounded-[12px] bg-muted">
             <span class="grid place-items-center size-9 rounded-[11px] bg-sky-soft text-sky-deep" aria-hidden="true"><Timer class="size-[16px]" :stroke-width="2" /></span>
             <div class="flex-1 min-w-0">
-              <p class="text-[13.5px] font-semibold text-fg truncate">{{ s.task }}</p>
-              <p class="text-[11.5px] text-fg-muted">{{ s.ago }}</p>
+              <p class="text-[13.5px] font-semibold text-fg truncate">{{ s.task || 'Sesión de enfoque' }}</p>
+              <p class="text-[11.5px] text-fg-muted">{{ timeAgo(s.finishedAt) }}</p>
             </div>
-            <span class="text-[12.5px] font-bold text-fg tabular-nums">{{ s.mins }} min</span>
+            <span class="text-[12.5px] font-bold text-fg tabular-nums">{{ s.minutes }} min</span>
+          </div>
+          <!-- Vacío -->
+          <div v-if="!sessionsLoading && !todaySessions.length" class="grid place-items-center text-center py-8 px-4 gap-2">
+            <HibiCloudIcon :size="56" :icon="Timer" :icon-size="20" cloud-color="bg-sky-soft" icon-color="text-sky-deep" :icon-stroke="1.9" />
+            <p class="text-[13px] font-bold text-fg">Aún no hay sesiones hoy</p>
+            <p class="text-[12px] text-fg-muted">Cuando termines un foco, aparecerá aquí.</p>
           </div>
         </div>
       </AppCard>
