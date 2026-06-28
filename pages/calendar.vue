@@ -2,9 +2,10 @@
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, format, isSameDay,
   isSameMonth, isToday, addMonths, subMonths, addWeeks, subWeeks, addHours, isAfter,
+  parseISO,
 } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus, Calendar as Cal, Clock, Palette, FileText, Clock4, CalendarDays, CalendarRange, List } from '@lucide/vue'
+import { ChevronLeft, ChevronRight, Plus, Calendar as Cal, Clock, Palette, FileText, Clock4, CalendarDays, CalendarRange, List, Trash2 } from '@lucide/vue'
 
 useHead({ title: 'Hibi — Calendario' })
 
@@ -13,16 +14,20 @@ type View = 'day' | 'week' | 'month' | 'agenda' | 'create'
 const view = ref<View>('month')
 const today = new Date()
 
-interface Event { id: string; title: string; date: Date; startTime?: string; endTime?: string; color: string }
-const eventsData = ref<Event[]>([
-  { id: 'e1', title: 'Café con María', date: today, startTime: '10:30', endTime: '11:30', color: '#5aa6d2' },
-  { id: 'e2', title: 'Stand-up equipo', date: today, startTime: '09:00', endTime: '09:30', color: '#34936a' },
-  { id: 'e3', title: 'Compras semana', date: addDays(today, 1), startTime: '18:00', endTime: '19:00', color: '#c5733f' },
-  { id: 'e4', title: 'Cumple de Lu', date: addDays(today, 3), color: '#db8aa3' },
-  { id: 'e5', title: 'Médico', date: addDays(today, 5), startTime: '16:15', endTime: '17:00', color: '#7a63c0' },
-  { id: 'e6', title: 'Yoga', date: addDays(today, 7), startTime: '07:30', endTime: '08:30', color: '#34936a' },
-  { id: 'e7', title: 'Cena familia', date: addDays(today, 9), startTime: '21:00', endTime: '23:00', color: '#5aa6d2' },
-])
+// Datos reales del usuario (persistidos). `eventsData` mapea las filas del
+// servidor (eventDate 'yyyy-MM-dd', horas 'HH:MM' o null) al shape que ya usa
+// la vista (date: Date, startTime/endTime como string | null).
+const { events: rawEvents, createEvent, updateEvent, removeEvent, isLoading } = useEvents()
+
+interface Event { id: string; title: string; date: Date; startTime: string | null; endTime: string | null; color: string }
+const eventsData = computed<Event[]>(() => rawEvents.value.map((e) => ({
+  id: e.id,
+  title: e.title,
+  date: parseISO(e.eventDate),
+  startTime: e.startTime,
+  endTime: e.endTime,
+  color: e.color,
+})))
 function evStyle(ev: Event) {
   return { background: ev.color + '22', color: ev.color }
 }
@@ -141,18 +146,20 @@ const agendaDays = computed(() => {
   return grouped
 })
 
-// Vista de creación
+// Vista de creación / edición
 const prevView = ref<View>('month')
+const editingId = ref<string | null>(null)
 const newTitle = ref('')
 const newDate = ref(format(today, 'yyyy-MM-dd'))
 const newStartTime = ref('09:00')
 const newEndTime = ref('10:00')
 const newAllDay = ref(false)
 const newColor = ref('#5aa6d2')
+const saving = ref(false)
 
-let nextId = 100
 function openCreate() {
   prevView.value = view.value === 'create' ? 'month' : view.value
+  editingId.value = null
   newTitle.value = ''
   newDate.value = format(selected.value, 'yyyy-MM-dd')
   newStartTime.value = '09:00'; newEndTime.value = '10:00'
@@ -160,18 +167,40 @@ function openCreate() {
   newColor.value = '#5aa6d2'
   view.value = 'create'
 }
-function cancelCreate() { view.value = prevView.value }
-function saveEvent() {
-  const t = newTitle.value.trim(); if (!t) return
-  const [y, m, d] = newDate.value.split('-').map(Number)
-  eventsData.value.push({
-    id: 'e' + (nextId++), title: t,
-    date: new Date(y!, m!-1, d!),
-    startTime: newAllDay.value ? undefined : newStartTime.value,
-    endTime: newAllDay.value ? undefined : newEndTime.value,
+function openEdit(ev: Event) {
+  prevView.value = view.value === 'create' ? 'month' : view.value
+  editingId.value = ev.id
+  newTitle.value = ev.title
+  newDate.value = format(ev.date, 'yyyy-MM-dd')
+  newAllDay.value = !ev.startTime
+  newStartTime.value = ev.startTime || '09:00'
+  newEndTime.value = ev.endTime || '10:00'
+  newColor.value = ev.color || '#5aa6d2'
+  mobileDayDetail.value = false
+  view.value = 'create'
+}
+function cancelCreate() { editingId.value = null; view.value = prevView.value }
+async function saveEvent() {
+  const t = newTitle.value.trim(); if (!t || saving.value) return
+  saving.value = true
+  const payload = {
+    title: t,
+    eventDate: newDate.value,
+    startTime: newAllDay.value ? null : newStartTime.value,
+    endTime: newAllDay.value ? null : newEndTime.value,
     color: newColor.value,
-  })
-  view.value = prevView.value
+  }
+  try {
+    if (editingId.value) await updateEvent(editingId.value, payload)
+    else await createEvent(payload)
+    editingId.value = null
+    view.value = prevView.value
+  } finally {
+    saving.value = false
+  }
+}
+async function deleteEvent(id: string) {
+  await removeEvent(id)
 }
 
 const VIEW_OPTS = [
@@ -183,11 +212,11 @@ const VIEW_OPTS = [
 </script>
 
 <template>
-  <!-- VISTA DE CREACIÓN -->
+  <!-- VISTA DE CREACIÓN / EDICIÓN -->
   <AppCreateView v-if="view === 'create'"
-    title="Nuevo evento"
-    subtitle="Añade un compromiso al calendario"
-    :disabled="!newTitle.trim()"
+    :title="editingId ? 'Editar evento' : 'Nuevo evento'"
+    :subtitle="editingId ? 'Ajusta los detalles del evento' : 'Añade un compromiso al calendario'"
+    :disabled="!newTitle.trim() || saving"
     @close="cancelCreate" @save="saveEvent">
     <div class="flex flex-col gap-2">
       <label class="text-[12.5px] font-bold text-fg-muted px-1">Título</label>
@@ -221,6 +250,15 @@ const VIEW_OPTS = [
       <div class="flex-1 min-h-0">
         <AppColorPicker v-model="newColor" format="hex" />
       </div>
+    </div>
+
+    <!-- Eliminar (solo al editar) -->
+    <div v-if="editingId" class="flex justify-end shrink-0">
+      <button type="button"
+        class="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[13px] font-bold text-pink-deep bg-pink-soft hover:bg-pink transition-[background-color] outline-none focus-visible:ring-2 focus-visible:ring-pink-deep"
+        @click="deleteEvent(editingId!); cancelCreate()">
+        <Trash2 class="size-[15px]" :stroke-width="2.2" aria-hidden="true" />Eliminar evento
+      </button>
     </div>
   </AppCreateView>
 
@@ -267,12 +305,23 @@ const VIEW_OPTS = [
     </div>
 
     <div class="flex-1 min-h-0 flex gap-3">
+      <!-- CARGANDO (primera carga): esqueleto pulse en el estilo del resto -->
+      <AppCard v-if="isLoading && !eventsData.length" class="flex-1 min-w-0 flex flex-col" :padded="false">
+        <div class="grid grid-cols-7 gap-1 px-2 md:px-3 pt-2 md:pt-3 shrink-0">
+          <div v-for="d in weekDays" :key="d" class="text-center text-[11px] md:text-[11.5px] font-bold uppercase tracking-wide text-fg-subtle py-1.5">{{ d }}</div>
+        </div>
+        <div class="grid grid-cols-7 gap-1 flex-1 min-h-0 auto-rows-fr p-2 md:p-3">
+          <div v-for="n in 42" :key="n" class="rounded-[10px] bg-muted/60 animate-pulse" />
+        </div>
+      </AppCard>
+
       <!-- DÍA: 24h scroll interno -->
-      <AppCard v-if="view === 'day'" class="flex-1 min-w-0 flex flex-col" :padded="false">
+      <AppCard v-else-if="view === 'day'" class="flex-1 min-w-0 flex flex-col" :padded="false">
         <!-- Franja de eventos de TODO EL DÍA (sin hora) -->
         <div v-if="allDayEventsOn(cursor).length" class="shrink-0 border-b border-[var(--bg-muted)] px-3 md:px-4 py-2 flex flex-col gap-1.5">
           <div v-for="ev in allDayEventsOn(cursor)" :key="ev.id"
-            class="flex items-center gap-2.5 px-3 py-2 rounded-[10px] min-w-0" :style="evStyle(ev)">
+            class="flex items-center gap-2.5 px-3 py-2 rounded-[10px] min-w-0 cursor-pointer" :style="evStyle(ev)"
+            @click="openEdit(ev)">
             <span class="size-2.5 rounded-full shrink-0" :style="{ background: ev.color }" aria-hidden="true" />
             <p class="flex-1 min-w-0 text-[13px] font-bold break-words">{{ ev.title }}</p>
             <span class="shrink-0 text-[11.5px] font-semibold opacity-80">Todo el día</span>
@@ -286,8 +335,9 @@ const VIEW_OPTS = [
             </div>
             <div class="absolute left-12 md:left-16 right-2 md:right-4 top-0 bottom-0">
               <div v-for="ev in timedEventsOn(cursor)" :key="ev.id"
-                class="absolute left-0 right-0 rounded-[10px] px-2.5 md:px-3 py-1.5 md:py-2 text-[12px] md:text-[12.5px] font-semibold overflow-hidden flex items-start gap-2"
-                :style="{ ...evStyle(ev), top: eventTop(ev) + 'px', height: eventHeight(ev) + 'px' }">
+                class="absolute left-0 right-0 rounded-[10px] px-2.5 md:px-3 py-1.5 md:py-2 text-[12px] md:text-[12.5px] font-semibold overflow-hidden flex items-start gap-2 cursor-pointer"
+                :style="{ ...evStyle(ev), top: eventTop(ev) + 'px', height: eventHeight(ev) + 'px' }"
+                @click="openEdit(ev)">
                 <p class="flex-1 min-w-0 font-bold truncate">{{ ev.title }}</p>
                 <span class="shrink-0 text-[11px] opacity-80 tabular-nums whitespace-nowrap">{{ ev.startTime }}{{ ev.endTime ? ' – ' + ev.endTime : '' }}</span>
               </div>
@@ -336,8 +386,9 @@ const VIEW_OPTS = [
                   </div>
                   <ul class="flex flex-col gap-1.5 w-full min-w-0">
                     <li v-for="ev in eventsOn(d)" :key="ev.id"
-                      class="flex items-center gap-3 px-3.5 py-3 rounded-[14px] min-w-0"
-                      :style="evStyle(ev)">
+                      class="flex items-center gap-3 px-3.5 py-3 rounded-[14px] min-w-0 cursor-pointer"
+                      :style="evStyle(ev)"
+                      @click="openEdit(ev)">
                       <span class="size-2.5 rounded-full shrink-0" :style="{ background: ev.color }" aria-hidden="true" />
                       <p class="flex-1 min-w-0 text-[14px] font-bold break-words">{{ ev.title }}</p>
                       <span class="shrink-0 text-[12px] font-semibold opacity-80 tabular-nums whitespace-nowrap">{{ ev.startTime ? ev.startTime : 'Todo el día' }}{{ ev.endTime ? ' – ' + ev.endTime : '' }}</span>
@@ -363,8 +414,9 @@ const VIEW_OPTS = [
             <div class="flex items-center justify-end pr-3 text-[9.5px] text-fg-subtle font-bold uppercase tracking-wide">Todo el día</div>
             <div v-for="(d, i) in weekDaysArr" :key="i" class="px-1 py-1.5 flex flex-col gap-1 border-l border-[var(--bg-muted)] min-w-0">
               <span v-for="ev in allDayEventsOn(d)" :key="ev.id"
-                class="text-[10px] font-bold px-1.5 py-0.5 rounded truncate"
-                :style="evStyle(ev)">{{ ev.title }}</span>
+                class="text-[10px] font-bold px-1.5 py-0.5 rounded truncate cursor-pointer"
+                :style="evStyle(ev)"
+                @click="openEdit(ev)">{{ ev.title }}</span>
             </div>
           </div>
           <div ref="weekScrollRef" class="flex-1 min-h-0 overflow-y-auto scroll-area">
@@ -376,8 +428,9 @@ const VIEW_OPTS = [
               <div v-for="(d, i) in weekDaysArr" :key="i" class="relative border-l border-[var(--bg-muted)]">
                 <div v-for="h in HOURS" :key="h" class="absolute left-0 right-0 border-t border-[var(--bg-muted)]/60" :style="{ top: (h * HOUR_H) + 'px', height: HOUR_H + 'px' }" />
                 <div v-for="ev in timedEventsOn(d)" :key="ev.id"
-                  class="absolute left-1 right-1 rounded-[8px] px-2 py-1 text-[11px] font-bold overflow-hidden flex items-start gap-1.5"
-                  :style="{ ...evStyle(ev), top: eventTop(ev) + 'px', height: eventHeight(ev) + 'px' }">
+                  class="absolute left-1 right-1 rounded-[8px] px-2 py-1 text-[11px] font-bold overflow-hidden flex items-start gap-1.5 cursor-pointer"
+                  :style="{ ...evStyle(ev), top: eventTop(ev) + 'px', height: eventHeight(ev) + 'px' }"
+                  @click="openEdit(ev)">
                   <p class="flex-1 min-w-0 truncate">{{ ev.title }}</p>
                   <span class="shrink-0 text-[10px] opacity-80 tabular-nums whitespace-nowrap">{{ ev.startTime }}</span>
                 </div>
@@ -405,8 +458,9 @@ const VIEW_OPTS = [
               </div>
               <ul v-else class="flex flex-col gap-2">
                 <li v-for="e in selectedEvents" :key="e.id"
-                  class="flex items-center gap-3 px-3.5 py-3 rounded-[14px] min-w-0"
-                  :style="evStyle(e)">
+                  class="flex items-center gap-3 px-3.5 py-3 rounded-[14px] min-w-0 cursor-pointer"
+                  :style="evStyle(e)"
+                  @click="openEdit(e)">
                   <span class="size-2.5 rounded-full shrink-0" :style="{ background: e.color }" aria-hidden="true" />
                   <p class="flex-1 min-w-0 text-[14px] font-bold break-words">{{ e.title }}</p>
                   <span class="shrink-0 text-[12px] font-semibold opacity-80 tabular-nums whitespace-nowrap">{{ e.startTime ? e.startTime : 'Todo el día' }}{{ e.endTime ? ' – ' + e.endTime : '' }}</span>
@@ -444,8 +498,9 @@ const VIEW_OPTS = [
               <!-- Desktop: pildoras con texto (titulo izq, hora der) -->
               <div class="hidden md:flex flex-col gap-1 overflow-hidden">
                 <span v-for="e in eventsOn(d).slice(0, 2)" :key="e.id"
-                  class="text-[10.5px] font-semibold px-1.5 py-0.5 rounded flex items-center gap-1 min-w-0"
-                  :style="evStyle(e)">
+                  class="text-[10.5px] font-semibold px-1.5 py-0.5 rounded flex items-center gap-1 min-w-0 cursor-pointer"
+                  :style="evStyle(e)"
+                  @click.stop="openEdit(e)">
                   <span class="flex-1 min-w-0 truncate">{{ e.title }}</span>
                   <span v-if="e.startTime" class="shrink-0 tabular-nums opacity-80">{{ e.startTime }}</span>
                 </span>
@@ -474,8 +529,9 @@ const VIEW_OPTS = [
               </div>
               <ul v-else class="flex flex-col gap-2">
                 <li v-for="e in selectedEvents" :key="e.id"
-                  class="flex items-center gap-3 px-3.5 py-3 rounded-[14px] min-w-0"
-                  :style="evStyle(e)">
+                  class="flex items-center gap-3 px-3.5 py-3 rounded-[14px] min-w-0 cursor-pointer"
+                  :style="evStyle(e)"
+                  @click="openEdit(e)">
                   <span class="size-2.5 rounded-full shrink-0" :style="{ background: e.color }" aria-hidden="true" />
                   <p class="flex-1 min-w-0 text-[14px] font-bold break-words">{{ e.title }}</p>
                   <span class="shrink-0 text-[12px] font-semibold opacity-80 tabular-nums whitespace-nowrap">{{ e.startTime ? e.startTime : 'Todo el día' }}{{ e.endTime ? ' – ' + e.endTime : '' }}</span>
@@ -503,8 +559,9 @@ const VIEW_OPTS = [
                 <!-- Eventos: una linea, titulo izq + hora der, centrados verticalmente -->
                 <ul class="flex flex-col gap-2 w-full min-w-0">
                   <li v-for="ev in g.events" :key="ev.id"
-                    class="flex items-center gap-3 px-3.5 md:px-4 py-3 md:py-3.5 rounded-[14px] min-w-0"
-                    :style="evStyle(ev)">
+                    class="flex items-center gap-3 px-3.5 md:px-4 py-3 md:py-3.5 rounded-[14px] min-w-0 cursor-pointer"
+                    :style="evStyle(ev)"
+                    @click="openEdit(ev)">
                     <span class="size-2.5 md:size-3 rounded-full shrink-0" :style="{ background: ev.color }" aria-hidden="true" />
                     <p class="flex-1 min-w-0 text-[14px] md:text-[15px] font-bold break-words">{{ ev.title }}</p>
                     <span class="shrink-0 text-[12px] md:text-[12.5px] font-semibold opacity-80 tabular-nums whitespace-nowrap">{{ ev.startTime ? ev.startTime : 'Todo el día' }}{{ ev.endTime ? ' – ' + ev.endTime : '' }}</span>
@@ -527,7 +584,8 @@ const VIEW_OPTS = [
             Sin eventos este día
           </div>
           <ul v-else class="flex flex-col gap-2">
-            <li v-for="e in selectedEvents" :key="e.id" class="flex items-center gap-3 p-3 rounded-[12px] bg-muted min-w-0">
+            <li v-for="e in selectedEvents" :key="e.id" class="flex items-center gap-3 p-3 rounded-[12px] bg-muted min-w-0 cursor-pointer hover:bg-inset transition-[background-color]"
+              @click="openEdit(e)">
               <span class="relative inline-block shrink-0" :style="{ width: '54px', height: '37px' }" aria-hidden="true">
                 <HibiCloud :size="54" :body-opacity="0.25" :style="{ color: e.color || '#5aa6d2' }" class="absolute inset-0" />
                 <Clock class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" :style="{ width: '16px', height: '16px', color: e.color || '#5aa6d2' }" :stroke-width="2" />
