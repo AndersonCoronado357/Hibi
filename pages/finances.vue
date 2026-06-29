@@ -5,12 +5,20 @@ import { markRaw, type Component } from 'vue'
 
 useHead({ title: 'Hibi — Finanzas' })
 
+const {
+  categories, expenses, subscriptions,
+  categoriesLoading, expensesLoading, subscriptionsLoading,
+  createCategory, updateCategory, removeCategory,
+  createExpense, updateExpense, removeExpense,
+  createSubscription, updateSubscription, removeSubscription,
+} = useFinances()
+
 interface Category { name: string; icon: Component; color: string }
 // Galería de iconos disponibles para personalizar categorías
 const ICON_GALLERY: { key: string; icon: Component }[] = [
   { key: 'Utensils', icon: markRaw(Utensils) }, { key: 'Pizza', icon: markRaw(Pizza) },
   { key: 'Coffee', icon: markRaw(Coffee) }, { key: 'ShoppingBag', icon: markRaw(ShoppingBag) },
-  { key: 'HomeI', icon: markRaw(HomeI) }, { key: 'Bus', icon: markRaw(Bus) },
+  { key: 'Home', icon: markRaw(HomeI) }, { key: 'Bus', icon: markRaw(Bus) },
   { key: 'Car', icon: markRaw(Car) }, { key: 'Plane', icon: markRaw(Plane) },
   { key: 'Film', icon: markRaw(Film) }, { key: 'Music', icon: markRaw(Music) },
   { key: 'Gamepad2', icon: markRaw(Gamepad2) }, { key: 'Book', icon: markRaw(Book) },
@@ -19,44 +27,44 @@ const ICON_GALLERY: { key: string; icon: Component }[] = [
   { key: 'Gift', icon: markRaw(Gift) }, { key: 'Dog', icon: markRaw(Dog) },
   { key: 'Baby', icon: markRaw(Baby) }, { key: 'Banknote', icon: markRaw(Banknote) },
 ]
-const CAT_META = reactive<Record<string, Category>>({
-  food: { name: 'Comida', icon: markRaw(Utensils), color: '#5aa6d2' },
-  home: { name: 'Hogar', icon: markRaw(HomeI), color: '#34936a' },
-  transport: { name: 'Transporte', icon: markRaw(Bus), color: '#c5733f' },
-  ocio: { name: 'Ocio', icon: markRaw(Film), color: '#db8aa3' },
-  health: { name: 'Salud', icon: markRaw(HeartPulse), color: '#7a63c0' },
-  others: { name: 'Otros', icon: markRaw(ShoppingBag), color: '#bf8f2e' },
+// Resuelve un nombre lucide (guardado como string) a su componente. Cubre la
+// galería + alias del seed inicial (p. ej. 'HomeI' → Home).
+const ICON_MAP: Record<string, Component> = Object.fromEntries(ICON_GALLERY.map(g => [g.key, g.icon]))
+ICON_MAP.HomeI = markRaw(HomeI)
+function iconOf(name?: string | null): Component { return (name && ICON_MAP[name]) || markRaw(ShoppingBag) }
+
+// Metadata de categorías DERIVADA de las filas reales, indexada por id, para que
+// el resto de la plantilla siga resolviendo icono/color/nombre por categoryId.
+const CAT_META = computed<Record<string, Category>>(() => {
+  const map: Record<string, Category> = {}
+  for (const c of categories.value) map[c.id] = { name: c.name, icon: iconOf(c.icon), color: c.color }
+  return map
 })
-const CAT_OPTS = computed(() => Object.entries(CAT_META).map(([k, v]) => ({ value: k, label: v.name })))
-function catChipStyle(catKey: string) {
-  const c = CAT_META[catKey]; if (!c) return {}
-  return { background: c.color + '22', color: c.color }
-}
+const CAT_OPTS = computed(() => categories.value.map(c => ({ value: c.id, label: c.name })))
+// Categoría por defecto para altas (primera disponible).
+const defaultCatId = computed(() => categories.value[0]?.id ?? '')
 
-interface Tx { id: string; title: string; cat: string; date: string; amount: number }
-interface Sub { id: string; title: string; amount: number; nextCharge: string; cat: string }
-
-const expenses = ref<Tx[]>([
-  { id: 't1', title: 'Éxito', cat: 'food', date: 'Hoy', amount: -180000 },
-  { id: 't2', title: 'Café con María', cat: 'ocio', date: 'Hoy', amount: -22000 },
-  { id: 't3', title: 'Arriendo junio', cat: 'home', date: 'Ayer', amount: -2_400_000 },
-  { id: 't6', title: 'TransMilenio', cat: 'transport', date: '1 jun', amount: -180000 },
-])
-const subscriptions = ref<Sub[]>([
-  { id: 's1', title: 'Spotify', amount: 17900, nextCharge: '15 jun', cat: 'ocio' },
-  { id: 's2', title: 'Netflix', amount: 38900, nextCharge: '20 jun', cat: 'ocio' },
-  { id: 's3', title: 'Gimnasio', amount: 120000, nextCharge: '1 jul', cat: 'health' },
-])
-
-const totalMonth = computed(() => expenses.value.reduce((a, t) => a + Math.abs(t.amount), 0))
-const totalSubs = computed(() => subscriptions.value.reduce((a, s) => a + s.amount, 0))
 // Formato COP manual: garantiza el punto de miles ($ 180.000) en cualquier
 // entorno (algunos webviews no agrupan con toLocaleString('es-CO')).
 const fmt = (v: number) => {
   const neg = v < 0
   const digits = Math.abs(Math.round(v)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-  return (neg ? '-' : '') + '$ ' + digits
+  return (neg ? '-' : '') + '$ ' + digits
 }
+// Fecha yyyy-MM-dd → etiqueta corta (Hoy / Ayer / "3 jun") para la lista.
+const todayIso = () => new Date().toISOString().slice(0, 10)
+const shiftIso = (n: number) => { const x = new Date(); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10) }
+function fmtDate(iso?: string | null) {
+  if (!iso) return ''
+  if (iso === todayIso()) return 'Hoy'
+  if (iso === shiftIso(-1)) return 'Ayer'
+  try {
+    return new Date(iso + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+  } catch { return iso }
+}
+
+const totalMonth = computed(() => expenses.value.reduce((a, t) => a + Math.abs(t.amount), 0))
+const totalSubs = computed(() => subscriptions.value.reduce((a, s) => a + s.amount, 0))
 
 type Tab = 'expenses' | 'subs'
 type View = 'list' | 'categories'
@@ -67,9 +75,9 @@ const showForm = ref(false) // formulario colapsable de alta
 // Desglose por categoría para la tarjeta de resumen
 const byCat = computed(() => {
   const map: Record<string, number> = {}
-  for (const t of expenses.value) map[t.cat] = (map[t.cat] || 0) + Math.abs(t.amount)
+  for (const t of expenses.value) { const k = t.categoryId || ''; map[k] = (map[k] || 0) + Math.abs(t.amount) }
   return Object.entries(map)
-    .map(([key, amount]) => ({ key, amount, meta: CAT_META[key], pct: Math.round((amount / (totalMonth.value || 1)) * 100) }))
+    .map(([key, amount]) => ({ key, amount, meta: CAT_META.value[key], pct: Math.round((amount / (totalMonth.value || 1)) * 100) }))
     .filter(c => c.meta)
     .sort((a, b) => b.amount - a.amount)
 })
@@ -79,8 +87,9 @@ const editingCatKey = ref<string | null>(null)
 const catDraft = ref<{ name: string; color: string; iconKey: string }>({ name: '', color: '#5aa6d2', iconKey: 'ShoppingBag' })
 function startEditCat(key: string) {
   editingCatKey.value = key
-  const c = CAT_META[key]!
-  const iconKey = ICON_GALLERY.find(g => g.icon === c.icon)?.key || 'ShoppingBag'
+  const c = categories.value.find(x => x.id === key)
+  if (!c) return
+  const iconKey = ICON_MAP[c.icon] ? (c.icon === 'HomeI' ? 'Home' : c.icon) : 'ShoppingBag'
   catDraft.value = { name: c.name, color: c.color, iconKey }
 }
 function startNewCat() {
@@ -89,30 +98,28 @@ function startNewCat() {
 }
 function saveCat() {
   const n = catDraft.value.name.trim(); if (!n) return
-  const iconObj = ICON_GALLERY.find(g => g.key === catDraft.value.iconKey)?.icon || markRaw(ShoppingBag)
-  if (editingCatKey.value === '__new__') {
-    const key = 'cat_' + Date.now()
-    CAT_META[key] = { name: n, icon: iconObj, color: catDraft.value.color }
-  } else if (editingCatKey.value) {
-    CAT_META[editingCatKey.value] = { name: n, icon: iconObj, color: catDraft.value.color }
+  const key = editingCatKey.value
+  if (key === '__new__') {
+    createCategory({ name: n, icon: catDraft.value.iconKey, color: catDraft.value.color })
+  } else if (key) {
+    updateCategory(key, { name: n, icon: catDraft.value.iconKey, color: catDraft.value.color })
   }
   editingCatKey.value = null
 }
 function deleteCat(key: string) {
-  if (Object.keys(CAT_META).length <= 1) return
-  delete CAT_META[key]
+  if (categories.value.length <= 1) return
+  removeCategory(key)
   if (editingCatKey.value === key) editingCatKey.value = null
 }
 
-const newTitle = ref(''); const newAmount = ref<number | null>(null); const newCat = ref('food'); const newDate = ref('')
-const newSubTitle = ref(''); const newSubAmount = ref<number | null>(null); const newSubDate = ref(''); const newSubCat = ref('ocio')
+const newTitle = ref(''); const newAmount = ref<number | null>(null); const newCat = ref(''); const newDate = ref('')
+const newSubTitle = ref(''); const newSubAmount = ref<number | null>(null); const newSubDate = ref(''); const newSubCat = ref('')
 const editId = ref<string | null>(null) // si != null, el form edita ese ítem
-let nextId = 100
 
 function resetForm() {
   editId.value = null
-  newTitle.value = ''; newAmount.value = null; newCat.value = 'food'; newDate.value = ''
-  newSubTitle.value = ''; newSubAmount.value = null; newSubCat.value = 'ocio'; newSubDate.value = ''
+  newTitle.value = ''; newAmount.value = null; newCat.value = defaultCatId.value; newDate.value = ''
+  newSubTitle.value = ''; newSubAmount.value = null; newSubCat.value = defaultCatId.value; newSubDate.value = ''
 }
 function switchTab(v: Tab) { tab.value = v; view.value = 'list'; showForm.value = false; resetForm() }
 function toggleForm() { if (showForm.value) { showForm.value = false; resetForm() } else { resetForm(); showForm.value = true } }
@@ -159,42 +166,45 @@ function closeForm() { showForm.value = false; resetForm() }
 function addExpense() {
   const t = newTitle.value.trim(); const a = newAmount.value
   if (!t || !a) return
+  const amount = -Math.abs(Number(a))
+  const categoryId = newCat.value || null
   if (editId.value) {
-    const it = expenses.value.find(x => x.id === editId.value)
-    if (it) { it.title = t; it.cat = newCat.value; it.date = newDate.value || it.date; it.amount = -Math.abs(Number(a)) }
+    const patch: Record<string, unknown> = { title: t, amount, categoryId }
+    if (newDate.value) patch.spentDate = newDate.value
+    updateExpense(editId.value, patch)
   } else {
-    expenses.value.unshift({ id: 't' + (nextId++), title: t, cat: newCat.value, date: newDate.value || 'Hoy', amount: -Math.abs(Number(a)) })
+    createExpense({ title: t, amount, categoryId, spentDate: newDate.value || todayIso() })
   }
   showForm.value = false; resetForm()
 }
-function startEditExpense(t: Tx) {
-  editId.value = t.id; newTitle.value = t.title; newAmount.value = Math.abs(t.amount); newCat.value = t.cat; newDate.value = ''
+function startEditExpense(t: Expense) {
+  editId.value = t.id; newTitle.value = t.title; newAmount.value = Math.abs(t.amount); newCat.value = t.categoryId || ''; newDate.value = t.spentDate || ''
   showForm.value = true
-}
-function removeExpense(id: string) {
-  expenses.value = expenses.value.filter(x => x.id !== id)
-  if (editId.value === id) { showForm.value = false; resetForm() }
 }
 
 function addSub() {
   const t = newSubTitle.value.trim(); const a = newSubAmount.value
   if (!t || !a) return
+  const amount = Math.abs(Number(a))
+  const categoryId = newSubCat.value || null
   if (editId.value) {
-    const it = subscriptions.value.find(x => x.id === editId.value)
-    if (it) { it.title = t; it.amount = Math.abs(Number(a)); it.cat = newSubCat.value; it.nextCharge = newSubDate.value || it.nextCharge }
+    const patch: Record<string, unknown> = { title: t, amount, categoryId }
+    if (newSubDate.value) patch.nextCharge = newSubDate.value
+    updateSubscription(editId.value, patch)
   } else {
-    subscriptions.value.unshift({ id: 's' + (nextId++), title: t, amount: Math.abs(Number(a)), nextCharge: newSubDate.value || 'Próximo mes', cat: newSubCat.value })
+    createSubscription({ title: t, amount, categoryId, nextCharge: newSubDate.value || null })
   }
   showForm.value = false; resetForm()
 }
-function startEditSub(s: Sub) {
-  editId.value = s.id; newSubTitle.value = s.title; newSubAmount.value = s.amount; newSubCat.value = s.cat; newSubDate.value = ''
+function startEditSub(s: Subscription) {
+  editId.value = s.id; newSubTitle.value = s.title; newSubAmount.value = s.amount; newSubCat.value = s.categoryId || ''; newSubDate.value = s.nextCharge || ''
   showForm.value = true
 }
-function removeSub(id: string) {
-  subscriptions.value = subscriptions.value.filter(x => x.id !== id)
-  if (editId.value === id) { showForm.value = false; resetForm() }
-}
+
+// Estados de carga (primer fetch, sin datos aún)
+const expensesLoadingEmpty = computed(() => expensesLoading.value && !expenses.value.length)
+const subsLoadingEmpty = computed(() => subscriptionsLoading.value && !subscriptions.value.length)
+const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.value.length)
 </script>
 
 <template>
@@ -238,8 +248,18 @@ function removeSub(id: string) {
       </header>
 
       <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-3 md:px-5 pb-5">
+        <!-- Carga inicial -->
+        <ul v-if="catsLoadingEmpty" class="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+          <li v-for="n in 4" :key="n" class="p-3 rounded-[16px] bg-muted flex items-center gap-3">
+            <span class="size-12 rounded-[14px] bg-inset/70 animate-pulse shrink-0" />
+            <div class="flex-1 min-w-0 flex flex-col gap-2">
+              <div class="h-[14px] w-1/2 rounded-full bg-inset/70 animate-pulse" />
+              <div class="h-[11px] w-1/3 rounded-full bg-inset/50 animate-pulse" />
+            </div>
+          </li>
+        </ul>
         <!-- Lista de categorías: filas amplias (sin nada inline) -->
-        <ul class="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
+        <ul v-else class="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
           <li v-for="(meta, key) in CAT_META" :key="key" class="p-3 rounded-[16px] bg-muted flex items-center gap-3">
             <div role="button" tabindex="0" class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer outline-none rounded-[12px] focus-visible:ring-2 focus-visible:ring-sky-deep" @click="startEditCat(key)" @keydown.enter.prevent="startEditCat(key)" @keydown.space.prevent="startEditCat(key)">
               <span class="grid place-items-center size-12 rounded-[14px] shrink-0" :style="{ background: meta.color + '22', color: meta.color }">
@@ -247,7 +267,7 @@ function removeSub(id: string) {
               </span>
               <div class="flex-1 min-w-0">
                 <p class="text-[15px] font-bold text-fg truncate">{{ meta.name }}</p>
-                <p class="text-[12px] text-fg-muted">{{ expenses.filter(t => t.cat === key).length }} movimientos</p>
+                <p class="text-[12px] text-fg-muted">{{ expenses.filter(t => t.categoryId === key).length }} movimientos</p>
               </div>
             </div>
             <button type="button" class="grid place-items-center size-10 rounded-[11px] bg-card text-fg-subtle active:text-pink-deep shrink-0" aria-label="Eliminar categoría" @click.stop="deleteCat(key)"><Trash2 class="size-[16px]" :stroke-width="2" /></button>
@@ -280,17 +300,39 @@ function removeSub(id: string) {
           <h2 class="text-[14px] font-bold text-fg">Movimientos</h2>
           <span class="text-[12.5px] font-bold text-fg-muted tabular-nums">{{ expenses.length }} este mes</span>
         </header>
-        <ul class="flex-1 min-h-0 overflow-y-auto scroll-area px-2 md:px-3 pb-3 flex flex-col">
+        <!-- Carga inicial -->
+        <div v-if="expensesLoadingEmpty" class="flex-1 min-h-0 overflow-hidden px-2 md:px-3 pb-3 flex flex-col gap-1">
+          <div v-for="n in 6" :key="n" class="flex items-center gap-2.5 p-2">
+            <span class="w-[54px] h-[37px] rounded-[12px] bg-muted animate-pulse shrink-0" />
+            <div class="flex-1 min-w-0 flex flex-col gap-2">
+              <div class="h-[13px] w-2/5 rounded-full bg-muted animate-pulse" />
+              <div class="h-[11px] w-1/4 rounded-full bg-muted/70 animate-pulse" />
+            </div>
+            <div class="h-[14px] w-16 rounded-full bg-muted animate-pulse shrink-0" />
+          </div>
+        </div>
+        <!-- Vacío -->
+        <div v-else-if="!expenses.length" class="flex-1 min-h-0 grid place-items-center px-6 pb-6 text-center">
+          <div class="flex flex-col items-center gap-2">
+            <span class="relative inline-block" :style="{ width: '72px', height: '49px' }" aria-hidden="true">
+              <HibiCloud :size="72" :body-opacity="0.3" class="absolute inset-0 text-mint" />
+              <Wallet class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[#34936a]" :style="{ width: '22px', height: '22px' }" :stroke-width="2" />
+            </span>
+            <p class="text-[14px] font-bold text-fg">Sin movimientos todavía</p>
+            <p class="text-[12.5px] text-fg-muted max-w-[220px]">Anota tu primer gasto con el botón de arriba.</p>
+          </div>
+        </div>
+        <ul v-else class="flex-1 min-h-0 overflow-y-auto scroll-area px-2 md:px-3 pb-3 flex flex-col">
           <li v-for="t in expenses" :key="t.id" class="group/tx flex items-center gap-2 p-2 rounded-[12px] hover:bg-muted transition-[background-color]">
             <div role="button" tabindex="0" class="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer text-left outline-none rounded-[10px] focus-visible:ring-2 focus-visible:ring-sky-deep" @click="startEditExpense(t)" @keydown.enter.prevent="startEditExpense(t)" @keydown.space.prevent="startEditExpense(t)">
               <span class="relative inline-block shrink-0" :style="{ width: '54px', height: '37px' }" aria-hidden="true">
-                <HibiCloud :size="54" :body-opacity="0.25" :style="{ color: CAT_META[t.cat]?.color || '#bf8f2e' }" class="absolute inset-0" />
-                <component :is="CAT_META[t.cat]?.icon || ShoppingBag" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-                  :style="{ width: '17px', height: '17px', color: CAT_META[t.cat]?.color || '#bf8f2e' }" :stroke-width="2" />
+                <HibiCloud :size="54" :body-opacity="0.25" :style="{ color: CAT_META[t.categoryId || '']?.color || '#bf8f2e' }" class="absolute inset-0" />
+                <component :is="CAT_META[t.categoryId || '']?.icon || ShoppingBag" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                  :style="{ width: '17px', height: '17px', color: CAT_META[t.categoryId || '']?.color || '#bf8f2e' }" :stroke-width="2" />
               </span>
               <div class="flex-1 min-w-0">
                 <p class="text-[14px] font-semibold text-fg truncate">{{ t.title }}</p>
-                <p class="text-[12px] text-fg-muted truncate">{{ t.date }} · {{ CAT_META[t.cat]?.name }}</p>
+                <p class="text-[12px] text-fg-muted truncate">{{ fmtDate(t.spentDate) }}<template v-if="CAT_META[t.categoryId || '']"> · {{ CAT_META[t.categoryId || '']?.name }}</template></p>
               </div>
               <span class="text-[15px] font-bold text-fg tabular-nums shrink-0">{{ fmt(t.amount) }}</span>
             </div>
@@ -318,21 +360,43 @@ function removeSub(id: string) {
         <header class="px-4 md:px-5 pt-4 md:pt-5 pb-2 md:pb-3 shrink-0">
           <h2 class="text-[14px] font-bold text-fg">Suscripciones activas</h2>
         </header>
-        <ul class="flex-1 min-h-0 overflow-y-auto scroll-area px-2 md:px-3 pb-3 flex flex-col">
+        <!-- Carga inicial -->
+        <div v-if="subsLoadingEmpty" class="flex-1 min-h-0 overflow-hidden px-2 md:px-3 pb-3 flex flex-col gap-1">
+          <div v-for="n in 5" :key="n" class="flex items-center gap-2.5 p-2">
+            <span class="w-[54px] h-[37px] rounded-[12px] bg-muted animate-pulse shrink-0" />
+            <div class="flex-1 min-w-0 flex flex-col gap-2">
+              <div class="h-[13px] w-2/5 rounded-full bg-muted animate-pulse" />
+              <div class="h-[11px] w-1/3 rounded-full bg-muted/70 animate-pulse" />
+            </div>
+            <div class="h-[14px] w-16 rounded-full bg-muted animate-pulse shrink-0" />
+          </div>
+        </div>
+        <!-- Vacío -->
+        <div v-else-if="!subscriptions.length" class="flex-1 min-h-0 grid place-items-center px-6 pb-6 text-center">
+          <div class="flex flex-col items-center gap-2">
+            <span class="relative inline-block" :style="{ width: '72px', height: '49px' }" aria-hidden="true">
+              <HibiCloud :size="72" :body-opacity="0.3" class="absolute inset-0 text-mint" />
+              <Repeat class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[#34936a]" :style="{ width: '22px', height: '22px' }" :stroke-width="2" />
+            </span>
+            <p class="text-[14px] font-bold text-fg">Sin suscripciones</p>
+            <p class="text-[12.5px] text-fg-muted max-w-[220px]">Agrega tus servicios recurrentes con el botón de arriba.</p>
+          </div>
+        </div>
+        <ul v-else class="flex-1 min-h-0 overflow-y-auto scroll-area px-2 md:px-3 pb-3 flex flex-col">
           <li v-for="s in subscriptions" :key="s.id" class="group/sub flex items-center gap-2 p-2 rounded-[12px] hover:bg-muted transition-[background-color]">
             <div role="button" tabindex="0" class="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer text-left outline-none rounded-[10px] focus-visible:ring-2 focus-visible:ring-sky-deep" @click="startEditSub(s)" @keydown.enter.prevent="startEditSub(s)" @keydown.space.prevent="startEditSub(s)">
               <span class="relative inline-block shrink-0" :style="{ width: '54px', height: '37px' }" aria-hidden="true">
-                <HibiCloud :size="54" :body-opacity="0.25" :style="{ color: CAT_META[s.cat]?.color || '#bf8f2e' }" class="absolute inset-0" />
+                <HibiCloud :size="54" :body-opacity="0.25" :style="{ color: CAT_META[s.categoryId || '']?.color || '#bf8f2e' }" class="absolute inset-0" />
                 <Repeat class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-                  :style="{ width: '17px', height: '17px', color: CAT_META[s.cat]?.color || '#bf8f2e' }" :stroke-width="2" />
+                  :style="{ width: '17px', height: '17px', color: CAT_META[s.categoryId || '']?.color || '#bf8f2e' }" :stroke-width="2" />
               </span>
               <div class="flex-1 min-w-0">
                 <p class="text-[14px] font-semibold text-fg truncate">{{ s.title }}</p>
-                <p class="text-[12px] text-fg-muted truncate">Próximo cobro {{ s.nextCharge }} · {{ CAT_META[s.cat]?.name }}</p>
+                <p class="text-[12px] text-fg-muted truncate"><template v-if="s.nextCharge">Próximo cobro {{ fmtDate(s.nextCharge) }}</template><template v-if="s.nextCharge && CAT_META[s.categoryId || '']"> · </template><template v-if="CAT_META[s.categoryId || '']">{{ CAT_META[s.categoryId || '']?.name }}</template></p>
               </div>
               <span class="text-[15px] font-bold text-fg tabular-nums shrink-0">{{ fmt(s.amount) }}</span>
             </div>
-            <button type="button" class="shrink-0 grid place-items-center size-8 rounded-[9px] text-fg-subtle md:opacity-0 md:group-hover/sub:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" aria-label="Eliminar suscripción" @click.stop="removeSub(s.id)"><Trash2 class="size-[15px]" :stroke-width="2" /></button>
+            <button type="button" class="shrink-0 grid place-items-center size-8 rounded-[9px] text-fg-subtle md:opacity-0 md:group-hover/sub:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" aria-label="Eliminar suscripción" @click.stop="removeSubscription(s.id)"><Trash2 class="size-[15px]" :stroke-width="2" /></button>
           </li>
         </ul>
       </AppCard>

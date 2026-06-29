@@ -19,18 +19,23 @@ interface Pet {
 const STORE = 'hibi.pet.v1'
 const STARTER_INV = { galleta: 3, manzana: 2, sandwich: 1 }
 const pet = reactive<Pet>({ energia: 80, pancita: 82, carino: 86, diversion: 80, streak: 1, lastCareDay: '', lastTick: 0, coins: 40, room: 'casa', inventory: { ...STARTER_INV } })
+const { fetchPet, savePet } = usePet()
 function onRoom(k: string) { pet.room = k; save() }
 
 const dayKey = (d = new Date()) => d.toISOString().slice(0, 10)
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)))
 
-function load() {
+// Lee la caché local (sin decadencia ni reset todavía).
+function loadLocalOnly() {
   if (!import.meta.client) return
   const raw = localStorage.getItem(STORE)
   if (raw) { try { Object.assign(pet, JSON.parse(raw)) } catch { /* ignore */ } }
   if (typeof pet.diversion !== 'number') pet.diversion = 70
   if (typeof pet.room !== 'string') pet.room = 'casa'
   if (!pet.inventory || typeof pet.inventory !== 'object') pet.inventory = { ...STARTER_INV }
+}
+// Aplica decadencia por horas ausente + corta la racha si faltó un día.
+function applyDecay() {
   if (pet.lastTick) {
     const hrs = Math.floor((Date.now() - pet.lastTick) / 3_600_000)
     if (hrs > 0) {
@@ -42,10 +47,13 @@ function load() {
   }
   const yest = dayKey(new Date(Date.now() - 86_400_000))
   if (pet.lastCareDay && pet.lastCareDay !== dayKey() && pet.lastCareDay !== yest) pet.streak = 0
-  pet.lastTick = Date.now()
-  save()
 }
-function save() { if (import.meta.client) localStorage.setItem(STORE, JSON.stringify(pet)) }
+// Guarda en la caché local Y (con debounce) en el servidor.
+function save() {
+  if (!import.meta.client) return
+  localStorage.setItem(STORE, JSON.stringify(pet))
+  savePet(pet)
+}
 function registerDailyCare() {
   const today = dayKey()
   if (pet.lastCareDay === today) return
@@ -55,7 +63,17 @@ function registerDailyCare() {
 }
 function commit() { registerDailyCare(); pet.lastTick = Date.now(); save() }
 
-onMounted(load)
+// Al entrar: base local (instantánea) → si el servidor es más reciente (otro
+// dispositivo) lo adopta → decae desde su lastTick → persiste la fusión.
+onMounted(async () => {
+  loadLocalOnly()
+  const localTick = pet.lastTick || 0
+  const server = await fetchPet()
+  if (server && (server.lastTick || 0) > localTick) Object.assign(pet, server)
+  applyDecay()
+  pet.lastTick = Date.now()
+  save()
+})
 
 // ── Estado derivado (la CARA de la mascota) ─────────────────────────
 const mood = computed(() => Math.round((pet.energia + pet.pancita + pet.carino + pet.diversion) / 4))
