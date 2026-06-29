@@ -1,6 +1,6 @@
-// Estado del chat con la mascota. Ahora soporta MÚLTIPLES conversaciones
-// con un panel de historial. La integración real con Groq se cablea más
-// adelante; aquí ofrecemos un stub con respuestas amables.
+// Estado del chat con Hibi. Ahora persiste en la BD y responde con la IA
+// local (streaming). Mantiene el estado en useState para reactividad y el
+// panel de historial; se hidrata desde el servidor al abrir el chat.
 
 export interface ChatMessage {
   id: string
@@ -11,7 +11,7 @@ export interface ChatMessage {
 
 export interface ChatConversation {
   id: string
-  title: string        // título auto-generado del primer mensaje del user
+  title: string
   messages: ChatMessage[]
   createdAt: number
   updatedAt: number
@@ -22,46 +22,42 @@ function uid(prefix = 'm') {
   return prefix + Date.now().toString(36) + (counter++).toString(36)
 }
 
-function newGreeting(): ChatMessage {
+function toMs(v: any): number {
+  const n = v ? Date.parse(v) : NaN
+  return Number.isNaN(n) ? Date.now() : n
+}
+function mapMessage(m: any): ChatMessage {
+  return { id: m.id, role: m.role, text: m.text, at: toMs(m.createdAt) }
+}
+function mapConversation(c: any): ChatConversation {
   return {
-    id: 'm0',
-    role: 'assistant',
-    text: 'Hola, soy Hibi. Puedo crear tareas, eventos o notas, hacer resúmenes y guiarte por la app. ¿Qué necesitas?',
-    at: Date.now(),
+    id: c.id,
+    title: c.title,
+    messages: (c.messages ?? []).map(mapMessage),
+    createdAt: toMs(c.createdAt),
+    updatedAt: toMs(c.updatedAt),
   }
 }
-
-function newConversation(): ChatConversation {
-  const now = Date.now()
-  return {
-    id: uid('c'),
-    title: 'Nueva conversación',
-    messages: [newGreeting()],
-    createdAt: now,
-    updatedAt: now,
-  }
+function titleFrom(text: string) {
+  const t = text.trim().replace(/\s+/g, ' ')
+  return t.length > 40 ? t.slice(0, 40) + '…' : t
 }
 
 /** Lista de TODAS las conversaciones (ordenadas por updatedAt desc) */
 export function useChatConversations() {
-  return useState<ChatConversation[]>('hibi.chat.conversations', () => [newConversation()])
+  return useState<ChatConversation[]>('hibi.chat.conversations', () => [])
 }
 
 /** ID de la conversación activa */
 export function useActiveChatId() {
-  return useState<string>('hibi.chat.activeId', () => {
-    const list = useChatConversations()
-    return list.value[0]?.id ?? ''
-  })
+  return useState<string>('hibi.chat.activeId', () => '')
 }
 
 /** Conversación actualmente activa */
 export function useActiveConversation() {
   const list = useChatConversations()
   const activeId = useActiveChatId()
-  return computed<ChatConversation | undefined>(() =>
-    list.value.find(c => c.id === activeId.value),
-  )
+  return computed<ChatConversation | undefined>(() => list.value.find((c) => c.id === activeId.value))
 }
 
 /** Mensajes de la conversación activa (mutables) */
@@ -69,81 +65,97 @@ export function useChatMessages() {
   const list = useChatConversations()
   const activeId = useActiveChatId()
   return computed<ChatMessage[]>({
-    get() { return list.value.find(c => c.id === activeId.value)?.messages ?? [] },
+    get() { return list.value.find((c) => c.id === activeId.value)?.messages ?? [] },
     set(v) {
-      const c = list.value.find(c => c.id === activeId.value)
+      const c = list.value.find((c) => c.id === activeId.value)
       if (c) { c.messages = v; c.updatedAt = Date.now() }
     },
   })
 }
 
-/** Crea una nueva conversación y la activa */
-export function startNewConversation() {
+/** Carga las conversaciones del usuario (una vez). */
+export async function hydrateChat() {
+  const hydrated = useState<boolean>('hibi.chat.hydrated', () => false)
+  if (hydrated.value) return
   const list = useChatConversations()
   const activeId = useActiveChatId()
-  const c = newConversation()
-  list.value.unshift(c)
-  activeId.value = c.id
+  try {
+    const rows = await useRequestFetch()<any[]>('/api/chat/conversations')
+    if (rows.length) {
+      list.value = rows.map(mapConversation)
+      if (!list.value.some((c) => c.id === activeId.value)) activeId.value = list.value[0]!.id
+    } else {
+      await startNewConversation()
+    }
+  } catch { /* offline: se queda vacío */ }
+  hydrated.value = true
+}
+
+/** Crea una nueva conversación y la activa */
+export async function startNewConversation() {
+  const list = useChatConversations()
+  const activeId = useActiveChatId()
+  try {
+    const c = mapConversation(await $fetch('/api/chat/conversations', { method: 'POST' }))
+    list.value.unshift(c)
+    activeId.value = c.id
+  } catch { /* noop */ }
 }
 
 /** Activa una conversación por ID */
 export function switchToConversation(id: string) {
   const list = useChatConversations()
   const activeId = useActiveChatId()
-  if (list.value.some(c => c.id === id)) activeId.value = id
+  if (list.value.some((c) => c.id === id)) activeId.value = id
 }
 
 /** Borra una conversación (si era la activa, activa la siguiente o crea una nueva) */
-export function deleteConversation(id: string) {
+export async function deleteConversation(id: string) {
   const list = useChatConversations()
   const activeId = useActiveChatId()
-  const idx = list.value.findIndex(c => c.id === id)
+  const idx = list.value.findIndex((c) => c.id === id)
   if (idx < 0) return
   list.value.splice(idx, 1)
+  $fetch(`/api/chat/conversations/${id}`, { method: 'DELETE' }).catch(() => {})
   if (activeId.value === id) {
     if (list.value.length) activeId.value = list.value[0]!.id
-    else startNewConversation()
+    else await startNewConversation()
   }
 }
 
-const STARTERS = [
-  'Anotado, lo dejaré preparado en su sitio.',
-  'Puedo crear una tarea o un evento en cuanto conectemos el backend.',
-  'Buena idea. ¿La quieres para hoy o más adelante?',
-  'Apuntado. Si quieres, hago un resumen de tu día cuando lo pidas.',
-  'Listo. También puedo recordártelo más tarde.',
-]
-
-/** Stub local hasta tener Groq. Devuelve un mensaje breve y amable. */
-export function fakeAssistantReply(prompt: string): string {
-  const p = prompt.toLowerCase().trim()
-  if (/^hola|buenas|hey|qué tal/.test(p)) return '¡Hola! Cuéntame en qué te ayudo hoy.'
-  if (/tarea|pendiente|hacer/.test(p)) return 'Hecho — cuando tengamos backend la creo en Tareas. ¿Para cuándo?'
-  if (/evento|reunión|cita/.test(p)) return 'Anotado para Calendario. Dime fecha y hora cuando puedas.'
-  if (/nota|apunte/.test(p)) return 'Listo, lo guardo como nota. ¿La quieres en alguna carpeta?'
-  if (/recuerda|recordatorio|recuérdame/.test(p)) return 'Cuento contigo — añadiré el recordatorio en cuanto haya backend.'
-  if (/gracias/.test(p)) return '¡Para eso estoy!'
-  return STARTERS[Math.floor(Math.random() * STARTERS.length)]!
-}
-
-function titleFrom(text: string) {
-  const t = text.trim().replace(/\s+/g, ' ')
-  return t.length > 40 ? t.slice(0, 40) + '…' : t
-}
-
+/** Envía el mensaje del usuario y transmite la respuesta de la IA en vivo. */
 export async function sendUserMessage(text: string) {
   const list = useChatConversations()
   const activeId = useActiveChatId()
-  const conv = list.value.find(c => c.id === activeId.value)
+  const conv = list.value.find((c) => c.id === activeId.value)
   if (!conv) return
   const trimmed = text.trim()
   if (!trimmed) return
-  // Si es el primer mensaje del usuario, usa el texto como título
-  const hasUserMsg = conv.messages.some(m => m.role === 'user')
-  if (!hasUserMsg) conv.title = titleFrom(trimmed)
+
+  if (!conv.messages.some((m) => m.role === 'user')) conv.title = titleFrom(trimmed)
   conv.messages.push({ id: uid(), role: 'user', text: trimmed, at: Date.now() })
   conv.updatedAt = Date.now()
-  await new Promise((r) => setTimeout(r, 420 + Math.random() * 380))
-  conv.messages.push({ id: uid(), role: 'assistant', text: fakeAssistantReply(trimmed), at: Date.now() })
+
+  const assistant = reactive<ChatMessage>({ id: uid(), role: 'assistant', text: '', at: Date.now() })
+  conv.messages.push(assistant)
+
+  try {
+    const res = await fetch('/api/chat/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversationId: conv.id, text: trimmed }),
+    })
+    if (!res.ok || !res.body) throw new Error('bad response')
+    const reader = res.body.getReader()
+    const dec = new TextDecoder()
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      assistant.text += dec.decode(value, { stream: true })
+      conv.updatedAt = Date.now()
+    }
+  } catch {
+    if (!assistant.text) assistant.text = 'No pude conectar con la IA. Inténtalo de nuevo.'
+  }
   conv.updatedAt = Date.now()
 }

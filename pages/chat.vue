@@ -66,6 +66,7 @@ function onDeleteConversation(id: string, e: Event) {
 const userHasSpoken = computed(() => messages.value.some(m => m.role === 'user'))
 
 onMounted(async () => {
+  await hydrateChat()
   await nextTick()
   if (listRef.value && userHasSpoken.value) listRef.value.scrollTop = listRef.value.scrollHeight
 })
