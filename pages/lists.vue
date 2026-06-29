@@ -1,35 +1,45 @@
 <script setup lang="ts">
 import { Plus, ListChecks, ShoppingCart, Film, BookOpen, MapPin, Check, Star, X, Trash2, Tag, FileText, ListPlus, ChevronRight, ChevronLeft } from '@lucide/vue'
+import type { Component } from 'vue'
+import { useLists, type ListRecord, type ListItem } from '~/composables/useLists'
 
 useHead({ title: 'Hibi — Listas' })
 
-interface ItemBase { id: string; title: string; done?: boolean }
-interface ShoppingItem extends ItemBase { qty?: string }
-interface MovieItem extends ItemBase { year?: number; rating?: number }
-interface BookItem extends ItemBase { author?: string; rating?: number }
-interface PlaceItem extends ItemBase { city?: string }
-type AnyItem = ShoppingItem | MovieItem | BookItem | PlaceItem
+const {
+  lists, items, listsLoading, itemsLoading,
+  createList, removeList,
+  createItem, updateItem, removeItem, toggleItem,
+} = useLists()
 
-interface List { id: string; name: string; type: 'shopping' | 'movies' | 'books' | 'places'; tone: string; icon: any; items: AnyItem[] }
-const lists: List[] = [
-  { id: 'l1', name: 'Compra semanal', type: 'shopping', tone: 'bg-mint text-[#34936a]', icon: ShoppingCart, items: [
-    { id: 'i1', title: 'Pan', qty: '2 ud.' }, { id: 'i2', title: 'Leche', qty: '1 L', done: true }, { id: 'i3', title: 'Manzanas', qty: '5 ud.' }, { id: 'i4', title: 'Tomates', qty: '500 g' }, { id: 'i5', title: 'Yogur natural', qty: '4 ud.', done: true },
-  ]},
-  { id: 'l2', name: 'Pelis pendientes', type: 'movies', tone: 'bg-lavender text-[#7a63c0]', icon: Film, items: [
-    { id: 'm1', title: 'Past Lives', year: 2023, rating: 4 }, { id: 'm2', title: 'La sociedad de la nieve', year: 2023 }, { id: 'm3', title: 'Anatomía de una caída', year: 2023, rating: 5 },
-  ]},
-  { id: 'l3', name: 'Libros del año', type: 'books', tone: 'bg-pink-soft text-pink-deep', icon: BookOpen, items: [
-    { id: 'b1', title: 'Klara y el sol', author: 'Kazuo Ishiguro', rating: 4, done: true }, { id: 'b2', title: 'El infinito en un junco', author: 'Irene Vallejo' }, { id: 'b3', title: 'Tokio blues', author: 'Haruki Murakami' },
-  ]},
-  { id: 'l4', name: 'Sitios para visitar', type: 'places', tone: 'bg-peach text-[#c5733f]', icon: MapPin, items: [
-    { id: 'p1', title: 'Granada', city: 'España' }, { id: 'p2', title: 'Kioto', city: 'Japón' }, { id: 'p3', title: 'Bath', city: 'Reino Unido' },
-  ]},
-]
-const listsData = ref(lists)
-const selectedId = ref<string>('l1')
-const selected = computed(() => listsData.value.find(l => l.id === selectedId.value)!)
-const total = computed(() => selected.value.items.length)
-const done = computed(() => selected.value.items.filter(i => i.done).length)
+// Iconos lucide guardados como nombre → componente (para HibiCloudIcon).
+const ICONS: Record<string, Component> = { ListChecks, ShoppingCart, Film, BookOpen, MapPin }
+const iconOf = (name: string): Component => ICONS[name] ?? ListChecks
+
+const TYPE_META: Record<string, { tone: string; icon: Component; iconName: string; label: string }> = {
+  shopping: { tone: 'bg-mint text-[#34936a]', icon: ShoppingCart, iconName: 'ShoppingCart', label: 'Compra' },
+  movies: { tone: 'bg-lavender text-[#7a63c0]', icon: Film, iconName: 'Film', label: 'Pelis / series' },
+  books: { tone: 'bg-pink-soft text-pink-deep', icon: BookOpen, iconName: 'BookOpen', label: 'Libros' },
+  places: { tone: 'bg-peach text-[#c5733f]', icon: MapPin, iconName: 'MapPin', label: 'Sitios' },
+}
+
+// Listas para la UI: resuelve el icono (nombre → componente) y añade sus ítems.
+const listsData = computed(() =>
+  lists.value.map((l) => ({
+    ...l,
+    iconComp: iconOf(l.icon),
+    items: items.value.filter((it) => it.listId === l.id),
+  })),
+)
+
+const selectedId = ref<string>('')
+watchEffect(() => {
+  if (!listsData.value.length) { selectedId.value = ''; return }
+  if (!listsData.value.some((l) => l.id === selectedId.value)) selectedId.value = listsData.value[0]!.id
+})
+const selected = computed(() => listsData.value.find((l) => l.id === selectedId.value) ?? null)
+const selectedItems = computed<ListItem[]>(() => selected.value?.items ?? [])
+const total = computed(() => selectedItems.value.length)
+const done = computed(() => selectedItems.value.filter((i) => i.done).length)
 
 const view = ref<'list' | 'create'>('list')
 const newName = ref('')
@@ -37,15 +47,6 @@ const newType = ref<'shopping'|'movies'|'books'|'places'>('shopping')
 const newInitialItems = ref<string[]>([])
 const newInitialTitle = ref('')
 const newNotes = ref('')
-const TYPE_META: Record<string, { tone: string; icon: any; label: string }> = {
-  shopping: { tone: 'bg-mint text-[#34936a]', icon: ShoppingCart, label: 'Compra' },
-  movies: { tone: 'bg-lavender text-[#7a63c0]', icon: Film, label: 'Pelis / series' },
-  books: { tone: 'bg-pink-soft text-pink-deep', icon: BookOpen, label: 'Libros' },
-  places: { tone: 'bg-peach text-[#c5733f]', icon: MapPin, label: 'Sitios' },
-}
-const TYPE_OPTS = Object.entries(TYPE_META).map(([k, v]) => ({ value: k, label: v.label }))
-let nextId = 100
-let nextItemId = 500
 function openCreate() {
   newName.value = ''; newType.value = 'shopping'
   newInitialItems.value = []; newInitialTitle.value = ''; newNotes.value = ''
@@ -58,35 +59,46 @@ function addInitial() {
   newInitialTitle.value = ''
 }
 function removeInitial(i: number) { newInitialItems.value.splice(i, 1) }
-function saveList() {
+async function saveList() {
   const n = newName.value.trim(); if (!n) return
-  const id = 'l' + (nextId++)
   const meta = TYPE_META[newType.value]!
-  const items: AnyItem[] = newInitialItems.value.map(t => ({ id: 'it' + (nextItemId++), title: t }))
-  listsData.value.unshift({ id, name: n, type: newType.value, tone: meta.tone, icon: meta.icon, items })
-  selectedId.value = id
+  const initial = [...newInitialItems.value]
+  const created = await createList({ name: n, type: newType.value, tone: meta.tone, icon: meta.iconName })
+  selectedId.value = created.id
   view.value = 'list'
+  for (let idx = 0; idx < initial.length; idx++) {
+    await createItem({ listId: created.id, title: initial[idx]!, position: idx })
+  }
 }
 
 const newItemTitle = ref('')
 const itemsListRef = ref<HTMLElement | null>(null)
-function addItem() {
-  const t = newItemTitle.value.trim(); if (!t) return
-  selected.value.items.push({ id: 'it' + (nextItemId++), title: t })
+async function addItem() {
+  const t = newItemTitle.value.trim(); if (!t || !selected.value) return
+  const listId = selected.value.id
+  const position = selectedItems.value.length
   newItemTitle.value = ''
+  await createItem({ listId, title: t, position })
   nextTick(() => {
     if (itemsListRef.value) itemsListRef.value.scrollTop = itemsListRef.value.scrollHeight
   })
 }
-function removeItem(id: string) {
-  selected.value.items = selected.value.items.filter(x => x.id !== id)
-}
+function onRemoveItem(id: string) { removeItem(id) }
+function onToggleItem(item: ListItem) { toggleItem(item) }
+
+// Rating type-específico vive en item.data.
+const ratingOf = (i: ListItem) => Number(i.data?.rating) || 0
 
 // Móvil: lista de listas → tocar abre sus ítems (drill-down).
 const mobileListOpen = ref(false)
 function openListMobile(id: string) {
   selectedId.value = id
   mobileListOpen.value = true
+}
+
+function onRemoveList(id: string) {
+  removeList(id)
+  if (selectedId.value === id) mobileListOpen.value = false
 }
 
 </script>
@@ -157,10 +169,28 @@ function openListMobile(id: string) {
       <!-- MÓVIL: SOLO la lista de listas; tocar una abre sus ítems -->
       <div class="md:hidden flex flex-col flex-1 min-h-0">
         <div class="flex-1 min-h-0 overflow-y-auto scroll-area flex flex-col gap-2">
-          <button v-for="l in listsData" :key="l.id" type="button"
+          <!-- Cargando (pulse) -->
+          <template v-if="listsLoading && !listsData.length">
+            <div v-for="n in 4" :key="n" class="p-3 rounded-[14px] bg-card flex items-center gap-3 animate-pulse">
+              <div class="size-[52px] rounded-full bg-muted shrink-0"></div>
+              <div class="flex-1 min-w-0 flex flex-col gap-2">
+                <div class="h-3.5 w-2/3 rounded-full bg-muted"></div>
+                <div class="h-3 w-1/3 rounded-full bg-muted"></div>
+              </div>
+            </div>
+          </template>
+          <!-- Vacío -->
+          <div v-else-if="!listsData.length" class="flex-1 grid place-items-center text-center px-6">
+            <div class="flex flex-col items-center gap-3">
+              <HibiCloudIcon :size="72" :icon="ListChecks" :icon-size="26" cloud-color="bg-sky-soft" icon-color="text-sky-deep" :icon-stroke="1.9" />
+              <p class="text-[15px] font-bold text-fg">Aún no tienes listas</p>
+              <p class="text-[13px] text-fg-muted -mt-1">Crea tu primera lista para empezar</p>
+            </div>
+          </div>
+          <button v-else v-for="l in listsData" :key="l.id" type="button"
             class="text-left p-3 rounded-[14px] bg-card transition-[background-color] flex items-center gap-3 active:bg-muted"
             @click="openListMobile(l.id)">
-            <HibiCloudIcon :size="52" :icon="l.icon" :icon-size="18" :cloud-color="l.tone.split(' ')[0]" :icon-color="l.tone.split(' ')[1]" :icon-stroke="1.9" class="shrink-0" />
+            <HibiCloudIcon :size="52" :icon="l.iconComp" :icon-size="18" :cloud-color="l.tone.split(' ')[0]" :icon-color="l.tone.split(' ')[1]" :icon-stroke="1.9" class="shrink-0" />
             <div class="flex-1 min-w-0">
               <p class="text-[15px] font-bold text-fg break-words">{{ l.name }}</p>
               <p class="text-[12.5px] text-fg-muted">{{ l.items.filter(x => x.done).length }} de {{ l.items.length }} marcados</p>
@@ -174,12 +204,30 @@ function openListMobile(id: string) {
       <AppCard class="hidden md:flex md:w-[260px] shrink-0 flex-col" :padded="false">
         <h2 class="px-4 pt-4 pb-2 text-[13px] font-bold text-fg-muted">Tus listas</h2>
         <div class="hibi-anim-slide-right flex-1 min-h-0 overflow-y-auto scroll-area px-2 pb-3 flex flex-col gap-1">
-          <button v-for="l in listsData" :key="l.id" type="button"
+          <!-- Cargando (pulse) -->
+          <template v-if="listsLoading && !listsData.length">
+            <div v-for="n in 4" :key="n" class="p-3 rounded-[12px] flex items-center gap-3 animate-pulse">
+              <div class="size-[52px] rounded-full bg-muted shrink-0"></div>
+              <div class="flex-1 min-w-0 flex flex-col gap-2">
+                <div class="h-3.5 w-2/3 rounded-full bg-muted"></div>
+                <div class="h-3 w-1/3 rounded-full bg-muted"></div>
+              </div>
+            </div>
+          </template>
+          <!-- Vacío -->
+          <div v-else-if="!listsData.length" class="flex-1 grid place-items-center text-center px-4 py-6">
+            <div class="flex flex-col items-center gap-2.5">
+              <HibiCloudIcon :size="60" :icon="ListChecks" :icon-size="22" cloud-color="bg-sky-soft" icon-color="text-sky-deep" :icon-stroke="1.9" />
+              <p class="text-[13.5px] font-bold text-fg">Sin listas todavía</p>
+              <p class="text-[12px] text-fg-muted -mt-1">Pulsa «Nueva» para crear una</p>
+            </div>
+          </div>
+          <button v-else v-for="l in listsData" :key="l.id" type="button"
             class="text-left p-3 rounded-[12px] flex items-center gap-3 transition-[background-color]"
             :class="selectedId === l.id ? 'bg-sky-soft' : 'hover:bg-muted'"
             @click="selectedId = l.id"
           >
-            <HibiCloudIcon :size="52" :icon="l.icon" :icon-size="18" :cloud-color="l.tone.split(' ')[0]" :icon-color="l.tone.split(' ')[1]" :icon-stroke="1.9" class="shrink-0" />
+            <HibiCloudIcon :size="52" :icon="l.iconComp" :icon-size="18" :cloud-color="l.tone.split(' ')[0]" :icon-color="l.tone.split(' ')[1]" :icon-stroke="1.9" class="shrink-0" />
             <div class="flex-1 min-w-0">
               <p class="text-[14px] font-bold text-fg truncate">{{ l.name }}</p>
               <p class="text-[12px] text-fg-muted">{{ l.items.length }} ítems</p>
@@ -188,7 +236,7 @@ function openListMobile(id: string) {
         </div>
       </AppCard>
 
-      <AppCard class="flex-1 min-w-0 flex-col overflow-hidden" :padded="false"
+      <AppCard v-if="selected" class="flex-1 min-w-0 flex-col overflow-hidden" :padded="false"
         :class="mobileListOpen ? '!absolute inset-0 z-20 flex' : 'hidden md:flex'">
         <header class="px-4 md:px-5 pt-4 md:pt-5 pb-3 flex flex-col gap-3 shrink-0">
           <div class="flex items-center gap-2">
@@ -197,6 +245,7 @@ function openListMobile(id: string) {
               <h2 class="text-[19px] md:text-[20px] font-extrabold text-fg truncate">{{ selected.name }}</h2>
               <p class="text-[12.5px] text-fg-muted">{{ done }} de {{ total }} marcados</p>
             </div>
+            <button type="button" class="grid place-items-center size-9 rounded-full text-fg-subtle hover:text-pink-deep hover:bg-pink-soft transition-[background-color,color] shrink-0" aria-label="Eliminar lista" @click="onRemoveList(selected.id)"><Trash2 class="size-[16px]" :stroke-width="2" /></button>
           </div>
           <form class="flex items-center gap-2" @submit.prevent="addItem">
             <label for="new-list-item" class="sr-only">Nuevo ítem</label>
@@ -206,11 +255,26 @@ function openListMobile(id: string) {
           </form>
         </header>
         <div ref="itemsListRef" class="flex-1 min-h-0 overflow-y-auto scroll-area px-3 pb-3">
-          <ul class="hibi-anim-fade-up flex flex-col gap-1">
-            <li v-for="i in selected.items" :key="i.id"
+          <!-- Cargando ítems (pulse) -->
+          <ul v-if="itemsLoading && !selectedItems.length" class="flex flex-col gap-1">
+            <li v-for="n in 5" :key="n" class="flex items-center gap-3 p-3 rounded-[12px] animate-pulse">
+              <div class="size-[26px] w-[38px] rounded-full bg-muted shrink-0"></div>
+              <div class="h-3.5 rounded-full bg-muted" :style="{ width: (40 + (n * 9) % 45) + '%' }"></div>
+            </li>
+          </ul>
+          <!-- Vacío -->
+          <div v-else-if="!selectedItems.length" class="grid place-items-center text-center px-6 py-10">
+            <div class="flex flex-col items-center gap-2.5">
+              <HibiCloudIcon :size="60" :icon="ListPlus" :icon-size="22" cloud-color="bg-mint" icon-color="text-[#34936a]" :icon-stroke="1.9" />
+              <p class="text-[13.5px] font-bold text-fg">Lista vacía</p>
+              <p class="text-[12px] text-fg-muted -mt-1">Añade tu primer ítem arriba</p>
+            </div>
+          </div>
+          <ul v-else class="hibi-anim-fade-up flex flex-col gap-1">
+            <li v-for="i in selectedItems" :key="i.id"
               class="group/item flex items-center gap-3 p-3 rounded-[12px] hover:bg-muted cursor-pointer transition-[background-color,opacity]"
               :class="i.done ? 'opacity-60' : ''"
-              @click="i.done = !i.done">
+              @click="onToggleItem(i)">
               <span class="shrink-0 relative inline-block" :style="{ width: '38px', height: '26px' }">
                 <Transition name="hibi-check">
                   <HibiCloudIcon
@@ -225,10 +289,10 @@ function openListMobile(id: string) {
                 </Transition>
               </span>
               <p class="flex-1 min-w-0 text-[14px] font-semibold text-fg break-words" :class="{ 'line-through': i.done }">{{ i.title }}</p>
-              <span v-if="(i as MovieItem).rating || (i as BookItem).rating" class="shrink-0 inline-flex items-center gap-0.5 text-[#bf8f2e]">
-                <Star v-for="n in ((i as MovieItem).rating || (i as BookItem).rating)" :key="n" class="size-3 fill-current" :stroke-width="0" aria-hidden="true" />
+              <span v-if="ratingOf(i)" class="shrink-0 inline-flex items-center gap-0.5 text-[#bf8f2e]">
+                <Star v-for="n in ratingOf(i)" :key="n" class="size-3 fill-current" :stroke-width="0" aria-hidden="true" />
               </span>
-              <button type="button" class="shrink-0 grid place-items-center size-7 rounded-full text-fg-subtle md:opacity-0 md:group-hover/item:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" aria-label="Eliminar ítem" @click.stop="removeItem(i.id)"><Trash2 class="size-[14px]" :stroke-width="2" /></button>
+              <button type="button" class="shrink-0 grid place-items-center size-7 rounded-full text-fg-subtle md:opacity-0 md:group-hover/item:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" aria-label="Eliminar ítem" @click.stop="onRemoveItem(i.id)"><Trash2 class="size-[14px]" :stroke-width="2" /></button>
             </li>
           </ul>
         </div>
