@@ -92,6 +92,6 @@ export async function seedUserDefaults(userId: number) {
     { name: 'Otros', icon: 'ShoppingBag', color: '#bf8f2e' },
   ]
   await db.insert(schema.financeCategories).values(cats.map((c, i) => ({ id: genId(), userId, name: c.name, icon: c.icon, color: c.color, position: i })))
-  await db.insert(schema.petState).values({ userId }).onConflictDoNothing()
+  await db.insert(schema.petState).values({ userId, inventory: { galleta: 3, manzana: 2, sandwich: 1 } }).onConflictDoNothing()
   await db.insert(schema.userSettings).values({ userId }).onConflictDoNothing()
 }
