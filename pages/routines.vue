@@ -3,38 +3,34 @@ import { Plus, Repeat, Sunrise, Sun, Moon, Play, Check, Trash2, ArrowUp, ArrowDo
 
 useHead({ title: 'Hibi — Rutinas' })
 
-interface Step { title: string; mins: number; done?: boolean; substeps?: { title: string; done?: boolean }[] }
-interface Routine { id: string; name: string; time: 'morning' | 'midday' | 'night'; minutes: number; days: string[]; steps: Step[] }
-const routines: Routine[] = [
-  { id: 'r1', name: 'Mañana clara', time: 'morning', minutes: 35, days: ['L','M','X','J','V'], steps: [
-    { title: 'Agua + estiramiento', mins: 5, done: true, substeps: [
-      { title: 'Un vaso de agua tibia con limón', done: true },
-      { title: 'Estirar cuello y hombros' },
-      { title: '5 saludos al sol' },
-    ]},
-    { title: 'Meditación 10 min', mins: 10, done: true },
-    { title: 'Ducha y vestir', mins: 10 },
-    { title: 'Desayuno sin pantalla', mins: 10, substeps: [
-      { title: 'Café o té' },
-      { title: 'Tostadas o yogur' },
-    ]},
-  ]},
-  { id: 'r2', name: 'Comida + paseo', time: 'midday', minutes: 50, days: ['L','M','X','J','V','S','D'], steps: [
-    { title: 'Almorzar tranquilo', mins: 25 }, { title: 'Paseo 20 min', mins: 20 }, { title: 'Café y revisar día', mins: 5 },
-  ]},
-  { id: 'r3', name: 'Noche calmada', time: 'night', minutes: 30, days: ['L','M','X','J','V','S','D'], steps: [
-    { title: 'Cerrar pantallas', mins: 1 }, { title: 'Diario del día', mins: 10 },
-    { title: 'Leer 15 min', mins: 15 }, { title: 'Apagar luces', mins: 1 },
-  ]},
-]
+import type { Routine, Step } from '~/composables/useRoutines'
+
+const { routines: routinesData, loading, load, createRoutine, saveRoutineDoc, removeRoutine: apiRemoveRoutine } = useRoutines()
+
 const ICONS = { morning: Sunrise, midday: Sun, night: Moon } as const
 const TONES = { morning: 'bg-cream text-[#bf8f2e]', midday: 'bg-mint text-[#34936a]', night: 'bg-lavender text-[#7a63c0]' } as const
 const LABELS = { morning: 'Mañana', midday: 'Mediodía', night: 'Noche' } as const
 
-const routinesData = ref(routines)
-const selectedId = ref<string>('r1')
-const selected = computed(() => routinesData.value.find(r => r.id === selectedId.value)!)
+const selectedId = ref<string>('')
+const selected = computed(() => routinesData.value.find(r => r.id === selectedId.value))
 const doneCount = (r: Routine) => r.steps.filter(s => s.done).length
+
+// Cargar del servidor; persistir la rutina seleccionada cuando se edita
+// (guardado del documento completo con debounce dentro del composable).
+let hydrated = false
+let lastWatchedId: string | null = null
+onMounted(async () => {
+  await load()
+  if (!routinesData.value.some(r => r.id === selectedId.value)) selectedId.value = routinesData.value[0]?.id ?? ''
+  await nextTick()
+  lastWatchedId = selected.value?.id ?? null
+  hydrated = true
+})
+watch(selected, (r) => {
+  if (!hydrated || !r) { lastWatchedId = r?.id ?? null; return }
+  if (r.id !== lastWatchedId) { lastWatchedId = r.id; return } // cambió la selección, no es edición
+  saveRoutineDoc(r)
+}, { deep: true })
 
 // Switch hoy/todas
 type RoutineFilter = 'today' | 'all'
@@ -94,7 +90,6 @@ const TIME_SWATCHES = [
   { value: 'midday',  label: 'Mediodía', swatch: 'bg-mint' },
   { value: 'night',   label: 'Noche', swatch: 'bg-lavender' },
 ]
-let nextId = 100
 function openCreate() {
   newName.value = ''; newTime.value = 'morning'
   newDays.value = ['L','M','X','J','V']
@@ -128,13 +123,14 @@ function moveStep(arr: Step[], i: number, dir: -1 | 1) {
   const tmp = arr[i]!; arr[i] = arr[j]!; arr[j] = tmp
 }
 
-function saveRoutine() {
+async function saveRoutine() {
   const n = newName.value.trim(); if (!n) return
-  const id = 'r' + (nextId++)
-  const steps = newSteps.value.map(s => ({ ...s }))
-  const minutes = steps.reduce((a, s) => a + s.mins, 0)
-  routinesData.value.push({ id, name: n, time: newTime.value, minutes, days: [...newDays.value], steps })
-  selectedId.value = id
+  const steps = newSteps.value.map(s => ({
+    title: s.title, mins: s.mins, done: !!s.done,
+    substeps: (s.substeps ?? []).map(ss => ({ title: ss.title, done: !!ss.done })),
+  }))
+  const r = await createRoutine({ name: n, time: newTime.value, days: [...newDays.value], steps })
+  selectedId.value = r.id
   view.value = 'list'
 }
 
@@ -207,8 +203,9 @@ function openRoutineMobile(id: string) {
   mobileRoutineOpen.value = true
 }
 function removeRoutine(id: string) {
-  routinesData.value = routinesData.value.filter(r => r.id !== id)
-  if (selectedId.value === id) { selectedId.value = routinesData.value[0]?.id ?? ''; mobileRoutineOpen.value = false }
+  const wasSelected = selectedId.value === id
+  apiRemoveRoutine(id)
+  if (wasSelected) { selectedId.value = routinesData.value[0]?.id ?? ''; mobileRoutineOpen.value = false }
 }
 </script>
 
@@ -379,6 +376,7 @@ function removeRoutine(id: string) {
       <AppCard
         class="flex-1 min-w-0 flex-col"
         :class="mobileRoutineOpen ? '!absolute inset-0 z-20 flex' : 'hidden lg:flex'">
+        <template v-if="selected">
         <div class="flex items-center gap-3 mb-4 shrink-0">
           <button type="button" class="lg:hidden grid place-items-center size-9 rounded-full text-fg-muted hover:bg-muted shrink-0" aria-label="Volver a rutinas" @click="mobileRoutineOpen = false"><ChevronLeft class="size-[18px]" :stroke-width="2" /></button>
           <div class="flex-1 min-w-0">
@@ -471,6 +469,14 @@ function removeRoutine(id: string) {
             </div>
           </li>
         </ul>
+        </template>
+        <div v-else class="flex-1 grid place-items-center text-center p-8">
+          <div class="flex flex-col items-center gap-3">
+            <HibiCloud :size="90" face class="text-sky-soft opacity-70" aria-hidden="true" />
+            <p class="text-[14px] font-semibold text-fg-muted">{{ loading ? 'Cargando rutinas…' : 'Crea tu primera rutina' }}</p>
+            <button v-if="!loading" type="button" class="text-[13px] font-bold text-sky-deep" @click="openCreate">Nueva rutina</button>
+          </div>
+        </div>
       </AppCard>
     </div>
   </div>
