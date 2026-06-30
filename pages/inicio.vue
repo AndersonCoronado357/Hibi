@@ -5,6 +5,9 @@ const { t, locale } = useI18n()
 const { greeting, now } = useGreeting()
 const quick = ref('')
 
+const { summary, refetch: refetchSummary } = useInicioSummary()
+const { createTask } = useTasks()
+
 const dateLabel = computed(() =>
   new Intl.DateTimeFormat(locale.value, {
     weekday: 'long', day: 'numeric', month: 'long',
@@ -20,6 +23,37 @@ const widgets = computed<Widget[]>(() => [
   { key: 'mood', icon: Smile, title: t('today.widgets.mood'), badge: 'bg-lavender text-[#7a63c0]' },
   { key: 'streak', icon: Sparkles, title: t('today.widgets.streak'), badge: 'bg-cream text-[#bf8f2e]' },
 ])
+
+// Valor + subtítulo de cada widget a partir del resumen del día.
+const MOOD_LABELS = ['—', 'Muy mal', 'Mal', 'Normal', 'Bien', 'Genial']
+function widgetDisplay(key: string): { value: string; sub: string } {
+  const s = summary.value
+  if (!s) return { value: '·', sub: '' }
+  switch (key) {
+    case 'todayEvents': return { value: String(s.todayEvents), sub: s.todayEvents === 1 ? 'evento hoy' : 'eventos hoy' }
+    case 'todayTasks': return { value: String(s.todayTasks), sub: `de ${s.pendingTasks} pendientes` }
+    case 'reminders': return { value: String(s.reminders), sub: 'para hoy' }
+    case 'habits': return { value: s.habitsTotal ? `${s.habitsDone}/${s.habitsTotal}` : '0', sub: s.habitsTotal ? `${Math.round((s.habitsDone / s.habitsTotal) * 100)}% hoy` : 'sin hábitos' }
+    case 'mood': return { value: s.mood ? MOOD_LABELS[s.mood]! : '—', sub: s.mood ? 'hoy' : 'sin diario' }
+    case 'streak': return { value: String(s.streak), sub: s.streak === 1 ? 'día' : 'días' }
+    default: return { value: '·', sub: '' }
+  }
+}
+
+// Captura rápida → crea una tarea.
+const adding = ref(false)
+async function quickAdd() {
+  const title = quick.value.trim()
+  if (!title || adding.value) return
+  adding.value = true
+  try {
+    await createTask({ title })
+    quick.value = ''
+    await refetchSummary()
+  } finally {
+    adding.value = false
+  }
+}
 </script>
 
 <template>
@@ -47,10 +81,12 @@ const widgets = computed<Widget[]>(() => [
             id="quick-capture-mobile" v-model="quick"
             :placeholder="t('today.quickCapture')"
             class="w-full h-12 rounded-full bg-card pl-5 pr-14 text-[15px] text-fg outline-none shadow-[0_2px_12px_rgba(0,0,0,0.04)] text-ellipsis-none"
+            @keyup.enter="quickAdd"
           />
           <button
-            type="button" :aria-label="t('common.add')"
-            class="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex items-center justify-center size-10 rounded-full bg-sky text-[#1f4661] hover:brightness-[0.96] transition-[filter] duration-200"
+            type="button" :aria-label="t('common.add')" :disabled="adding"
+            class="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex items-center justify-center size-10 rounded-full bg-sky text-[#1f4661] hover:brightness-[0.96] transition-[filter] duration-200 disabled:opacity-60"
+            @click="quickAdd"
           ><Plus class="size-5" :stroke-width="2.4" aria-hidden="true" /></button>
         </div>
       </section>
@@ -70,6 +106,7 @@ const widgets = computed<Widget[]>(() => [
                   id="quick-capture" v-model="quick"
                   :placeholder="t('today.quickCapture')"
                   class="w-full h-12 rounded-full bg-card pl-5 pr-14 text-[15px] text-fg outline-none"
+                  @keyup.enter="quickAdd"
                 />
                 <button
                   type="button" :aria-label="t('common.add')"
@@ -96,9 +133,9 @@ const widgets = computed<Widget[]>(() => [
               <HibiCloudIcon :size="54" :icon="w.icon" :icon-size="19" :cloud-color="w.badge.split(' ')[0]" :icon-color="w.badge.split(' ')[1]" :icon-stroke="1.9" class="shrink-0" />
               <h3 class="text-[15px] font-bold text-fg">{{ w.title }}</h3>
             </div>
-            <div class="flex-1 flex flex-col items-center justify-center gap-2 text-fg-subtle relative z-10">
-              <HibiCloud :size="52" class="text-sky-soft opacity-25" face aria-hidden="true" />
-              <p class="text-[13px] font-medium">{{ t('common.empty') }}</p>
+            <div class="flex-1 flex flex-col items-center justify-center gap-1 relative z-10">
+              <p class="text-[34px] md:text-[38px] font-extrabold text-fg tabular-nums leading-none">{{ widgetDisplay(w.key).value }}</p>
+              <p class="text-[12.5px] font-semibold text-fg-muted">{{ widgetDisplay(w.key).sub }}</p>
             </div>
           </AppCard>
         </div>
