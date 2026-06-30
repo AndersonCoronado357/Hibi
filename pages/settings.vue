@@ -6,11 +6,12 @@ import {
 } from '@lucide/vue'
 
 const { t, locale, setLocale } = useI18n()
+const { load: loadSettings, save: saveSettings } = useSettings()
 const langOptions = [
   { value: 'es', label: 'Español' },
   { value: 'en', label: 'English' },
 ]
-function onLang(v: string | number) { setLocale(String(v) as 'es' | 'en') }
+function onLang(v: string | number) { const l = String(v) as 'es' | 'en'; setLocale(l); saveSettings({ locale: l }) }
 
 const { user, logout } = useAuth()
 const profileName = ref('')
@@ -34,12 +35,23 @@ function onAvatarChange(e: Event) {
   const f = (e.target as HTMLInputElement).files?.[0]
   if (!f) return
   const reader = new FileReader()
-  reader.onload = () => { avatarSrc.value = String(reader.result ?? '') }
+  reader.onload = () => { avatarSrc.value = String(reader.result ?? ''); saveSettings({ avatar: avatarSrc.value }) }
   reader.readAsDataURL(f)
 }
-function removeAvatar() { avatarSrc.value = null; if (avatarFileRef.value) avatarFileRef.value.value = '' }
+function removeAvatar() { avatarSrc.value = null; if (avatarFileRef.value) avatarFileRef.value.value = ''; saveSettings({ avatar: null }) }
 
-const notifications = ref({ desktop: true, summary: true, reminders: true })
+const notifications = ref<Record<string, boolean>>({ desktop: true, summary: true, reminders: true })
+
+onMounted(async () => {
+  const s = await loadSettings()
+  if (s) {
+    if (s.displayName) profileName.value = s.displayName
+    if (s.avatar) avatarSrc.value = s.avatar
+    if (s.notifications && typeof s.notifications === 'object') notifications.value = { ...notifications.value, ...s.notifications }
+  }
+})
+watch(profileName, (v) => saveSettings({ displayName: v }))
+watch(notifications, (v) => saveSettings({ notifications: { ...v } }), { deep: true })
 
 const timezone = computed(() => {
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone } catch { return 'UTC' }
