@@ -8,6 +8,7 @@ const schema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
+  rateLimit(event, { key: 'register', limit: 6, windowMs: 60_000 })
   const parsed = schema.safeParse(await readBody(event))
   if (!parsed.success) throw createError({ statusCode: 400, message: parsed.error.issues[0]?.message || 'Datos inválidos' })
   const { name, email, password } = parsed.data

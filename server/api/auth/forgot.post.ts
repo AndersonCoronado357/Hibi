@@ -6,6 +6,7 @@ const schema = z.object({ email: z.string().trim().toLowerCase().email() })
 const RESET_MINUTES = 30
 
 export default defineEventHandler(async (event) => {
+  rateLimit(event, { key: 'forgot', limit: 5, windowMs: 60_000 })
   const parsed = schema.safeParse(await readBody(event))
   if (!parsed.success) return { ok: true }
   const user = await findUserByEmail(parsed.data.email)
