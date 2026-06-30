@@ -45,7 +45,7 @@ function isActive(to: string) {
         v-if="open"
         type="button"
         class="md:hidden fixed inset-0 z-[60] bg-fg/10 cursor-default"
-        aria-label="Cerrar"
+        :aria-label="t('common.close')"
         @click="close"
       />
     </Transition>
@@ -54,7 +54,7 @@ function isActive(to: string) {
         v-if="open"
         class="md:hidden fixed left-0 right-0 bottom-0 z-[61] bg-card rounded-t-[26px] px-4 pt-2 pb-6"
         role="dialog"
-        aria-label="Más opciones"
+        :aria-label="t('common.moreOptions')"
         style="padding-bottom: max(1.5rem, env(safe-area-inset-bottom))"
       >
         <!-- handle / cabecera -->
@@ -62,11 +62,11 @@ function isActive(to: string) {
           <span class="block w-10 h-1.5 rounded-full bg-muted" />
         </div>
         <div class="flex items-center justify-between mb-3 px-1">
-          <h2 class="text-[16px] font-extrabold text-fg">Más</h2>
+          <h2 class="text-[16px] font-extrabold text-fg">{{ t('common.more') }}</h2>
           <button
             type="button"
             class="grid place-items-center size-9 rounded-[12px] text-fg-subtle hover:text-fg hover:bg-muted transition-colors"
-            aria-label="Cerrar"
+            :aria-label="t('common.close')"
             @click="close"
           >
             <X class="size-[18px]" :stroke-width="2" />

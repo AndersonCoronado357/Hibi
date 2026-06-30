@@ -51,6 +51,24 @@
     "save": "Guardar",
     "cancel": "Cancelar",
     "add": "Añadir",
-    "loading": "Cargando…"
+    "loading": "Cargando…",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "new": "Nuevo",
+    "create": "Crear",
+    "close": "Cerrar",
+    "back": "Volver",
+    "confirm": "Confirmar",
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "tomorrow": "Mañana",
+    "all": "Todas",
+    "none": "Ninguno",
+    "retry": "Reintentar",
+    "error": "Algo salió mal",
+    "talkToHibi": "Habla con Hibi",
+    "openChatAria": "Abrir chat con Hibi (arrastra para mover o descartar)",
+    "more": "Más",
+    "moreOptions": "Más opciones"
   }
 }

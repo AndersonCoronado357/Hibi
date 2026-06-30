@@ -1,0 +1,67 @@
+{
+  "login": {
+    "head": {
+      "title": "Hibi — Entrar"
+    },
+    "brand": {
+      "loginTitle": "Hibi",
+      "loginTagline": "Organiza tu día a día con cariño.",
+      "registerTitle": "Únete a Hibi",
+      "registerTagline": "Crea tu cuenta y empieza a organizar tu día a día."
+    },
+    "signIn": {
+      "heading": "Hola de nuevo",
+      "subtitle": "Inicia sesión para seguir con tu día a día.",
+      "identifierLabel": "Nombre de usuario o correo",
+      "identifierPlaceholder": "Tu usuario o correo…",
+      "passwordLabel": "Contraseña",
+      "passwordPlaceholder": "••••••••",
+      "forgot": "¿Olvidaste tu contraseña?",
+      "submit": "Entrar",
+      "or": "o",
+      "google": "Continuar con Google",
+      "noAccount": "¿No tienes cuenta?",
+      "registerLink": "Regístrate"
+    },
+    "register": {
+      "heading": "Crea tu cuenta",
+      "subtitle": "Empieza a organizar tu día a día.",
+      "nameLabel": "Nombre",
+      "namePlaceholder": "Tu nombre",
+      "emailLabel": "Correo",
+      "emailPlaceholder": "tu@correo.com",
+      "passwordLabel": "Contraseña",
+      "passwordPlaceholder": "Mínimo 6 caracteres",
+      "submit": "Crear cuenta",
+      "google": "Continuar con Google",
+      "hasAccount": "¿Ya tienes cuenta?",
+      "loginLink": "Inicia sesión"
+    },
+    "forgot": {
+      "heading": "Recupera tu acceso",
+      "subtitle": "Te guiamos en tres pasos para crear una contraseña nueva.",
+      "steps": {
+        "email": "Tu correo",
+        "link": "El enlace",
+        "password": "Nueva clave"
+      },
+      "emailLabel": "Correo",
+      "emailPlaceholder": "tu@correo.com",
+      "submit": "Enviar enlace",
+      "back": "Volver a iniciar sesión",
+      "notice": "Si el correo existe te enviaremos un enlace. Revisa también spam."
+    },
+    "password": {
+      "show": "Mostrar",
+      "hide": "Ocultar"
+    },
+    "errors": {
+      "generic": "Algo salió mal. Inténtalo de nuevo.",
+      "googleOff": "El acceso con Google aún no está configurado.",
+      "googleState": "La sesión de Google expiró. Inténtalo otra vez.",
+      "googleEmail": "Google no compartió un correo válido.",
+      "google": "No se pudo continuar con Google. Inténtalo otra vez.",
+      "googleFallback": "No se pudo continuar con Google."
+    }
+  }
+}

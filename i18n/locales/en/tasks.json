@@ -1,0 +1,61 @@
+{
+  "tasks": {
+    "head": {
+      "title": "Hibi — Tasks"
+    },
+    "title": "Tasks",
+    "subtitle": "{total} total · {done} done",
+    "new": "New",
+    "dateFormat": "MMM d",
+    "filters": {
+      "all": "All",
+      "today": "Today",
+      "upcoming": "Upcoming",
+      "noDate": "No date",
+      "important": "Important",
+      "done": "Done"
+    },
+    "views": {
+      "list": "List",
+      "kanban": "Kanban"
+    },
+    "columns": {
+      "pending": "To do",
+      "done": "Done"
+    },
+    "priority": {
+      "none": "No priority",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "create": {
+      "title": "New task",
+      "subtitle": "Capture it quickly",
+      "titleLabel": "Title",
+      "titlePlaceholder": "What needs doing?",
+      "priorityLabel": "Priority",
+      "dateLabel": "Date",
+      "datePlaceholder": "Pick a date",
+      "notesLabel": "Notes",
+      "notesPlaceholder": "Details, context, links…"
+    },
+    "empty": {
+      "allTitle": "No tasks yet",
+      "allSubtitle": "Create your first one with the “New” button.",
+      "filteredTitle": "Nothing here",
+      "filteredSubtitle": "Try another filter."
+    },
+    "row": {
+      "markDone": "Mark done",
+      "markPending": "Mark pending",
+      "notes": "Notes",
+      "noNotes": "No notes"
+    },
+    "column": {
+      "add": "Add",
+      "empty": "Empty"
+    }
+  }
+}

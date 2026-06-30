@@ -6,6 +6,7 @@
 //  · Se oculta cuando ya estás en /chat.
 import { Trash2 } from '@lucide/vue'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const hideOnChat = computed(() => route.path.startsWith('/chat'))
@@ -118,7 +119,7 @@ watchEffect(() => {
       ref="fabRef"
       role="button"
       tabindex="0"
-      aria-label="Abrir chat con Hibi (arrastra para mover o descartar)"
+      :aria-label="t('common.openChatAria')"
       class="mascot-fab group/fab fixed z-[55]"
       :class="[pos ? '' : 'mascot-fab--default', dragging ? 'mascot-fab--dragging' : '']"
       :style="fabStyle"
@@ -135,7 +136,7 @@ watchEffect(() => {
         class="mascot-fab__tip hidden md:block absolute top-1/2 -translate-y-1/2 whitespace-nowrap px-3 py-1.5 rounded-full bg-card text-fg text-[12.5px] font-bold opacity-0 group-hover/fab:opacity-100 transition-opacity duration-200 pointer-events-none"
         :class="tipLeft ? 'right-full mr-3' : 'left-full ml-3'"
       >
-        Habla con Hibi
+        {{ t('common.talkToHibi') }}
       </span>
     </div>
   </div>

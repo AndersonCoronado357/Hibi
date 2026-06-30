@@ -1,0 +1,67 @@
+{
+  "login": {
+    "head": {
+      "title": "Hibi — Sign in"
+    },
+    "brand": {
+      "loginTitle": "Hibi",
+      "loginTagline": "Organize your everyday life with care.",
+      "registerTitle": "Join Hibi",
+      "registerTagline": "Create your account and start organizing your everyday life."
+    },
+    "signIn": {
+      "heading": "Welcome back",
+      "subtitle": "Sign in to keep going with your everyday life.",
+      "identifierLabel": "Username or email",
+      "identifierPlaceholder": "Your username or email…",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "••••••••",
+      "forgot": "Forgot your password?",
+      "submit": "Sign in",
+      "or": "or",
+      "google": "Continue with Google",
+      "noAccount": "Don't have an account?",
+      "registerLink": "Sign up"
+    },
+    "register": {
+      "heading": "Create your account",
+      "subtitle": "Start organizing your everyday life.",
+      "nameLabel": "Name",
+      "namePlaceholder": "Your name",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@email.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "At least 6 characters",
+      "submit": "Create account",
+      "google": "Continue with Google",
+      "hasAccount": "Already have an account?",
+      "loginLink": "Sign in"
+    },
+    "forgot": {
+      "heading": "Recover your access",
+      "subtitle": "We'll guide you through three steps to create a new password.",
+      "steps": {
+        "email": "Your email",
+        "link": "The link",
+        "password": "New password"
+      },
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@email.com",
+      "submit": "Send link",
+      "back": "Back to sign in",
+      "notice": "If the email exists we'll send you a link. Check your spam folder too."
+    },
+    "password": {
+      "show": "Show",
+      "hide": "Hide"
+    },
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "googleOff": "Google sign-in isn't set up yet.",
+      "googleState": "Your Google session expired. Please try again.",
+      "googleEmail": "Google didn't share a valid email.",
+      "google": "We couldn't continue with Google. Please try again.",
+      "googleFallback": "We couldn't continue with Google."
+    }
+  }
+}

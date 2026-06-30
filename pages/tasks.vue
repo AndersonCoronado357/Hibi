@@ -4,23 +4,27 @@ import {
   CalendarDays, CalendarClock, CalendarOff,
 } from '@lucide/vue'
 import { format, parseISO, isValid } from 'date-fns'
-import { es } from 'date-fns/locale'
 
-useHead({ title: 'Hibi — Tareas' })
+const { t } = useI18n()
+const dateLocale = useDateLocale()
+
+useHead({ title: t('tasks.head.title') })
 
 type Status = 'pending' | 'done'
 const { tasks, createTask, updateTask, removeTask, toggleDone, isLoading } = useTasks()
 
 type View = 'list' | 'kanban' | 'create'
 const view = ref<View>('list')
-const COLUMNS: { key: Status; title: string; bg: string; text: string; dotBg: string }[] = [
-  { key: 'pending', title: 'Pendiente', bg: 'bg-sky-soft',  text: 'text-sky-deep',   dotBg: '#5aa6d2' },
-  { key: 'done',    title: 'Hecho',     bg: 'bg-mint',      text: 'text-[#34936a]',  dotBg: '#34936a' },
-]
+const COLUMNS = computed<{ key: Status; title: string; bg: string; text: string; dotBg: string }[]>(() => [
+  { key: 'pending', title: t('tasks.columns.pending'), bg: 'bg-sky-soft',  text: 'text-sky-deep',   dotBg: '#5aa6d2' },
+  { key: 'done',    title: t('tasks.columns.done'),     bg: 'bg-mint',      text: 'text-[#34936a]',  dotBg: '#34936a' },
+])
 
 const PRIORITY_TONE = ['text-fg-subtle', 'text-[#34936a]', 'text-sky-deep', 'text-[#c5733f]', 'text-pink-deep']
 const PRIORITY_BG = ['bg-muted text-fg', 'bg-mint text-[#34936a]', 'bg-sky-soft text-sky-deep', 'bg-peach text-[#c5733f]', 'bg-pink-soft text-pink-deep']
-const PRIORITY_LABEL = ['Sin prioridad', 'Baja', 'Media', 'Alta', 'Urgente']
+const PRIORITY_LABEL = computed(() => [
+  t('tasks.priority.none'), t('tasks.priority.low'), t('tasks.priority.medium'), t('tasks.priority.high'), t('tasks.priority.urgent'),
+])
 
 const doneCount = computed(() => tasks.value.filter((t) => t.status === 'done').length)
 
@@ -30,32 +34,32 @@ function formatDue(d: string | null): string | null {
   const dt = parseISO(d); if (!isValid(dt)) return null
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const diff = Math.round((dt.getTime() - today.getTime()) / 86400000)
-  if (diff === 0) return 'Hoy'
-  if (diff === 1) return 'Mañana'
-  if (diff === -1) return 'Ayer'
-  return format(dt, "d 'de' MMM", { locale: es })
+  if (diff === 0) return t('common.today')
+  if (diff === 1) return t('common.tomorrow')
+  if (diff === -1) return t('common.yesterday')
+  return format(dt, t('tasks.dateFormat'), { locale: dateLocale.value })
 }
 
-const filters = [
-  { value: 'Todas', label: 'Todas', icon: List },
-  { value: 'Hoy', label: 'Hoy', icon: CalendarDays },
-  { value: 'Próximas', label: 'Próximas', icon: CalendarClock },
-  { value: 'Sin fecha', label: 'Sin fecha', icon: CalendarOff },
-  { value: 'Importantes', label: 'Importantes', icon: Flag },
-  { value: 'Hechas', label: 'Hechas', icon: CheckCircle2 },
-]
-const activeFilter = ref('Todas')
+const filters = computed(() => [
+  { value: 'all', label: t('tasks.filters.all'), icon: List },
+  { value: 'today', label: t('tasks.filters.today'), icon: CalendarDays },
+  { value: 'upcoming', label: t('tasks.filters.upcoming'), icon: CalendarClock },
+  { value: 'noDate', label: t('tasks.filters.noDate'), icon: CalendarOff },
+  { value: 'important', label: t('tasks.filters.important'), icon: Flag },
+  { value: 'done', label: t('tasks.filters.done'), icon: CheckCircle2 },
+])
+const activeFilter = ref('all')
 
 const todayStr = () => format(new Date(), 'yyyy-MM-dd')
 const filteredTasks = computed(() => {
   const t0 = todayStr()
   return tasks.value.filter((t) => {
     switch (activeFilter.value) {
-      case 'Hoy': return t.dueDate === t0
-      case 'Próximas': return !!t.dueDate && t.dueDate > t0
-      case 'Sin fecha': return !t.dueDate
-      case 'Importantes': return t.priority >= 2
-      case 'Hechas': return t.status === 'done'
+      case 'today': return t.dueDate === t0
+      case 'upcoming': return !!t.dueDate && t.dueDate > t0
+      case 'noDate': return !t.dueDate
+      case 'important': return t.priority >= 2
+      case 'done': return t.status === 'done'
       default: return true
     }
   })
@@ -148,22 +152,22 @@ function onPointerUp() {
   document.removeEventListener('pointerup', onPointerUp)
   document.removeEventListener('pointercancel', onPointerUp)
 }
-function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
+function statusOf(s: Status) { return COLUMNS.value.find(c => c.key === s)! }
 </script>
 
 <template>
   <!-- CREAR -->
   <AppCreateView v-if="view === 'create'"
-    title="Nueva tarea" subtitle="Captúrala rápido"
+    :title="t('tasks.create.title')" :subtitle="t('tasks.create.subtitle')"
     :disabled="!newTitle.trim() || saving"
     @close="cancelCreate" @save="saveTask">
     <div class="flex flex-col gap-2">
-      <label class="text-[12.5px] font-bold text-fg-muted px-1">Título</label>
-      <input v-model="newTitle" type="text" placeholder="¿Qué hay que hacer?" autofocus
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('tasks.create.titleLabel') }}</label>
+      <input v-model="newTitle" type="text" :placeholder="t('tasks.create.titlePlaceholder')" autofocus
         class="w-full h-14 rounded-[14px] bg-card px-4 text-[18px] font-semibold text-fg outline-none placeholder:text-fg-subtle" />
     </div>
     <div class="flex flex-col gap-2">
-      <label class="text-[12.5px] font-bold text-fg-muted px-1">Prioridad</label>
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('tasks.create.priorityLabel') }}</label>
       <div class="flex flex-wrap gap-1.5">
         <button v-for="(label, i) in PRIORITY_LABEL" :key="i" type="button"
           class="hibi-chip"
@@ -176,13 +180,13 @@ function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
       </div>
     </div>
     <div class="flex flex-col gap-2">
-      <label class="text-[12.5px] font-bold text-fg-muted px-1">Fecha</label>
-      <AppDate v-model="newDue" placeholder="Selecciona una fecha" />
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('tasks.create.dateLabel') }}</label>
+      <AppDate v-model="newDue" :placeholder="t('tasks.create.datePlaceholder')" />
     </div>
     <!-- Notas: textarea grande -->
     <div class="flex flex-col gap-2 flex-1 min-h-[200px]">
-      <label class="text-[12.5px] font-bold text-fg-muted px-1">Notas</label>
-      <textarea v-model="newNotes" placeholder="Detalles, contexto, enlaces…"
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('tasks.create.notesLabel') }}</label>
+      <textarea v-model="newNotes" :placeholder="t('tasks.create.notesPlaceholder')"
         class="w-full flex-1 min-h-0 rounded-[14px] bg-card px-4 py-3 text-[14.5px] text-fg outline-none resize-none"></textarea>
     </div>
   </AppCreateView>
@@ -197,7 +201,7 @@ function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
     <HibiHeart :size="16" beat :duration="2.6" class="hidden md:block absolute bottom-[22%] right-[8%] text-fg-subtle opacity-25 pointer-events-none z-40" />
 
     <div class="relative z-10 flex flex-col gap-3">
-      <PageHero :icon="ListTodo" tone="mint" title="Tareas" :subtitle="`${tasks.length} en total · ${doneCount} hechas`">
+      <PageHero :icon="ListTodo" tone="mint" :title="t('tasks.title')" :subtitle="t('tasks.subtitle', { total: tasks.length, done: doneCount })">
         <template #actions>
           <!-- Filtros: mismo estilo que el toggle de vista (AppSegmented).
                Con icono: en movil se muestra solo el icono (sin texto), asi
@@ -208,12 +212,12 @@ function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
             :options="filters"
             @update:model-value="(v) => activeFilter = String(v)" />
           <AppSegmented v-model="view" :options="[
-            { value: 'list', icon: Inbox, ariaLabel: 'Lista' },
-            { value: 'kanban', icon: LayoutGrid, ariaLabel: 'Kanban' },
+            { value: 'list', icon: Inbox, ariaLabel: t('tasks.views.list') },
+            { value: 'kanban', icon: LayoutGrid, ariaLabel: t('tasks.views.kanban') },
           ]" />
           <AppButton variant="primary" size="sm" @click="openCreate">
             <template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>
-            <span class="hidden sm:inline">Nueva</span>
+            <span class="hidden sm:inline">{{ t('tasks.new') }}</span>
           </AppButton>
         </template>
       </PageHero>
@@ -229,64 +233,64 @@ function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
       <div v-else-if="!filteredTasks.length" class="h-full min-h-[240px] flex flex-col items-center justify-center text-center gap-3 py-10">
         <HibiCloudIcon :size="96" :icon="ListTodo" :icon-size="34" cloud-color="text-sky-soft" icon-color="text-sky-deep" :icon-stroke="1.7" />
         <div>
-          <p class="text-[15px] font-extrabold text-fg">{{ activeFilter === 'Todas' ? 'Aún no hay tareas' : 'Nada por aquí' }}</p>
-          <p class="text-[13px] text-fg-muted mt-0.5">{{ activeFilter === 'Todas' ? 'Crea la primera con el botón “Nueva”.' : 'Prueba con otro filtro.' }}</p>
+          <p class="text-[15px] font-extrabold text-fg">{{ activeFilter === 'all' ? t('tasks.empty.allTitle') : t('tasks.empty.filteredTitle') }}</p>
+          <p class="text-[13px] text-fg-muted mt-0.5">{{ activeFilter === 'all' ? t('tasks.empty.allSubtitle') : t('tasks.empty.filteredSubtitle') }}</p>
         </div>
       </div>
       <ul v-else class="flex flex-col gap-2 hibi-cascade pb-2">
-        <li v-for="t in filteredTasks" :key="t.id">
+        <li v-for="task in filteredTasks" :key="task.id">
           <AppCard class="!p-0 overflow-hidden transition-[background-color]"
-            :class="expandedId === t.id ? '!bg-muted' : ''">
+            :class="expandedId === task.id ? '!bg-muted' : ''">
             <div role="button" tabindex="0" class="w-full flex items-center gap-3 p-4 text-left cursor-pointer outline-none focus-visible:bg-muted"
-              @click="toggleRow(t.id)"
-              @keydown.enter.prevent="toggleRow(t.id)"
-              @keydown.space.prevent="toggleRow(t.id)">
+              @click="toggleRow(task.id)"
+              @keydown.enter.prevent="toggleRow(task.id)"
+              @keydown.space.prevent="toggleRow(task.id)">
               <!-- Check con nube — wrapper con tamaño fijo para que el swap NO mueva layout -->
-              <button type="button" @click.stop="toggleDone(t)"
+              <button type="button" @click.stop="toggleDone(task)"
                 class="shrink-0 relative inline-block"
                 :style="{ width: '40px', height: '27px' }"
-                :aria-label="t.status === 'done' ? 'Marcar pendiente' : 'Marcar hecha'">
+                :aria-label="task.status === 'done' ? t('tasks.row.markPending') : t('tasks.row.markDone')">
                 <Transition name="hibi-check">
                   <HibiCloudIcon
-                    :key="t.status"
+                    :key="task.status"
                     :size="40"
                     :icon="CheckCircle2"
                     :icon-size="16"
-                    :cloud-color="t.status === 'done' ? 'text-mint' : 'text-muted'"
-                    :icon-color="t.status === 'done' ? 'text-[#34936a]' : 'text-transparent'"
+                    :cloud-color="task.status === 'done' ? 'text-mint' : 'text-muted'"
+                    :icon-color="task.status === 'done' ? 'text-[#34936a]' : 'text-transparent'"
                     :icon-stroke="2.4"
                     class="absolute inset-0" />
                 </Transition>
               </button>
               <div class="flex-1 min-w-0">
-                <p class="text-[15px] font-semibold text-fg truncate" :class="{ 'line-through opacity-50': t.status === 'done' }">{{ t.title }}</p>
+                <p class="text-[15px] font-semibold text-fg truncate" :class="{ 'line-through opacity-50': task.status === 'done' }">{{ task.title }}</p>
                 <div class="flex items-center gap-2 mt-1.5 text-[12px] flex-wrap">
                   <!-- Chip de estado PLENO -->
-                  <span class="inline-flex items-center gap-1.5 px-2.5 h-6 rounded-full text-[11.5px] font-bold" :class="[statusOf(t.status).bg, statusOf(t.status).text]">
-                    <span class="size-1.5 rounded-full" :style="{ background: statusOf(t.status).dotBg }" />{{ statusOf(t.status).title }}
+                  <span class="inline-flex items-center gap-1.5 px-2.5 h-6 rounded-full text-[11.5px] font-bold" :class="[statusOf(task.status).bg, statusOf(task.status).text]">
+                    <span class="size-1.5 rounded-full" :style="{ background: statusOf(task.status).dotBg }" />{{ statusOf(task.status).title }}
                   </span>
-                  <span v-if="formatDue(t.dueDate)" class="inline-flex items-center gap-1 text-fg-muted"><Clock class="size-3" aria-hidden="true" />{{ formatDue(t.dueDate) }}</span>
-                  <span v-if="t.priority > 0" class="inline-flex items-center gap-1 text-fg-muted">
-                    <Flag class="size-3" :class="PRIORITY_TONE[t.priority]" :stroke-width="2.3" />
-                    {{ PRIORITY_LABEL[t.priority] }}
+                  <span v-if="formatDue(task.dueDate)" class="inline-flex items-center gap-1 text-fg-muted"><Clock class="size-3" aria-hidden="true" />{{ formatDue(task.dueDate) }}</span>
+                  <span v-if="task.priority > 0" class="inline-flex items-center gap-1 text-fg-muted">
+                    <Flag class="size-3" :class="PRIORITY_TONE[task.priority]" :stroke-width="2.3" />
+                    {{ PRIORITY_LABEL[task.priority] }}
                   </span>
                 </div>
               </div>
-              <ChevronDown class="size-[18px] text-fg-muted transition-[transform] duration-200" :class="expandedId === t.id ? 'rotate-180' : ''" :stroke-width="2.2" aria-hidden="true" />
+              <ChevronDown class="size-[18px] text-fg-muted transition-[transform] duration-200" :class="expandedId === task.id ? 'rotate-180' : ''" :stroke-width="2.2" aria-hidden="true" />
             </div>
             <!-- Detalle expandible — v-if para que el grid trick anime altura -->
             <Transition name="hibi-acc">
-              <div v-if="expandedId === t.id" class="px-4 pb-4 pt-0 flex flex-col gap-3">
-                <div v-if="t.notes" class="rounded-[10px] bg-card px-3 py-2.5">
-                  <p class="text-[11px] text-fg-muted font-semibold uppercase tracking-wide mb-1">Notas</p>
-                  <p class="text-[13.5px] text-fg whitespace-pre-wrap">{{ t.notes }}</p>
+              <div v-if="expandedId === task.id" class="px-4 pb-4 pt-0 flex flex-col gap-3">
+                <div v-if="task.notes" class="rounded-[10px] bg-card px-3 py-2.5">
+                  <p class="text-[11px] text-fg-muted font-semibold uppercase tracking-wide mb-1">{{ t('tasks.row.notes') }}</p>
+                  <p class="text-[13.5px] text-fg whitespace-pre-wrap">{{ task.notes }}</p>
                 </div>
-                <p v-else class="text-[12.5px] text-fg-subtle italic">Sin notas</p>
+                <p v-else class="text-[12.5px] text-fg-subtle italic">{{ t('tasks.row.noNotes') }}</p>
                 <div class="flex justify-end">
                   <button type="button"
                     class="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[12.5px] font-bold text-pink-deep bg-pink-soft hover:bg-pink transition-[background-color] outline-none focus-visible:ring-2 focus-visible:ring-pink-deep"
-                    @click.stop="removeTask(t.id)">
-                    <Trash2 class="size-[14px]" :stroke-width="2.2" aria-hidden="true" />Eliminar
+                    @click.stop="removeTask(task.id)">
+                    <Trash2 class="size-[14px]" :stroke-width="2.2" aria-hidden="true" />{{ t('common.delete') }}
                   </button>
                 </div>
               </div>
@@ -311,22 +315,22 @@ function statusOf(s: Status) { return COLUMNS.find(c => c.key === s)! }
                 <span class="opacity-70">· {{ grouped[col.key].length }}</span>
               </span>
             </div>
-            <button class="grid place-items-center size-7 rounded-[9px] text-fg-subtle hover:text-fg hover:bg-muted" aria-label="Añadir" @click="openCreate"><Plus class="size-4" :stroke-width="2" /></button>
+            <button class="grid place-items-center size-7 rounded-[9px] text-fg-subtle hover:text-fg hover:bg-muted" :aria-label="t('tasks.column.add')" @click="openCreate"><Plus class="size-4" :stroke-width="2" /></button>
           </header>
           <div class="flex-1 min-h-0 overflow-y-auto scroll-area flex flex-col gap-2">
-            <article v-for="t in grouped[col.key]" :key="t.id"
+            <article v-for="task in grouped[col.key]" :key="task.id"
               class="bg-muted rounded-[12px] p-3 cursor-grab active:cursor-grabbing hover:bg-inset transition-[background-color] touch-none select-none"
-              :class="draggingId === t.id ? 'opacity-30' : ''"
-              @pointerdown="onCardPointerDown($event, t)">
-              <p class="text-[13.5px] font-semibold text-fg leading-snug">{{ t.title }}</p>
+              :class="draggingId === task.id ? 'opacity-30' : ''"
+              @pointerdown="onCardPointerDown($event, task)">
+              <p class="text-[13.5px] font-semibold text-fg leading-snug">{{ task.title }}</p>
               <div class="flex items-center justify-between mt-2 text-[11.5px] text-fg-muted">
-                <span v-if="formatDue(t.dueDate)" class="inline-flex items-center gap-1"><Clock class="size-3" aria-hidden="true" />{{ formatDue(t.dueDate) }}</span>
-                <Flag v-if="t.priority > 0" class="size-3 ml-auto" :class="PRIORITY_TONE[t.priority]" :stroke-width="2.3" aria-hidden="true" />
+                <span v-if="formatDue(task.dueDate)" class="inline-flex items-center gap-1"><Clock class="size-3" aria-hidden="true" />{{ formatDue(task.dueDate) }}</span>
+                <Flag v-if="task.priority > 0" class="size-3 ml-auto" :class="PRIORITY_TONE[task.priority]" :stroke-width="2.3" aria-hidden="true" />
               </div>
             </article>
             <div v-if="!grouped[col.key].length"
               class="rounded-[12px] bg-card/40 p-4 text-center text-[12px] text-fg-subtle">
-              Vacío
+              {{ t('tasks.column.empty') }}
             </div>
           </div>
       </AppCard>

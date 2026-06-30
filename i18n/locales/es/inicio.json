@@ -1,0 +1,22 @@
+{
+  "inicio": {
+    "eventsSub": "eventos hoy",
+    "eventSub": "evento hoy",
+    "tasksSub": "de {n} pendientes",
+    "remindersSub": "para hoy",
+    "habitsNone": "sin hábitos",
+    "habitsPct": "{pct}% hoy",
+    "moodToday": "hoy",
+    "moodNone": "sin diario",
+    "streakDay": "día",
+    "streakDays": "días",
+    "moods": {
+      "none": "—",
+      "veryBad": "Muy mal",
+      "bad": "Mal",
+      "normal": "Normal",
+      "good": "Bien",
+      "great": "Genial"
+    }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "tasks": {
+    "head": {
+      "title": "Hibi — Tareas"
+    },
+    "title": "Tareas",
+    "subtitle": "{total} en total · {done} hechas",
+    "new": "Nueva",
+    "dateFormat": "d 'de' MMM",
+    "filters": {
+      "all": "Todas",
+      "today": "Hoy",
+      "upcoming": "Próximas",
+      "noDate": "Sin fecha",
+      "important": "Importantes",
+      "done": "Hechas"
+    },
+    "views": {
+      "list": "Lista",
+      "kanban": "Kanban"
+    },
+    "columns": {
+      "pending": "Pendiente",
+      "done": "Hecho"
+    },
+    "priority": {
+      "none": "Sin prioridad",
+      "low": "Baja",
+      "medium": "Media",
+      "high": "Alta",
+      "urgent": "Urgente"
+    },
+    "create": {
+      "title": "Nueva tarea",
+      "subtitle": "Captúrala rápido",
+      "titleLabel": "Título",
+      "titlePlaceholder": "¿Qué hay que hacer?",
+      "priorityLabel": "Prioridad",
+      "dateLabel": "Fecha",
+      "datePlaceholder": "Selecciona una fecha",
+      "notesLabel": "Notas",
+      "notesPlaceholder": "Detalles, contexto, enlaces…"
+    },
+    "empty": {
+      "allTitle": "Aún no hay tareas",
+      "allSubtitle": "Crea la primera con el botón “Nueva”.",
+      "filteredTitle": "Nada por aquí",
+      "filteredSubtitle": "Prueba con otro filtro."
+    },
+    "row": {
+      "markDone": "Marcar hecha",
+      "markPending": "Marcar pendiente",
+      "notes": "Notas",
+      "noNotes": "Sin notas"
+    },
+    "column": {
+      "add": "Añadir",
+      "empty": "Vacío"
+    }
+  }
+}
