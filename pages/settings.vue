@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import {
   KeyRound, LogOut, Trash2, ImagePlus,
-  Palette, Languages, Globe,
+  Palette, Languages, Globe, MessageCircle,
   Bell, Monitor, Sun, AlarmClock,
 } from '@lucide/vue'
 
 const { t, locale, setLocale } = useI18n()
 const { load: loadSettings, save: saveSettings } = useSettings()
+const { dismissed: fabDismissed, setDismissed: setFabDismissed } = useFab()
+const fabOptions = [{ value: 'on', label: 'Sí' }, { value: 'off', label: 'No' }]
 const langOptions = [
   { value: 'es', label: 'Español' },
   { value: 'en', label: 'English' },
@@ -148,7 +150,7 @@ const NOTIF_ITEMS = [
           <span class="h-2 w-2 rounded-full bg-sky-deep" />
           <h2 class="text-[12.5px] font-extrabold text-fg-muted uppercase tracking-[0.12em]">Apariencia y región</h2>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <AppCard class="!p-5 flex items-center justify-between gap-4">
             <div class="flex items-center gap-3 min-w-0">
               <HibiCloudIcon :size="60" :icon="Palette" :icon-size="22" cloud-color="text-sky-soft" icon-color="text-sky-deep" :icon-stroke="1.8" class="shrink-0" />
@@ -158,6 +160,17 @@ const NOTIF_ITEMS = [
               </div>
             </div>
             <ThemeToggle />
+          </AppCard>
+
+          <AppCard class="!p-5 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3 min-w-0">
+              <HibiCloudIcon :size="60" :icon="MessageCircle" :icon-size="22" cloud-color="text-lavender" icon-color="text-[#7a63c0]" :icon-stroke="1.8" class="shrink-0" />
+              <div class="min-w-0">
+                <h3 class="text-[14.5px] font-extrabold text-fg leading-tight">Nube de chat</h3>
+                <p class="text-[12px] text-fg-muted truncate">{{ fabDismissed ? 'Oculta' : 'Visible' }}</p>
+              </div>
+            </div>
+            <AppSegmented :model-value="fabDismissed ? 'off' : 'on'" :options="fabOptions" toggle @update:model-value="(v) => setFabDismissed(String(v) === 'off')" />
           </AppCard>
 
           <AppCard class="!p-5 flex items-center justify-between gap-4">

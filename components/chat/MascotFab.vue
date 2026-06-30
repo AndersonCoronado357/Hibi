@@ -10,7 +10,7 @@ const route = useRoute()
 const router = useRouter()
 const hideOnChat = computed(() => route.path.startsWith('/chat'))
 
-const dismissed = ref(false)
+const { dismissed, init: initFab, setDismissed } = useFab()
 const pos = ref<{ x: number; y: number } | null>(null) // left/top px; null = esquina por defecto
 const dragging = ref(false)
 const overTrash = ref(false)
@@ -21,7 +21,7 @@ const size = computed(() => (isWide.value ? 78 : 70)) // 78→70 ≈ 10% menor e
 
 onMounted(() => {
   if (!import.meta.client) return
-  if (localStorage.getItem('hibi.fab.dismissed') === '1') dismissed.value = true
+  initFab()
   const saved = localStorage.getItem('hibi.fab.pos')
   if (saved) { try { pos.value = JSON.parse(saved) } catch { /* ignore */ } }
   const mq = window.matchMedia('(min-width: 768px)')
@@ -31,11 +31,8 @@ onMounted(() => {
   onBeforeUnmount(() => mq.removeEventListener('change', onMq))
 })
 
-// Si se elimina, dejamos disponible volver a mostrarla desde el módulo Hibi.
-function restore() {
-  dismissed.value = false
-  if (import.meta.client) localStorage.removeItem('hibi.fab.dismissed')
-}
+// Si se elimina, se puede volver a mostrar desde Ajustes.
+function restore() { setDismissed(false) }
 defineExpose({ restore })
 
 let startX = 0, startY = 0, originX = 0, originY = 0, moved = false
@@ -78,9 +75,8 @@ function onPointerUp() {
   window.removeEventListener('pointerup', onPointerUp)
   dragging.value = false
   if (overTrash.value) {
-    dismissed.value = true
+    setDismissed(true)
     overTrash.value = false
-    if (import.meta.client) localStorage.setItem('hibi.fab.dismissed', '1')
     return
   }
   if (!moved) { router.push('/chat'); return }
