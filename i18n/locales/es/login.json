@@ -29,7 +29,7 @@
       "nameLabel": "Nombre",
       "namePlaceholder": "Tu nombre",
       "emailLabel": "Correo",
-      "emailPlaceholder": "tu@correo.com",
+      "emailPlaceholder": "tu{'@'}correo.com",
       "passwordLabel": "Contraseña",
       "passwordPlaceholder": "Mínimo 6 caracteres",
       "submit": "Crear cuenta",
@@ -46,7 +46,7 @@
         "password": "Nueva clave"
       },
       "emailLabel": "Correo",
-      "emailPlaceholder": "tu@correo.com",
+      "emailPlaceholder": "tu{'@'}correo.com",
       "submit": "Enviar enlace",
       "back": "Volver a iniciar sesión",
       "notice": "Si el correo existe te enviaremos un enlace. Revisa también spam."

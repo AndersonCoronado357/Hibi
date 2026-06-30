@@ -1,3 +1,45 @@
 {
-  "notes": {}
+  "notes": {
+    "head": {
+      "title": "Hibi — Notes"
+    },
+    "dateFormat": "MMM d",
+    "folders": {
+      "title": "Folders",
+      "show": "Show folders",
+      "hide": "Hide folders",
+      "new": "New folder",
+      "namePlaceholder": "Folder name",
+      "create": "Create folder",
+      "color": "Folder color",
+      "delete": "Delete folder",
+      "mobileNew": "Folder",
+      "backToFolders": "Back to folders"
+    },
+    "list": {
+      "show": "Show list",
+      "hide": "Hide list",
+      "searchLabel": "Search notes",
+      "searchPlaceholder": "Search notes…",
+      "count": "{n} notes",
+      "new": "New",
+      "deleteNote": "Delete note",
+      "backToNotes": "Back to notes"
+    },
+    "countOne": "{n} note",
+    "countMany": "{n} notes",
+    "editor": {
+      "titlePlaceholder": "Note title",
+      "contentPlaceholder": "Start writing…",
+      "noContent": "No content yet",
+      "format": "Format"
+    },
+    "empty": {
+      "noNotes": "No notes in this folder",
+      "createFirst": "Create the first one",
+      "pickTitle": "Pick a note",
+      "pickHint": "Or create a new one with the “+ New” button."
+    },
+    "pinned": "Pinned"
+  }
 }

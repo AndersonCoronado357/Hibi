@@ -3,9 +3,11 @@ import { Plus, Flame, Check, Droplet, BookOpen, Leaf, StretchHorizontal, Trophy,
   Heart, Apple, Coffee, Bike, Footprints, Pencil, Camera, PenTool, Smile, Wind, Headphones, Zap } from '@lucide/vue'
 import { markRaw, type Component } from 'vue'
 import { format, subDays, startOfWeek, addDays, addWeeks, subWeeks, isSameDay } from 'date-fns'
-import { es } from 'date-fns/locale'
 
-useHead({ title: 'Hibi — Hábitos' })
+const { t } = useI18n()
+const dateLocale = useDateLocale()
+
+useHead({ title: t('habits.head.title') })
 
 interface Habit {
   id: string; name: string; icon: Component; tone: string; iconColor: string; ringColor: string
@@ -14,15 +16,15 @@ interface Habit {
   best: number
 }
 const ICONS: Record<string, { icon: Component; tone: string; iconColor: string; ringColor: string; label: string }> = {
-  Droplet:           { icon: markRaw(Droplet),           tone: 'bg-sky-soft',     iconColor: 'text-sky-deep',         ringColor: 'var(--color-sky-deep)', label: 'Agua' },
-  BookOpen:          { icon: markRaw(BookOpen),          tone: 'bg-pink-soft',    iconColor: 'text-pink-deep',        ringColor: 'var(--color-pink-deep)', label: 'Libro' },
-  Leaf:              { icon: markRaw(Leaf),              tone: 'bg-mint',         iconColor: 'text-[#34936a]',        ringColor: '#34936a', label: 'Calma' },
-  StretchHorizontal: { icon: markRaw(StretchHorizontal), tone: 'bg-peach',        iconColor: 'text-[#c5733f]',        ringColor: '#c5733f', label: 'Estirar' },
-  Dumbbell:          { icon: markRaw(Dumbbell),          tone: 'bg-lavender',     iconColor: 'text-[#7a63c0]',        ringColor: '#7a63c0', label: 'Pesas' },
-  Brain:             { icon: markRaw(Brain),             tone: 'bg-cream',        iconColor: 'text-[#bf8f2e]',        ringColor: '#bf8f2e', label: 'Meditar' },
-  Music:             { icon: markRaw(Music),             tone: 'bg-pink-soft',    iconColor: 'text-pink-deep',        ringColor: 'var(--color-pink-deep)', label: 'Música' },
-  Sun:               { icon: markRaw(Sun),               tone: 'bg-cream',        iconColor: 'text-[#bf8f2e]',        ringColor: '#bf8f2e', label: 'Mañana' },
-  Moon:              { icon: markRaw(Moon),              tone: 'bg-lavender',     iconColor: 'text-[#7a63c0]',        ringColor: '#7a63c0', label: 'Noche' },
+  Droplet:           { icon: markRaw(Droplet),           tone: 'bg-sky-soft',     iconColor: 'text-sky-deep',         ringColor: 'var(--color-sky-deep)', label: t('habits.icons.Droplet') },
+  BookOpen:          { icon: markRaw(BookOpen),          tone: 'bg-pink-soft',    iconColor: 'text-pink-deep',        ringColor: 'var(--color-pink-deep)', label: t('habits.icons.BookOpen') },
+  Leaf:              { icon: markRaw(Leaf),              tone: 'bg-mint',         iconColor: 'text-[#34936a]',        ringColor: '#34936a', label: t('habits.icons.Leaf') },
+  StretchHorizontal: { icon: markRaw(StretchHorizontal), tone: 'bg-peach',        iconColor: 'text-[#c5733f]',        ringColor: '#c5733f', label: t('habits.icons.StretchHorizontal') },
+  Dumbbell:          { icon: markRaw(Dumbbell),          tone: 'bg-lavender',     iconColor: 'text-[#7a63c0]',        ringColor: '#7a63c0', label: t('habits.icons.Dumbbell') },
+  Brain:             { icon: markRaw(Brain),             tone: 'bg-cream',        iconColor: 'text-[#bf8f2e]',        ringColor: '#bf8f2e', label: t('habits.icons.Brain') },
+  Music:             { icon: markRaw(Music),             tone: 'bg-pink-soft',    iconColor: 'text-pink-deep',        ringColor: 'var(--color-pink-deep)', label: t('habits.icons.Music') },
+  Sun:               { icon: markRaw(Sun),               tone: 'bg-cream',        iconColor: 'text-[#bf8f2e]',        ringColor: '#bf8f2e', label: t('habits.icons.Sun') },
+  Moon:              { icon: markRaw(Moon),              tone: 'bg-lavender',     iconColor: 'text-[#7a63c0]',        ringColor: '#7a63c0', label: t('habits.icons.Moon') },
 }
 const ICON_KEYS = Object.keys(ICONS)
 
@@ -91,7 +93,8 @@ const habitsData = computed<Habit[]>(() => habits.value.map((h) => {
 // ───── Tracker semanal: 7 columnas (L–D) × N filas (hábitos) ─────
 const weekCursor = ref(startOfWeek(new Date(), { weekStartsOn: 1 }))
 const days = computed(() => Array.from({ length: 7 }, (_, i) => addDays(weekCursor.value, i)))
-const WEEKDAY_LABELS = ['L','M','X','J','V','S','D']
+const WEEKDAY_LABELS = computed(() => Array.from({ length: 7 }, (_, i) =>
+  format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), 'EEEEE', { locale: dateLocale.value }).toUpperCase()))
 const today = new Date()
 
 function dayIndex(d: Date) {
@@ -115,13 +118,13 @@ function streak(h: Habit) {
 function ratePct(h: Habit) {
   return Math.round((h.log.filter(Boolean).length / h.log.length) * 100)
 }
-const weekRange = computed(() => `${format(weekCursor.value, "d 'de' MMM", { locale: es })} – ${format(addDays(weekCursor.value, 6), "d 'de' MMM", { locale: es })}`)
+const weekRange = computed(() => `${format(weekCursor.value, t('habits.weekRangeFormat'), { locale: dateLocale.value })} – ${format(addDays(weekCursor.value, 6), t('habits.weekRangeFormat'), { locale: dateLocale.value })}`)
 const weekRangeShort = computed(() => {
   const s = weekCursor.value, e = addDays(weekCursor.value, 6)
-  const sameMonth = format(s, 'MMM', { locale: es }) === format(e, 'MMM', { locale: es })
+  const sameMonth = format(s, 'MMM', { locale: dateLocale.value }) === format(e, 'MMM', { locale: dateLocale.value })
   return sameMonth
-    ? `${format(s, 'd')}–${format(e, 'd')} ${format(e, 'MMM', { locale: es })}`
-    : `${format(s, 'd MMM', { locale: es })} – ${format(e, 'd MMM', { locale: es })}`
+    ? `${format(s, 'd')}–${format(e, 'd')} ${format(e, 'MMM', { locale: dateLocale.value })}`
+    : `${format(s, 'd MMM', { locale: dateLocale.value })} – ${format(e, 'd MMM', { locale: dateLocale.value })}`
 })
 const todayDoneCount = computed(() => habitsData.value.filter(h => done(h, today)).length)
 const todayIdx = computed(() => days.value.findIndex(d => isSameDay(d, today)))
@@ -222,7 +225,8 @@ async function saveHabit() {
 
 // ───── Analítica ─────
 // Heatmap 7×7 últimas 7 semanas (= 49 días, alineado al log)
-const WEEK_LABELS = ['L','M','X','J','V','S','D']
+const WEEK_LABELS = computed(() => Array.from({ length: 7 }, (_, i) =>
+  format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), 'EEEEE', { locale: dateLocale.value }).toUpperCase()))
 const heatmap = computed(() => {
   // Para cada hábito, devuelve % de cumplimiento últimas 7 semanas
   return habitsData.value.map(h => {
@@ -250,17 +254,17 @@ function removeHabit(id: string) { apiRemoveHabit(id) }
 <template>
   <!-- VISTA DE CREACIÓN -->
   <AppCreateView v-if="view === 'create'"
-    title="Nuevo hábito"
-    subtitle="Las micro-rutinas que sostienen tus semanas"
+    :title="t('habits.create.title')"
+    :subtitle="t('habits.create.subtitle')"
     :disabled="!newName.trim()"
     @close="cancelCreate" @save="saveHabit">
     <div class="flex flex-col gap-2">
-      <label class="text-[12.5px] font-bold text-fg-muted px-1">Nombre</label>
-      <input v-model="newName" type="text" placeholder="Beber agua, leer 20 min, salir a andar…" autofocus
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('habits.create.nameLabel') }}</label>
+      <input v-model="newName" type="text" :placeholder="t('habits.create.namePlaceholder')" autofocus
         class="w-full h-14 rounded-[14px] bg-card px-4 text-[18px] font-semibold text-fg outline-none placeholder:text-fg-subtle" />
     </div>
     <div class="flex flex-col gap-2">
-      <label class="text-[12.5px] font-bold text-fg-muted px-1">Icono</label>
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('habits.create.iconLabel') }}</label>
       <div class="flex items-center gap-1.5 flex-wrap">
         <button v-for="g in ICON_GALLERY" :key="g.key" type="button" :aria-label="g.key"
           class="grid place-items-center size-10 rounded-[10px] bg-card transition-[background-color,transform]"
@@ -272,7 +276,7 @@ function removeHabit(id: string) { apiRemoveHabit(id) }
       </div>
     </div>
     <div class="flex flex-col gap-2 flex-1 min-h-0">
-      <label class="text-[12.5px] font-bold text-fg-muted px-1 shrink-0">Color</label>
+      <label class="text-[12.5px] font-bold text-fg-muted px-1 shrink-0">{{ t('habits.create.colorLabel') }}</label>
       <div class="flex-1 min-h-0">
         <AppColorPicker v-model="newCustomColor" format="hex" />
       </div>
@@ -289,13 +293,13 @@ function removeHabit(id: string) { apiRemoveHabit(id) }
     <HibiHeart :size="18" beat :duration="2.6" class="hidden md:block absolute bottom-[18%] right-[8%] text-fg-subtle opacity-25 pointer-events-none z-40" />
     <!-- Toolbar -->
     <div class="relative z-10">
-      <PageHero :icon="Flame" tone="pink" title="Hábitos" :subtitle="`Hoy ${todayDoneCount} / ${habitsData.length} hechos`">
+      <PageHero :icon="Flame" tone="pink" :title="t('habits.title')" :subtitle="t('habits.subtitle', { done: todayDoneCount, total: habitsData.length })">
         <template #actions>
           <!-- Controles que pueden hacer scroll horizontal -->
           <div class="flex-1 min-w-0 flex items-center gap-1.5 md:gap-2 overflow-x-auto hibi-no-sb">
             <AppSegmented v-model="view" :options="[
-              { value: 'tracker', icon: ListChecks, ariaLabel: 'Tracker' },
-              { value: 'analytics', icon: BarChart3, ariaLabel: 'Analítica' },
+              { value: 'tracker', icon: ListChecks, ariaLabel: t('habits.views.tracker') },
+              { value: 'analytics', icon: BarChart3, ariaLabel: t('habits.views.analytics') },
             ]" />
             <div v-if="view === 'tracker'" class="inline-flex items-center gap-1 shrink-0">
               <button class="h-9 px-3 rounded-[11px] bg-card text-[13px] font-semibold text-pink-deep hover:bg-inset" @click="weekCursor = subWeeks(weekCursor, 1)">‹</button>
@@ -304,7 +308,7 @@ function removeHabit(id: string) { apiRemoveHabit(id) }
             </div>
           </div>
           <!-- Nuevo: SIEMPRE fijo a la derecha -->
-          <AppButton variant="primary" size="sm" class="shrink-0" @click="openCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>Nuevo</AppButton>
+          <AppButton variant="primary" size="sm" class="shrink-0" @click="openCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>{{ t('habits.new') }}</AppButton>
         </template>
       </PageHero>
     </div>
@@ -315,21 +319,21 @@ function removeHabit(id: string) { apiRemoveHabit(id) }
       <div class="rounded-[14px] bg-sky-soft text-sky-deep px-3 py-2.5 md:px-4 md:py-3 flex flex-col md:flex-row md:items-center gap-1 md:gap-3 min-w-0">
         <HibiCloudIcon :size="56" :icon="Flame" :icon-size="18" cloud-color="text-sky-soft" icon-color="text-sky-deep" :icon-stroke="2" class="shrink-0 hidden md:flex" />
         <div class="min-w-0">
-          <p class="text-[10px] md:text-[11px] font-bold uppercase tracking-wide opacity-80 truncate">Racha mejor</p>
-          <p class="text-[18px] md:text-[22px] font-extrabold leading-none tabular-nums mt-0.5">{{ bestStreakAnim }} <span class="text-[11px] md:text-[12px] font-bold opacity-70">días</span></p>
+          <p class="text-[10px] md:text-[11px] font-bold uppercase tracking-wide opacity-80 truncate">{{ t('habits.stats.bestStreak') }}</p>
+          <p class="text-[18px] md:text-[22px] font-extrabold leading-none tabular-nums mt-0.5">{{ bestStreakAnim }} <span class="text-[11px] md:text-[12px] font-bold opacity-70">{{ t('habits.stats.days') }}</span></p>
         </div>
       </div>
       <div class="rounded-[14px] bg-mint text-[#34936a] px-3 py-2.5 md:px-4 md:py-3 flex flex-col md:flex-row md:items-center gap-1 md:gap-3 min-w-0">
         <HibiCloudIcon :size="56" :icon="Trophy" :icon-size="18" cloud-color="text-mint" icon-color="text-[#34936a]" :icon-stroke="2" class="shrink-0 hidden md:flex" />
         <div class="min-w-0">
-          <p class="text-[10px] md:text-[11px] font-bold uppercase tracking-wide opacity-80 truncate">Cumplimiento</p>
+          <p class="text-[10px] md:text-[11px] font-bold uppercase tracking-wide opacity-80 truncate">{{ t('habits.stats.compliance') }}</p>
           <p class="text-[18px] md:text-[22px] font-extrabold leading-none tabular-nums mt-0.5">{{ compliancePctAnim }}<span class="text-[11px] md:text-[12px] font-bold opacity-70">%</span></p>
         </div>
       </div>
       <div class="rounded-[14px] bg-pink-soft text-pink-deep px-3 py-2.5 md:px-4 md:py-3 flex flex-col md:flex-row md:items-center gap-1 md:gap-3 min-w-0">
         <HibiCloudIcon :size="56" :icon="Check" :icon-size="18" cloud-color="text-pink-soft" icon-color="text-pink-deep" :icon-stroke="2.4" class="shrink-0 hidden md:flex" />
         <div class="min-w-0">
-          <p class="text-[10px] md:text-[11px] font-bold uppercase tracking-wide opacity-80 truncate">Hoy hechos</p>
+          <p class="text-[10px] md:text-[11px] font-bold uppercase tracking-wide opacity-80 truncate">{{ t('habits.stats.todayDone') }}</p>
           <p class="text-[18px] md:text-[22px] font-extrabold leading-none tabular-nums mt-0.5">{{ todayDoneAnim }} / {{ totalHabitsAnim }}</p>
         </div>
       </div>
@@ -341,15 +345,15 @@ function removeHabit(id: string) { apiRemoveHabit(id) }
         <div v-if="!habitsData.length && !isLoading" class="flex-1 flex flex-col items-center justify-center text-center gap-3 py-10">
           <HibiCloudIcon :size="96" :icon="Flame" :icon-size="34" cloud-color="text-pink-soft" icon-color="text-pink-deep" :icon-stroke="1.8" />
           <div>
-            <p class="text-[15px] font-extrabold text-fg">Aún no hay hábitos</p>
-            <p class="text-[13px] text-fg-muted mt-0.5">Crea el primero con el botón “Nuevo”.</p>
+            <p class="text-[15px] font-extrabold text-fg">{{ t('habits.empty.title') }}</p>
+            <p class="text-[13px] text-fg-muted mt-0.5">{{ t('habits.empty.hint') }}</p>
           </div>
         </div>
         <!-- ───── DESKTOP: tabla hábito × 7 días ───── -->
         <div v-if="habitsData.length" class="hidden md:flex md:flex-col">
           <!-- HEADER -->
           <div class="grid grid-cols-[minmax(180px,1fr)_repeat(7,minmax(0,1fr))] gap-x-1.5 shrink-0">
-            <span class="text-[12px] font-bold text-fg-muted uppercase tracking-wide pb-3 self-end">Hábito</span>
+            <span class="text-[12px] font-bold text-fg-muted uppercase tracking-wide pb-3 self-end">{{ t('habits.table.header') }}</span>
             <div v-for="(d, i) in days" :key="'h'+i" class="text-center pt-3 pb-3 rounded-t-[12px]"
               :class="isSameDay(d, today) ? 'bg-sky-soft text-sky-deep' : 'text-fg-muted'">
               <p class="text-[10.5px] font-bold uppercase tracking-wide">{{ WEEKDAY_LABELS[i] }}</p>
@@ -370,7 +374,7 @@ function removeHabit(id: string) { apiRemoveHabit(id) }
                     <span>{{ ratePct(h) }}%</span>
                   </p>
                 </div>
-                <button type="button" class="shrink-0 grid place-items-center size-7 rounded-full text-fg-subtle opacity-0 group-hover/habit:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" aria-label="Eliminar hábito" @click="removeHabit(h.id)"><Trash2 class="size-[14px]" :stroke-width="2" /></button>
+                <button type="button" class="shrink-0 grid place-items-center size-7 rounded-full text-fg-subtle opacity-0 group-hover/habit:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" :aria-label="t('habits.delete')" @click="removeHabit(h.id)"><Trash2 class="size-[14px]" :stroke-width="2" /></button>
               </div>
               <button v-for="(d, i) in days" :key="h.id+'-'+i" type="button"
                 class="aspect-square max-h-10 w-full rounded-[10px] grid place-items-center transition-[background-color]"
@@ -380,8 +384,8 @@ function removeHabit(id: string) { apiRemoveHabit(id) }
                 ]"
                 :style="done(h, d) ? { background: h.ringColor } : undefined"
                 :disabled="!isSameDay(d, today)"
-                :aria-label="isSameDay(d, today) ? (done(h, d) ? 'Quitar marca' : 'Marcar como hecho') : format(d, 'EEEE d', { locale: es })"
-                :title="format(d, 'EEEE d', { locale: es })"
+                :aria-label="isSameDay(d, today) ? (done(h, d) ? t('habits.toggle.unmark') : t('habits.toggle.mark')) : format(d, 'EEEE d', { locale: dateLocale.value })"
+                :title="format(d, 'EEEE d', { locale: dateLocale.value })"
                 @click="isSameDay(d, today) && toggle(h, d)">
                 <Check v-if="done(h, d)" class="size-[13px] text-white" :stroke-width="3" aria-hidden="true" />
               </button>
@@ -401,13 +405,13 @@ function removeHabit(id: string) { apiRemoveHabit(id) }
                   <span>·</span><span>{{ ratePct(h) }}%</span>
                 </p>
               </div>
-              <button type="button" class="shrink-0 grid place-items-center size-8 rounded-full text-fg-subtle hover:text-pink-deep hover:bg-pink-soft transition-[background-color,color]" aria-label="Eliminar hábito" @click="removeHabit(h.id)"><Trash2 class="size-[15px]" :stroke-width="2" /></button>
+              <button type="button" class="shrink-0 grid place-items-center size-8 rounded-full text-fg-subtle hover:text-pink-deep hover:bg-pink-soft transition-[background-color,color]" :aria-label="t('habits.delete')" @click="removeHabit(h.id)"><Trash2 class="size-[15px]" :stroke-width="2" /></button>
             </div>
             <div class="grid grid-cols-7 gap-1.5">
               <button v-for="(d, i) in days" :key="h.id+'m'+i" type="button"
                 class="flex flex-col items-center gap-1"
                 :disabled="!isSameDay(d, today)"
-                :aria-label="isSameDay(d, today) ? (done(h, d) ? 'Quitar marca' : 'Marcar como hecho') : format(d, 'EEEE d', { locale: es })"
+                :aria-label="isSameDay(d, today) ? (done(h, d) ? t('habits.toggle.unmark') : t('habits.toggle.mark')) : format(d, 'EEEE d', { locale: dateLocale.value })"
                 @click="isSameDay(d, today) && toggle(h, d)">
                 <span class="text-[10px] font-bold uppercase" :class="isSameDay(d, today) ? 'text-sky-deep' : 'text-fg-subtle'">{{ WEEKDAY_LABELS[i] }}</span>
                 <span class="w-full aspect-square rounded-[10px] grid place-items-center transition-[background-color]"
@@ -428,7 +432,7 @@ function removeHabit(id: string) { apiRemoveHabit(id) }
       <div class="relative z-10 flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-[280px_1fr] gap-3 overflow-y-auto lg:overflow-hidden scroll-area">
         <!-- IZQUIERDA: lista de hábitos con anillos individuales -->
         <AppCard class="!p-4 flex flex-col overflow-hidden shrink-0 max-h-[42vh] lg:max-h-none lg:min-h-0">
-          <h3 class="text-[13px] font-bold text-fg-muted mb-3 shrink-0 px-1">Hábitos</h3>
+          <h3 class="text-[13px] font-bold text-fg-muted mb-3 shrink-0 px-1">{{ t('habits.title') }}</h3>
           <ul class="flex-1 min-h-0 overflow-y-auto scroll-area flex flex-col gap-1.5 pr-1">
             <!-- "Todos" -->
             <li>
@@ -443,8 +447,8 @@ function removeHabit(id: string) { apiRemoveHabit(id) }
                     :stroke-dasharray="`${overallRate * 0.942} 94.2`" />
                 </svg>
                 <div class="flex-1 min-w-0">
-                  <p class="text-[13.5px] font-bold text-fg">Todos</p>
-                  <p class="text-[11.5px] text-fg-muted">{{ habitsData.length }} hábitos</p>
+                  <p class="text-[13.5px] font-bold text-fg">{{ t('habits.analytics.all') }}</p>
+                  <p class="text-[11.5px] text-fg-muted">{{ t('habits.analytics.habitsCount', { count: habitsData.length }) }}</p>
                 </div>
                 <span class="text-[14px] font-extrabold tabular-nums text-sky-deep">{{ overallRate }}%</span>
               </button>
@@ -463,7 +467,7 @@ function removeHabit(id: string) { apiRemoveHabit(id) }
                 <div class="flex-1 min-w-0">
                   <p class="text-[13.5px] font-bold text-fg truncate">{{ h.name }}</p>
                   <p class="text-[11.5px] text-fg-muted inline-flex items-center gap-1">
-                    <Flame class="size-2.5 text-pink-deep" :stroke-width="2.4" />{{ streak(h) }} días
+                    <Flame class="size-2.5 text-pink-deep" :stroke-width="2.4" />{{ streak(h) }} {{ t('habits.stats.days') }}
                   </p>
                 </div>
                 <span class="text-[14px] font-extrabold tabular-nums" :style="{ color: h.ringColor }">{{ ratePct(h) }}%</span>
@@ -479,21 +483,21 @@ function removeHabit(id: string) { apiRemoveHabit(id) }
             <AppCard class="!p-3 md:!p-4 flex flex-col md:flex-row md:items-center gap-1 md:gap-3 min-w-0">
               <HibiCloudIcon :size="58" :icon="Flame" :icon-size="18" cloud-color="text-pink-soft" icon-color="text-pink-deep" :icon-stroke="2" class="shrink-0 hidden md:flex" />
               <div class="min-w-0">
-                <p class="text-[10px] md:text-[11px] font-bold text-fg-muted uppercase tracking-wide truncate">Racha actual</p>
-                <p class="text-[19px] md:text-[24px] font-extrabold tabular-nums leading-none mt-0.5">{{ analyticsStreak }} <span class="text-[11px] md:text-[12px] text-fg-muted">días</span></p>
+                <p class="text-[10px] md:text-[11px] font-bold text-fg-muted uppercase tracking-wide truncate">{{ t('habits.stats.currentStreak') }}</p>
+                <p class="text-[19px] md:text-[24px] font-extrabold tabular-nums leading-none mt-0.5">{{ analyticsStreak }} <span class="text-[11px] md:text-[12px] text-fg-muted">{{ t('habits.stats.days') }}</span></p>
               </div>
             </AppCard>
             <AppCard class="!p-3 md:!p-4 flex flex-col md:flex-row md:items-center gap-1 md:gap-3 min-w-0">
               <HibiCloudIcon :size="58" :icon="Trophy" :icon-size="18" cloud-color="text-cream" icon-color="text-[#bf8f2e]" :icon-stroke="2" class="shrink-0 hidden md:flex" />
               <div class="min-w-0">
-                <p class="text-[10px] md:text-[11px] font-bold text-fg-muted uppercase tracking-wide truncate">Racha mejor</p>
-                <p class="text-[19px] md:text-[24px] font-extrabold tabular-nums leading-none mt-0.5">{{ analyticsBest }} <span class="text-[11px] md:text-[12px] text-fg-muted">días</span></p>
+                <p class="text-[10px] md:text-[11px] font-bold text-fg-muted uppercase tracking-wide truncate">{{ t('habits.stats.bestStreak') }}</p>
+                <p class="text-[19px] md:text-[24px] font-extrabold tabular-nums leading-none mt-0.5">{{ analyticsBest }} <span class="text-[11px] md:text-[12px] text-fg-muted">{{ t('habits.stats.days') }}</span></p>
               </div>
             </AppCard>
             <AppCard class="!p-3 md:!p-4 flex flex-col md:flex-row md:items-center gap-1 md:gap-3 min-w-0">
               <HibiCloudIcon :size="58" :icon="Check" :icon-size="18" cloud-color="text-mint" icon-color="text-[#34936a]" :icon-stroke="2.4" class="shrink-0 hidden md:flex" />
               <div class="min-w-0">
-                <p class="text-[10px] md:text-[11px] font-bold text-fg-muted uppercase tracking-wide truncate">Total hechos</p>
+                <p class="text-[10px] md:text-[11px] font-bold text-fg-muted uppercase tracking-wide truncate">{{ t('habits.stats.totalDone') }}</p>
                 <p class="text-[19px] md:text-[24px] font-extrabold tabular-nums leading-none mt-0.5">{{ analyticsDone }}<span class="text-[11px] md:text-[12px] text-fg-muted"> / {{ analyticsSlots }}</span></p>
               </div>
             </AppCard>
@@ -503,34 +507,34 @@ function removeHabit(id: string) { apiRemoveHabit(id) }
           <AppCard class="!p-4 md:!p-5 flex-1 min-h-[280px] lg:min-h-0 flex flex-col">
             <header class="shrink-0 flex items-center justify-between mb-3">
               <h3 class="text-[14px] font-bold text-fg">
-                {{ selectedHabitId ? filteredHabits[0]?.name : 'Cumplimiento global' }}
+                {{ selectedHabitId ? filteredHabits[0]?.name : t('habits.analytics.global') }}
               </h3>
               <p v-if="heatHover" class="text-[12px] font-semibold text-fg">
-                <span class="capitalize">{{ format(heatHover.date, "EEE d 'de' MMM", { locale: es }) }}</span>
+                <span class="capitalize">{{ format(heatHover.date, t('habits.heatHoverFormat'), { locale: dateLocale.value }) }}</span>
                 <span class="ml-2 px-2 py-0.5 rounded-full text-[11px]"
                   :style="{ background: heatColor + '33', color: heatColor }">{{ heatHover.pct }}%</span>
               </p>
             </header>
             <div class="flex-1 min-h-0 grid grid-cols-[20px_1fr] gap-2 items-center">
               <div class="flex flex-col justify-around text-[9.5px] font-bold text-fg-subtle text-right h-full">
-                <span v-for="(d, i) in ['L','M','X','J','V','S','D']" :key="i">{{ d }}</span>
+                <span v-for="(d, i) in WEEKDAY_LABELS" :key="i">{{ d }}</span>
               </div>
               <div class="hibi-anim-bars grid grid-rows-7 gap-1.5 h-full" style="grid-template-columns: repeat(14, minmax(0, 1fr));">
                 <button v-for="(c, i) in analyticsHeat" :key="i" type="button"
                   class="rounded-[5px] transition-[filter]"
                   :class="heatHover?.idx === i ? 'brightness-125' : ''"
                   :style="cellStyle(c)"
-                  :title="`${format(c.date, 'EEE d', { locale: es })}: ${c.pct}%`"
+                  :title="`${format(c.date, 'EEE d', { locale: dateLocale.value })}: ${c.pct}%`"
                   @mouseenter="heatHover = { ...c, idx: i }"
                   @mouseleave="heatHover = null"></button>
               </div>
             </div>
             <!-- Leyenda -->
             <div class="shrink-0 flex items-center justify-end gap-2 mt-4 pt-3 border-t border-[var(--bg-muted)]">
-              <span class="text-[11px] text-fg-muted font-bold">Menos</span>
+              <span class="text-[11px] text-fg-muted font-bold">{{ t('habits.analytics.less') }}</span>
               <span v-for="p in [0, 25, 50, 75, 100]" :key="p" class="size-3.5 rounded-[3px]"
                 :style="{ background: p === 0 ? 'var(--bg-muted)' : heatColor + Math.round((p / 100) * 200 + 55).toString(16).padStart(2, '0') }"></span>
-              <span class="text-[11px] text-fg-muted font-bold">Más</span>
+              <span class="text-[11px] text-fg-muted font-bold">{{ t('habits.analytics.more') }}</span>
             </div>
           </AppCard>
         </div>

@@ -1,3 +1,62 @@
 {
-  "habits": {}
+  "habits": {
+    "head": {
+      "title": "Hibi — Hábitos"
+    },
+    "title": "Hábitos",
+    "subtitle": "Hoy {done} / {total} hechos",
+    "new": "Nuevo",
+    "weekRangeFormat": "d 'de' MMM",
+    "heatHoverFormat": "EEE d 'de' MMM",
+    "views": {
+      "tracker": "Tracker",
+      "analytics": "Analítica"
+    },
+    "stats": {
+      "bestStreak": "Racha mejor",
+      "compliance": "Cumplimiento",
+      "todayDone": "Hoy hechos",
+      "currentStreak": "Racha actual",
+      "totalDone": "Total hechos",
+      "days": "días"
+    },
+    "table": {
+      "header": "Hábito"
+    },
+    "create": {
+      "title": "Nuevo hábito",
+      "subtitle": "Las micro-rutinas que sostienen tus semanas",
+      "nameLabel": "Nombre",
+      "namePlaceholder": "Beber agua, leer 20 min, salir a andar…",
+      "iconLabel": "Icono",
+      "colorLabel": "Color"
+    },
+    "empty": {
+      "title": "Aún no hay hábitos",
+      "hint": "Crea el primero con el botón “Nuevo”."
+    },
+    "delete": "Eliminar hábito",
+    "toggle": {
+      "unmark": "Quitar marca",
+      "mark": "Marcar como hecho"
+    },
+    "analytics": {
+      "all": "Todos",
+      "habitsCount": "{count} hábitos",
+      "global": "Cumplimiento global",
+      "less": "Menos",
+      "more": "Más"
+    },
+    "icons": {
+      "Droplet": "Agua",
+      "BookOpen": "Libro",
+      "Leaf": "Calma",
+      "StretchHorizontal": "Estirar",
+      "Dumbbell": "Pesas",
+      "Brain": "Meditar",
+      "Music": "Música",
+      "Sun": "Mañana",
+      "Moon": "Noche"
+    }
+  }
 }

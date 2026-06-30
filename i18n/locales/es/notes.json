@@ -1,3 +1,45 @@
 {
-  "notes": {}
+  "notes": {
+    "head": {
+      "title": "Hibi — Notas"
+    },
+    "dateFormat": "d 'de' MMM",
+    "folders": {
+      "title": "Carpetas",
+      "show": "Mostrar carpetas",
+      "hide": "Ocultar carpetas",
+      "new": "Nueva carpeta",
+      "namePlaceholder": "Nombre de la carpeta",
+      "create": "Crear carpeta",
+      "color": "Color de la carpeta",
+      "delete": "Eliminar carpeta",
+      "mobileNew": "Carpeta",
+      "backToFolders": "Volver a carpetas"
+    },
+    "list": {
+      "show": "Mostrar lista",
+      "hide": "Ocultar lista",
+      "searchLabel": "Buscar notas",
+      "searchPlaceholder": "Buscar notas…",
+      "count": "{n} notas",
+      "new": "Nueva",
+      "deleteNote": "Eliminar nota",
+      "backToNotes": "Volver a las notas"
+    },
+    "countOne": "{n} nota",
+    "countMany": "{n} notas",
+    "editor": {
+      "titlePlaceholder": "Título de la nota",
+      "contentPlaceholder": "Empieza a escribir…",
+      "noContent": "Sin contenido aún",
+      "format": "Formato"
+    },
+    "empty": {
+      "noNotes": "No hay notas en esta carpeta",
+      "createFirst": "Crear la primera",
+      "pickTitle": "Elige una nota",
+      "pickHint": "O crea una nueva con el botón “+ Nueva”."
+    },
+    "pinned": "Fijada"
+  }
 }

@@ -1,3 +1,55 @@
 {
-  "calendar": {}
+  "calendar": {
+    "head": {
+      "title": "Hibi — Calendar"
+    },
+    "subtitle": "{n} events",
+    "today": "Today",
+    "eventLabel": "Event",
+    "views": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month",
+      "agenda": "Agenda"
+    },
+    "nav": {
+      "prev": "Previous",
+      "next": "Next",
+      "newEvent": "New event",
+      "back": "Back",
+      "backToMonth": "Back to month"
+    },
+    "allDay": "All day",
+    "create": {
+      "titleNew": "New event",
+      "titleEdit": "Edit event",
+      "subtitleNew": "Add a commitment to your calendar",
+      "subtitleEdit": "Adjust the event details",
+      "titleLabel": "Title",
+      "titlePlaceholder": "What needs doing?",
+      "dateLabel": "Date",
+      "datePlaceholder": "Date",
+      "startsLabel": "Starts",
+      "endsLabel": "Ends",
+      "colorLabel": "Event color",
+      "deleteEvent": "Delete event"
+    },
+    "empty": {
+      "week": "No events this week",
+      "day": "No events this day",
+      "createFirst": "Create the first one",
+      "agenda": "Nothing here."
+    },
+    "more": "+ {n} more",
+    "format": {
+      "day": "EEEE MMMM d yyyy",
+      "weekRangeStart": "MMM d",
+      "weekRangeEnd": "MMM d yyyy",
+      "monthYear": "MMMM yyyy",
+      "monthShortYear": "MMM yy",
+      "drillWeekday": "EEEE",
+      "drillDayMonth": "MMMM d"
+    },
+    "weekRangeSep": "to"
+  }
 }

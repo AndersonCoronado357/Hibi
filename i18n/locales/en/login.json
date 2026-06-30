@@ -29,7 +29,7 @@
       "nameLabel": "Name",
       "namePlaceholder": "Your name",
       "emailLabel": "Email",
-      "emailPlaceholder": "you@email.com",
+      "emailPlaceholder": "you{'@'}email.com",
       "passwordLabel": "Password",
       "passwordPlaceholder": "At least 6 characters",
       "submit": "Create account",
@@ -46,7 +46,7 @@
         "password": "New password"
       },
       "emailLabel": "Email",
-      "emailPlaceholder": "you@email.com",
+      "emailPlaceholder": "you{'@'}email.com",
       "submit": "Send link",
       "back": "Back to sign in",
       "notice": "If the email exists we'll send you a link. Check your spam folder too."

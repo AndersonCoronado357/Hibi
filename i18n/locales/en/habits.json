@@ -1,3 +1,62 @@
 {
-  "habits": {}
+  "habits": {
+    "head": {
+      "title": "Hibi — Habits"
+    },
+    "title": "Habits",
+    "subtitle": "{done} / {total} done today",
+    "new": "New",
+    "weekRangeFormat": "MMM d",
+    "heatHoverFormat": "EEE, MMM d",
+    "views": {
+      "tracker": "Tracker",
+      "analytics": "Analytics"
+    },
+    "stats": {
+      "bestStreak": "Best streak",
+      "compliance": "Completion",
+      "todayDone": "Done today",
+      "currentStreak": "Current streak",
+      "totalDone": "Total done",
+      "days": "days"
+    },
+    "table": {
+      "header": "Habit"
+    },
+    "create": {
+      "title": "New habit",
+      "subtitle": "The micro-routines that hold your weeks together",
+      "nameLabel": "Name",
+      "namePlaceholder": "Drink water, read 20 min, go for a walk…",
+      "iconLabel": "Icon",
+      "colorLabel": "Color"
+    },
+    "empty": {
+      "title": "No habits yet",
+      "hint": "Create your first one with the “New” button."
+    },
+    "delete": "Delete habit",
+    "toggle": {
+      "unmark": "Remove mark",
+      "mark": "Mark as done"
+    },
+    "analytics": {
+      "all": "All",
+      "habitsCount": "{count} habits",
+      "global": "Overall completion",
+      "less": "Less",
+      "more": "More"
+    },
+    "icons": {
+      "Droplet": "Water",
+      "BookOpen": "Book",
+      "Leaf": "Calm",
+      "StretchHorizontal": "Stretch",
+      "Dumbbell": "Weights",
+      "Brain": "Meditate",
+      "Music": "Music",
+      "Sun": "Morning",
+      "Moon": "Night"
+    }
+  }
 }

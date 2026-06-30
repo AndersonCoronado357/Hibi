@@ -1,3 +1,46 @@
 {
-  "reminders": {}
+  "reminders": {
+    "head": {
+      "title": "Hibi — Reminders"
+    },
+    "title": "Reminders",
+    "subtitle": "{count} pending",
+    "new": "New",
+    "groups": {
+      "week": "This week",
+      "later": "Later"
+    },
+    "pre": {
+      "exact": "At the exact time",
+      "min5": "5 min before",
+      "min10": "10 min before",
+      "min15": "15 min before",
+      "min30": "30 min before",
+      "hour1": "1 hour before",
+      "day1": "1 day before"
+    },
+    "create": {
+      "title": "New reminder",
+      "subtitle": "So it doesn't slip your mind",
+      "titleLabel": "What should I remind you of?",
+      "titlePlaceholder": "Take the pill, call mom…",
+      "dateLabel": "Date",
+      "timeLabel": "Time",
+      "alarmLabel": "Sound alarm",
+      "alarmOn": "On",
+      "alarmOff": "Off",
+      "preLabel": "Advance notice",
+      "notesLabel": "Notes",
+      "notesPlaceholder": "Details, context…"
+    },
+    "empty": {
+      "title": "Nothing to remember… for now",
+      "subtitle": "Create your first one with the “New” button."
+    },
+    "row": {
+      "markDone": "Mark done",
+      "markPending": "Mark pending",
+      "delete": "Delete reminder"
+    }
+  }
 }

@@ -1,3 +1,46 @@
 {
-  "reminders": {}
+  "reminders": {
+    "head": {
+      "title": "Hibi — Recordatorios"
+    },
+    "title": "Recordatorios",
+    "subtitle": "{count} pendientes",
+    "new": "Nuevo",
+    "groups": {
+      "week": "Esta semana",
+      "later": "Más adelante"
+    },
+    "pre": {
+      "exact": "A la hora exacta",
+      "min5": "5 min antes",
+      "min10": "10 min antes",
+      "min15": "15 min antes",
+      "min30": "30 min antes",
+      "hour1": "1 hora antes",
+      "day1": "1 día antes"
+    },
+    "create": {
+      "title": "Nuevo recordatorio",
+      "subtitle": "Para que no se te pase",
+      "titleLabel": "¿Qué te recuerdo?",
+      "titlePlaceholder": "Tomar la pastilla, llamar a mamá…",
+      "dateLabel": "Fecha",
+      "timeLabel": "Hora",
+      "alarmLabel": "Alarma sonora",
+      "alarmOn": "Activada",
+      "alarmOff": "Desactivada",
+      "preLabel": "Aviso previo",
+      "notesLabel": "Notas",
+      "notesPlaceholder": "Detalles, contexto…"
+    },
+    "empty": {
+      "title": "Nada que recordar… por ahora",
+      "subtitle": "Crea el primero con el botón “Nuevo”."
+    },
+    "row": {
+      "markDone": "Marcar hecho",
+      "markPending": "Marcar pendiente",
+      "delete": "Eliminar recordatorio"
+    }
+  }
 }

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { Search, Plus, Folder, FolderOpen, Pin, Calendar, ChevronRight, ChevronLeft, ChevronDown, NotebookPen, Type, Trash2 } from '@lucide/vue'
 import { format, parseISO, isValid, isToday, isYesterday } from 'date-fns'
-import { es } from 'date-fns/locale'
 
-useHead({ title: 'Hibi — Notas' })
+const { t } = useI18n()
+const dateLocale = useDateLocale()
+
+useHead({ title: t('notes.head.title') })
 
 const {
   folders, notes, notesLoading,
@@ -20,12 +22,12 @@ watchEffect(() => {
 })
 
 function stripHtml(html: string) { return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() }
-function previewOf(content: string) { const t = stripHtml(content); return t ? t.slice(0, 140) : 'Sin contenido aún' }
+function previewOf(content: string) { const txt = stripHtml(content); return txt ? txt.slice(0, 140) : t('notes.editor.noContent') }
 function updatedLabel(iso: string) {
   const d = parseISO(iso); if (!isValid(d)) return ''
-  if (isToday(d)) return 'Hoy ' + format(d, 'HH:mm')
-  if (isYesterday(d)) return 'Ayer ' + format(d, 'HH:mm')
-  return format(d, "d 'de' MMM", { locale: es })
+  if (isToday(d)) return t('common.today') + ' ' + format(d, 'HH:mm')
+  if (isYesterday(d)) return t('common.yesterday') + ' ' + format(d, 'HH:mm')
+  return format(d, t('notes.dateFormat'), { locale: dateLocale.value })
 }
 function toView(n: Note) {
   return { id: n.id, folder: n.folderId, title: n.title, content: n.content, pinned: !!n.pinned, preview: previewOf(n.content), updated: updatedLabel(n.updatedAt) }
@@ -169,8 +171,8 @@ function toggleFolderColor(e: MouseEvent) {
   showFolderColor.value = true
 }
 function onFolderColorOutside(e: MouseEvent) {
-  const t = e.target as HTMLElement
-  if (showFolderColor.value && !t.closest('[data-folder-color-pop]') && !t.closest('[data-folder-color-trigger]')) {
+  const el = e.target as HTMLElement
+  if (showFolderColor.value && !el.closest('[data-folder-color-pop]') && !el.closest('[data-folder-color-trigger]')) {
     showFolderColor.value = false
   }
 }
@@ -197,7 +199,7 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
       @click="!showFolders && (showFolders = true)"
     >
       <!-- Modo COLAPSADO: solo el botón con icono -->
-      <button v-show="!showFolders" type="button" class="grid place-items-center size-7 rounded-full text-fg-muted hover:text-fg" title="Mostrar carpetas">
+      <button v-show="!showFolders" type="button" class="grid place-items-center size-7 rounded-full text-fg-muted hover:text-fg" :title="t('notes.folders.show')">
         <NotebookPen class="size-[16px]" :stroke-width="1.9" />
       </button>
 
@@ -205,28 +207,28 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
       <template v-if="showFolders">
         <button type="button"
           class="absolute top-1/2 -right-3 -translate-y-1/2 z-20 grid place-items-center size-7 rounded-full bg-card text-fg-muted hover:text-fg hover:bg-muted transition-[background-color,color]"
-          title="Ocultar carpetas"
+          :title="t('notes.folders.hide')"
           @click.stop="showFolders = false">
           <ChevronLeft class="size-[14px]" :stroke-width="2.4" />
         </button>
         <div class="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
           <div class="flex items-center gap-2">
             <HibiCloudIcon :size="44" :icon="NotebookPen" :icon-size="16" cloud-color="text-sky-soft" icon-color="text-sky-deep" :icon-stroke="1.9" class="shrink-0" />
-            <h2 class="text-[14px] font-extrabold text-fg">Carpetas</h2>
+            <h2 class="text-[14px] font-extrabold text-fg">{{ t('notes.folders.title') }}</h2>
           </div>
-          <button class="grid place-items-center size-7 rounded-[9px] text-fg-subtle hover:text-fg hover:bg-muted" :aria-label="creatingFolder ? 'Cerrar' : 'Nueva carpeta'" @click="creatingFolder ? cancelCreateFolder() : startCreateFolder()"><Plus class="size-4 transition-[transform] duration-200" :class="creatingFolder ? 'rotate-45' : ''" :stroke-width="2" /></button>
+          <button class="grid place-items-center size-7 rounded-[9px] text-fg-subtle hover:text-fg hover:bg-muted" :aria-label="creatingFolder ? t('common.close') : t('notes.folders.new')" @click="creatingFolder ? cancelCreateFolder() : startCreateFolder()"><Plus class="size-4 transition-[transform] duration-200" :class="creatingFolder ? 'rotate-45' : ''" :stroke-width="2" /></button>
         </div>
         <ul class="flex-1 overflow-y-auto scroll-area flex flex-col gap-0.5 px-2 pb-3">
           <!-- Mini panel inline de nueva carpeta: nombre + color personalizado -->
           <li v-if="creatingFolder" class="px-1 pb-2">
             <div class="rounded-[12px] bg-muted p-2.5 flex flex-col gap-2.5">
               <div class="flex items-center gap-2">
-                <input data-folder-input v-model="newFolderName" type="text" placeholder="Nombre de la carpeta"
+                <input data-folder-input v-model="newFolderName" type="text" :placeholder="t('notes.folders.namePlaceholder')"
                   class="flex-1 min-w-0 h-9 rounded-[8px] bg-card px-2.5 text-[14px] font-semibold text-fg outline-none placeholder:text-fg-subtle"
                   @keydown.enter.prevent="confirmCreateFolder" @keydown.esc="cancelCreateFolder" />
-                <button type="button" data-folder-color-trigger class="shrink-0 size-9 rounded-[8px]" :style="{ background: newFolderColor }" aria-label="Color de la carpeta" @click.stop="toggleFolderColor" />
+                <button type="button" data-folder-color-trigger class="shrink-0 size-9 rounded-[8px]" :style="{ background: newFolderColor }" :aria-label="t('notes.folders.color')" @click.stop="toggleFolderColor" />
               </div>
-              <button type="button" class="h-9 rounded-[10px] bg-sky text-[#1f4661] text-[13px] font-bold" @click="confirmCreateFolder">Crear carpeta</button>
+              <button type="button" class="h-9 rounded-[10px] bg-sky text-[#1f4661] text-[13px] font-bold" @click="confirmCreateFolder">{{ t('notes.folders.create') }}</button>
             </div>
           </li>
           <li v-for="f in folders" :key="f.id" class="relative group/folder">
@@ -241,7 +243,7 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
             </button>
             <button v-if="folders.length > 1" type="button"
               class="absolute top-1/2 right-1.5 -translate-y-1/2 grid place-items-center size-7 rounded-[8px] text-fg-subtle opacity-0 group-hover/folder:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]"
-              aria-label="Eliminar carpeta" @click.stop="deleteFolder(f.id)">
+              :aria-label="t('notes.folders.delete')" @click.stop="deleteFolder(f.id)">
               <Trash2 class="size-[14px]" :stroke-width="2" />
             </button>
           </li>
@@ -257,7 +259,7 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
       @click="!showList && (showList = true)"
     >
       <!-- Modo COLAPSADO -->
-      <button v-show="!showList" type="button" class="grid place-items-center size-7 rounded-full text-fg-muted hover:text-fg" title="Mostrar lista">
+      <button v-show="!showList" type="button" class="grid place-items-center size-7 rounded-full text-fg-muted hover:text-fg" :title="t('notes.list.show')">
         <ChevronRight class="size-[14px]" :stroke-width="2.4" />
       </button>
 
@@ -265,21 +267,21 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
       <template v-if="showList">
         <button type="button"
           class="absolute top-1/2 -right-3 -translate-y-1/2 z-20 grid place-items-center size-7 rounded-full bg-card text-fg-muted hover:text-fg hover:bg-muted transition-[background-color,color]"
-          title="Ocultar lista"
+          :title="t('notes.list.hide')"
           @click.stop="showList = false">
           <ChevronLeft class="size-[14px]" :stroke-width="2.4" />
         </button>
         <div class="px-4 pt-4 pb-3 shrink-0 flex flex-col gap-3">
           <div class="relative">
             <Search class="absolute left-3.5 top-1/2 -translate-y-1/2 size-[16px] text-fg-subtle" :stroke-width="1.8" aria-hidden="true" />
-            <label for="notes-search" class="sr-only">Buscar notas</label>
-            <input id="notes-search" v-model="search" type="text" placeholder="Buscar notas…"
+            <label for="notes-search" class="sr-only">{{ t('notes.list.searchLabel') }}</label>
+            <input id="notes-search" v-model="search" type="text" :placeholder="t('notes.list.searchPlaceholder')"
               class="w-full h-10 rounded-[12px] bg-muted pl-10 pr-3 text-[14px] text-fg outline-none" />
           </div>
           <div class="flex items-center justify-between px-1">
-            <h3 class="text-[13px] font-bold text-fg-muted">{{ filtered.length }} notas</h3>
+            <h3 class="text-[13px] font-bold text-fg-muted">{{ t('notes.list.count', { n: filtered.length }) }}</h3>
             <button class="inline-flex items-center gap-1 text-sky-deep text-[12.5px] font-bold hover:underline" @click="createNote">
-              <Plus class="size-3.5" :stroke-width="2.3" />Nueva
+              <Plus class="size-3.5" :stroke-width="2.3" />{{ t('notes.list.new') }}
             </button>
           </div>
         </div>
@@ -292,7 +294,7 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
                 @click="selectedNoteId = n.id"
               >
                 <div class="flex items-start gap-2 pr-7">
-                  <Pin v-if="n.pinned" class="shrink-0 size-3.5 text-pink-deep mt-0.5" :stroke-width="2.3" aria-label="Fijada" />
+                  <Pin v-if="n.pinned" class="shrink-0 size-3.5 text-pink-deep mt-0.5" :stroke-width="2.3" :aria-label="t('notes.pinned')" />
                   <h4 class="text-[14px] font-bold text-fg truncate flex-1">{{ n.title }}</h4>
                 </div>
                 <p class="text-[12.5px] text-fg-muted line-clamp-2 mt-1 leading-snug">{{ n.preview }}</p>
@@ -300,7 +302,7 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
               </button>
               <button type="button"
                 class="absolute top-2 right-2 grid place-items-center size-7 rounded-full text-fg-subtle opacity-0 group-hover/note:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]"
-                aria-label="Eliminar nota" @click.stop="deleteNote(n.id)">
+                :aria-label="t('notes.list.deleteNote')" @click.stop="deleteNote(n.id)">
                 <Trash2 class="size-[14px]" :stroke-width="2" />
               </button>
             </li>
@@ -318,7 +320,7 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
           {{ folders.find(f => f.id === selected!.folder)?.name }}
           <ChevronRight class="size-3" aria-hidden="true" />
           <span>{{ selected!.updated }}</span>
-          <button type="button" class="ml-auto grid place-items-center size-8 rounded-full text-fg-subtle hover:text-pink-deep hover:bg-pink-soft transition-[background-color,color]" aria-label="Eliminar nota" @click="deleteNote(selected!.id)">
+          <button type="button" class="ml-auto grid place-items-center size-8 rounded-full text-fg-subtle hover:text-pink-deep hover:bg-pink-soft transition-[background-color,color]" :aria-label="t('notes.list.deleteNote')" @click="deleteNote(selected!.id)">
             <Trash2 class="size-4" :stroke-width="2" />
           </button>
         </div>
@@ -326,7 +328,7 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
         <h1
           class="hibi-title-edit text-[34px] font-extrabold text-fg leading-tight outline-none mb-4 shrink-0"
           contenteditable="true" spellcheck="false"
-          data-placeholder="Título de la nota"
+          :data-placeholder="t('notes.editor.titlePlaceholder')"
           @blur="onEditTitle"
         >{{ selected!.title }}</h1>
         <!-- Editor enriquecido ocupando el resto del ancho y alto -->
@@ -334,11 +336,11 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
           <AppRichEditor
             :key="selected!.id"
             :model-value="selected!.content"
-            placeholder="Empieza a escribir…"
+            :placeholder="t('notes.editor.contentPlaceholder')"
             @update:model-value="onEditContent" />
         </div>
       </div>
-      <AppEmptyHint v-else title="Elige una nota" hint="O crea una nueva con el botón “+ Nueva”." />
+      <AppEmptyHint v-else :title="t('notes.empty.pickTitle')" :hint="t('notes.empty.pickHint')" />
     </AppCard>
 
     <!-- ───────────── MÓVIL: carpetas (lista) → notas (drill) → editor ───────────── -->
@@ -346,21 +348,21 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
       <!-- NIVEL 1: lista de carpetas -->
       <div v-if="!mobileFolderOpen" class="flex flex-col flex-1 min-h-0">
         <div class="shrink-0 flex items-center justify-between pb-3">
-          <h2 class="text-[15px] font-extrabold text-fg">Carpetas</h2>
+          <h2 class="text-[15px] font-extrabold text-fg">{{ t('notes.folders.title') }}</h2>
           <button type="button" class="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-sky text-[#1f4661] text-[13px] font-bold active:bg-sky-deep active:text-white" @click="creatingFolder ? cancelCreateFolder() : startCreateFolder()">
-            <Plus class="size-4 transition-[transform] duration-200" :class="creatingFolder ? 'rotate-45' : ''" :stroke-width="2.2" /> Carpeta
+            <Plus class="size-4 transition-[transform] duration-200" :class="creatingFolder ? 'rotate-45' : ''" :stroke-width="2.2" /> {{ t('notes.folders.mobileNew') }}
           </button>
         </div>
 
         <!-- Mini panel nueva carpeta: nombre + color -->
         <div v-if="creatingFolder" class="shrink-0 rounded-[14px] bg-muted p-3 mb-3 flex flex-col gap-3">
           <div class="flex items-center gap-2">
-            <input data-folder-input v-model="newFolderName" type="text" placeholder="Nombre de la carpeta"
+            <input data-folder-input v-model="newFolderName" type="text" :placeholder="t('notes.folders.namePlaceholder')"
               class="flex-1 min-w-0 h-10 rounded-[10px] bg-card px-3 text-[14px] font-semibold text-fg outline-none placeholder:text-fg-subtle"
               @keydown.enter.prevent="confirmCreateFolder" @keydown.esc="cancelCreateFolder" />
-            <button type="button" data-folder-color-trigger class="shrink-0 size-10 rounded-[10px]" :style="{ background: newFolderColor }" aria-label="Color de la carpeta" @click.stop="toggleFolderColor" />
+            <button type="button" data-folder-color-trigger class="shrink-0 size-10 rounded-[10px]" :style="{ background: newFolderColor }" :aria-label="t('notes.folders.color')" @click.stop="toggleFolderColor" />
           </div>
-          <button type="button" class="h-10 rounded-[12px] bg-sky text-[#1f4661] text-[13px] font-bold" @click="confirmCreateFolder">Crear carpeta</button>
+          <button type="button" class="h-10 rounded-[12px] bg-sky text-[#1f4661] text-[13px] font-bold" @click="confirmCreateFolder">{{ t('notes.folders.create') }}</button>
         </div>
 
         <div class="flex-1 min-h-0 overflow-y-auto scroll-area">
@@ -376,9 +378,9 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
                 </span>
                 <div class="flex-1 min-w-0">
                   <p class="text-[15px] font-extrabold text-fg break-words">{{ f.name }}</p>
-                  <p class="text-[12.5px] text-fg-muted mt-0.5">{{ folderCount(f.id) }} {{ folderCount(f.id) === 1 ? 'nota' : 'notas' }}</p>
+                  <p class="text-[12.5px] text-fg-muted mt-0.5">{{ t(folderCount(f.id) === 1 ? 'notes.countOne' : 'notes.countMany', { n: folderCount(f.id) }) }}</p>
                 </div>
-                <button v-if="folders.length > 1" type="button" class="grid place-items-center size-8 rounded-[10px] text-fg-subtle active:text-pink-deep active:bg-pink-soft shrink-0" aria-label="Eliminar carpeta" @click.stop="deleteFolder(f.id)">
+                <button v-if="folders.length > 1" type="button" class="grid place-items-center size-8 rounded-[10px] text-fg-subtle active:text-pink-deep active:bg-pink-soft shrink-0" :aria-label="t('notes.folders.delete')" @click.stop="deleteFolder(f.id)">
                   <Trash2 class="size-[15px]" :stroke-width="2" />
                 </button>
                 <ChevronRight class="size-[18px] text-fg-subtle shrink-0" :stroke-width="2" aria-hidden="true" />
@@ -391,7 +393,7 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
       <!-- NIVEL 2: notas de la carpeta abierta -->
       <div v-else class="flex flex-col flex-1 min-h-0">
         <div class="shrink-0 flex items-center gap-2 pb-3">
-          <button type="button" class="grid place-items-center size-9 rounded-full bg-muted text-fg-muted shrink-0" aria-label="Volver a carpetas" @click="mobileFolderOpen = false">
+          <button type="button" class="grid place-items-center size-9 rounded-full bg-muted text-fg-muted shrink-0" :aria-label="t('notes.folders.backToFolders')" @click="mobileFolderOpen = false">
             <ChevronLeft class="size-[18px]" :stroke-width="2" />
           </button>
           <div class="flex-1 min-w-0 flex items-center gap-2">
@@ -399,15 +401,15 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
             <h2 class="text-[17px] font-extrabold text-fg truncate">{{ folders.find(f => f.id === selectedFolder)?.name }}</h2>
           </div>
           <AppButton variant="primary" size="sm" class="shrink-0" @click="createNote">
-            <template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>Nueva
+            <template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>{{ t('notes.list.new') }}
           </AppButton>
         </div>
 
         <!-- Buscar -->
         <div class="shrink-0 relative pb-3">
           <Search class="absolute left-3.5 top-[18px] -translate-y-1/2 size-[16px] text-fg-subtle" :stroke-width="1.8" aria-hidden="true" />
-          <label for="notes-search-mobile" class="sr-only">Buscar notas</label>
-          <input id="notes-search-mobile" v-model="search" type="text" placeholder="Buscar notas…"
+          <label for="notes-search-mobile" class="sr-only">{{ t('notes.list.searchLabel') }}</label>
+          <input id="notes-search-mobile" v-model="search" type="text" :placeholder="t('notes.list.searchPlaceholder')"
             class="w-full h-10 rounded-[12px] bg-muted pl-10 pr-3 text-[14px] text-fg outline-none" />
         </div>
 
@@ -419,7 +421,7 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
                 class="w-full text-left p-3.5 rounded-[14px] bg-card transition-[background-color] active:bg-muted"
                 @click="openNoteMobile(n.id)">
                 <div class="flex items-start gap-2">
-                  <Pin v-if="n.pinned" class="shrink-0 size-3.5 text-pink-deep mt-1" :stroke-width="2.3" aria-label="Fijada" />
+                  <Pin v-if="n.pinned" class="shrink-0 size-3.5 text-pink-deep mt-1" :stroke-width="2.3" :aria-label="t('notes.pinned')" />
                   <h4 class="text-[15px] font-bold text-fg break-words flex-1">{{ n.title }}</h4>
                 </div>
                 <p class="text-[13px] text-fg-muted line-clamp-2 mt-1 leading-snug">{{ n.preview }}</p>
@@ -429,8 +431,8 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
           </ul>
           <div v-else class="h-full flex flex-col items-center justify-center text-center gap-3 text-fg-subtle">
             <HibiCloud :size="80" face class="text-sky-soft opacity-70" aria-hidden="true" />
-            <p class="text-[14px] font-semibold">No hay notas en esta carpeta</p>
-            <button type="button" class="text-[13px] font-bold text-sky-deep" @click="createNote">Crear la primera</button>
+            <p class="text-[14px] font-semibold">{{ t('notes.empty.noNotes') }}</p>
+            <button type="button" class="text-[13px] font-bold text-sky-deep" @click="createNote">{{ t('notes.empty.createFirst') }}</button>
           </div>
         </div>
       </div>
@@ -439,7 +441,7 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
       <Transition name="hibi-drill">
         <div v-if="mobileEditorOpen && selected" class="absolute inset-0 z-20 bg-base flex flex-col">
           <header class="shrink-0 flex items-center gap-2 pb-3">
-            <button type="button" class="grid place-items-center size-9 rounded-full text-fg-muted hover:bg-muted shrink-0" aria-label="Volver a las notas" @click="mobileEditorOpen = false">
+            <button type="button" class="grid place-items-center size-9 rounded-full text-fg-muted hover:bg-muted shrink-0" :aria-label="t('notes.list.backToNotes')" @click="mobileEditorOpen = false">
               <ChevronLeft class="size-[18px]" :stroke-width="2" />
             </button>
             <div class="flex-1 min-w-0 flex items-center gap-1.5 text-[12px] text-fg-muted font-semibold">
@@ -450,12 +452,13 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
             <!-- Eliminar nota -->
             <button type="button"
               class="shrink-0 grid place-items-center size-9 rounded-[10px] text-fg-muted hover:text-pink-deep hover:bg-pink-soft transition-[background-color,color]"
-              aria-label="Eliminar nota" @click="deleteNote(selected!.id)">
+              :aria-label="t('notes.list.deleteNote')" @click="deleteNote(selected!.id)">
               <Trash2 class="size-[16px]" :stroke-width="2" />
             </button>
             <!-- Botón Formato a la derecha del header -->
             <button type="button"
               class="shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-muted text-fg-muted hover:text-fg transition-[color]"
+              :aria-label="t('notes.editor.format')"
               :aria-expanded="mobileToolbarOpen"
               @click="mobileToolbarOpen = !mobileToolbarOpen">
               <Type class="size-[15px]" :stroke-width="2" aria-hidden="true" />
@@ -465,9 +468,9 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
           <AppCard class="flex-1 min-h-0 flex flex-col !p-0 overflow-hidden">
             <div class="flex-1 min-h-0 flex flex-col px-4 py-4">
               <h1 class="hibi-title-edit text-[24px] font-extrabold text-fg leading-tight outline-none mb-3 shrink-0 break-words"
-                contenteditable="true" spellcheck="false" data-placeholder="Título de la nota" @blur="onEditTitle">{{ selected!.title }}</h1>
+                contenteditable="true" spellcheck="false" :data-placeholder="t('notes.editor.titlePlaceholder')" @blur="onEditTitle">{{ selected!.title }}</h1>
               <div class="flex-1 min-h-0 flex">
-                <AppRichEditor :key="selected!.id" v-model:toolbar-open="mobileToolbarOpen" :model-value="selected!.content" placeholder="Empieza a escribir…" @update:model-value="onEditContent" />
+                <AppRichEditor :key="selected!.id" v-model:toolbar-open="mobileToolbarOpen" :model-value="selected!.content" :placeholder="t('notes.editor.contentPlaceholder')" @update:model-value="onEditContent" />
               </div>
             </div>
           </AppCard>

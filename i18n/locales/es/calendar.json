@@ -1,3 +1,55 @@
 {
-  "calendar": {}
+  "calendar": {
+    "head": {
+      "title": "Hibi — Calendario"
+    },
+    "subtitle": "{n} eventos",
+    "today": "Hoy",
+    "eventLabel": "Evento",
+    "views": {
+      "day": "Día",
+      "week": "Semana",
+      "month": "Mes",
+      "agenda": "Agenda"
+    },
+    "nav": {
+      "prev": "Anterior",
+      "next": "Siguiente",
+      "newEvent": "Nuevo evento",
+      "back": "Volver",
+      "backToMonth": "Volver al mes"
+    },
+    "allDay": "Todo el día",
+    "create": {
+      "titleNew": "Nuevo evento",
+      "titleEdit": "Editar evento",
+      "subtitleNew": "Añade un compromiso al calendario",
+      "subtitleEdit": "Ajusta los detalles del evento",
+      "titleLabel": "Título",
+      "titlePlaceholder": "¿Qué hay que hacer?",
+      "dateLabel": "Fecha",
+      "datePlaceholder": "Fecha",
+      "startsLabel": "Empieza",
+      "endsLabel": "Termina",
+      "colorLabel": "Color del evento",
+      "deleteEvent": "Eliminar evento"
+    },
+    "empty": {
+      "week": "Sin eventos esta semana",
+      "day": "Sin eventos este día",
+      "createFirst": "Crear el primero",
+      "agenda": "Nada por aquí."
+    },
+    "more": "+ {n} más",
+    "format": {
+      "day": "EEEE d 'de' MMMM yyyy",
+      "weekRangeStart": "d 'de' MMM",
+      "weekRangeEnd": "d 'de' MMM yyyy",
+      "monthYear": "MMMM yyyy",
+      "monthShortYear": "MMM yy",
+      "drillWeekday": "EEEE",
+      "drillDayMonth": "d 'de' MMMM"
+    },
+    "weekRangeSep": "a"
+  }
 }
