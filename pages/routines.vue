@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Plus, Repeat, Sunrise, Sun, Moon, Play, Check, Trash2, ArrowUp, ArrowDown, X, Calendar, ListPlus, FileText, GripVertical, ChevronRight, ChevronLeft } from '@lucide/vue'
 
-useHead({ title: 'Hibi — Rutinas' })
+const { t } = useI18n()
+
+useHead({ title: t('routines.head.title') })
 
 import type { Routine, Step } from '~/composables/useRoutines'
 
@@ -9,7 +11,12 @@ const { routines: routinesData, loading, load, createRoutine, saveRoutineDoc, re
 
 const ICONS = { morning: Sunrise, midday: Sun, night: Moon } as const
 const TONES = { morning: 'bg-cream text-[#bf8f2e]', midday: 'bg-mint text-[#34936a]', night: 'bg-lavender text-[#7a63c0]' } as const
-const LABELS = { morning: 'Mañana', midday: 'Mediodía', night: 'Noche' } as const
+const LABELS = computed(() => ({ morning: t('routines.times.morning'), midday: t('routines.times.midday'), night: t('routines.times.night') }))
+// Los valores L/M/X/J/V/S/D se guardan/comparan en la DB; sólo se traduce el TEXTO visible.
+const dayLabel = computed<Record<string, string>>(() => ({
+  L: t('routines.days.mon'), M: t('routines.days.tue'), X: t('routines.days.wed'),
+  J: t('routines.days.thu'), V: t('routines.days.fri'), S: t('routines.days.sat'), D: t('routines.days.sun'),
+}))
 
 const selectedId = ref<string>('')
 const selected = computed(() => routinesData.value.find(r => r.id === selectedId.value))
@@ -85,11 +92,11 @@ const newStepTitle = ref('')
 const newStepMins = ref<number>(5)
 const newNotes = ref('')
 const DAYS = ['L','M','X','J','V','S','D']
-const TIME_SWATCHES = [
-  { value: 'morning', label: 'Mañana', swatch: 'bg-cream' },
-  { value: 'midday',  label: 'Mediodía', swatch: 'bg-mint' },
-  { value: 'night',   label: 'Noche', swatch: 'bg-lavender' },
-]
+const TIME_SWATCHES = computed(() => [
+  { value: 'morning', label: t('routines.times.morning'), swatch: 'bg-cream' },
+  { value: 'midday',  label: t('routines.times.midday'), swatch: 'bg-mint' },
+  { value: 'night',   label: t('routines.times.night'), swatch: 'bg-lavender' },
+])
 function openCreate() {
   newName.value = ''; newTime.value = 'morning'
   newDays.value = ['L','M','X','J','V']
@@ -212,40 +219,40 @@ function removeRoutine(id: string) {
 <template>
   <!-- VISTA DE CREACIÓN -->
   <AppCreateView v-if="view === 'create'"
-    title="Nueva rutina"
-    subtitle="Una secuencia de pasos para tu día"
+    :title="t('routines.create.title')"
+    :subtitle="t('routines.create.subtitle')"
     :disabled="!newName.trim()"
     @close="cancelCreate" @save="saveRoutine">
     <div class="flex flex-col gap-2">
-      <label class="text-[12.5px] font-bold text-fg-muted px-1">Nombre</label>
-      <input v-model="newName" type="text" placeholder="Mañana clara, noche calmada…" autofocus
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('routines.create.nameLabel') }}</label>
+      <input v-model="newName" type="text" :placeholder="t('routines.create.namePlaceholder')" autofocus
         class="w-full h-14 rounded-[14px] bg-card px-4 text-[18px] font-semibold text-fg outline-none placeholder:text-fg-subtle" />
     </div>
     <!-- Momento + días en una sola fila -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div class="flex flex-col gap-2">
-        <label class="text-[12.5px] font-bold text-fg-muted px-1">Momento</label>
+        <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('routines.create.timeLabel') }}</label>
         <div class="flex items-center gap-1.5 flex-wrap">
-          <button v-for="t in TIME_SWATCHES" :key="t.value" type="button"
-            class="hibi-chip text-fg" :class="[t.swatch, newTime === t.value ? 'is-active' : '']"
-            @click="newTime = t.value as any">
-            <component :is="t.value === 'morning' ? Sunrise : t.value === 'midday' ? Sun : Moon" class="size-[16px]" :stroke-width="1.9" />
-            {{ t.label }}
+          <button v-for="sw in TIME_SWATCHES" :key="sw.value" type="button"
+            class="hibi-chip text-fg" :class="[sw.swatch, newTime === sw.value ? 'is-active' : '']"
+            @click="newTime = sw.value as any">
+            <component :is="sw.value === 'morning' ? Sunrise : sw.value === 'midday' ? Sun : Moon" class="size-[16px]" :stroke-width="1.9" />
+            {{ sw.label }}
           </button>
         </div>
       </div>
       <div class="flex flex-col gap-2">
-        <label class="text-[12.5px] font-bold text-fg-muted px-1">Días</label>
+        <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('routines.create.daysLabel') }}</label>
         <div class="flex items-center gap-1.5 flex-wrap">
-          <button v-for="d in DAYS" :key="d" type="button" :aria-label="d"
+          <button v-for="d in DAYS" :key="d" type="button" :aria-label="dayLabel[d]"
             class="size-10 rounded-full text-[13px] font-bold transition-[background-color,color]"
             :class="newDays.includes(d) ? 'bg-sky text-[#1f4661]' : 'bg-card text-fg-muted hover:text-fg'"
-            @click="toggleDay(d)">{{ d }}</button>
+            @click="toggleDay(d)">{{ dayLabel[d] }}</button>
         </div>
       </div>
     </div>
     <div class="flex flex-col gap-2">
-      <label class="text-[12.5px] font-bold text-fg-muted px-1">Pasos</label>
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('routines.create.stepsLabel') }}</label>
       <ul v-if="newSteps.length" class="flex flex-col gap-2 mb-2">
         <li v-for="(s, i) in newSteps" :key="i"
           class="bg-muted rounded-[12px] p-2.5 flex flex-col gap-2 transition-[opacity]"
@@ -256,25 +263,25 @@ function removeRoutine(id: string) {
             @dragstart="onNewStepDragStart($event, i)"
             @dragover.prevent
             @drop="onNewStepDrop(i)">
-            <span class="hidden sm:grid place-items-center size-7 text-fg-subtle shrink-0" aria-label="Arrastrar"><GripVertical class="size-4" :stroke-width="2" /></span>
+            <span class="hidden sm:grid place-items-center size-7 text-fg-subtle shrink-0" :aria-label="t('routines.aria.drag')"><GripVertical class="size-4" :stroke-width="2" /></span>
             <span class="grid place-items-center size-9 rounded-[10px] bg-card text-sky-deep font-bold text-[14px] shrink-0">{{ i + 1 }}</span>
             <input v-model="s.title" type="text" class="flex-1 min-w-0 h-10 rounded-[10px] bg-card px-3 text-[14px] font-semibold text-fg outline-none" />
             <input v-model.number="s.mins" type="number" min="1" max="120" class="h-10 w-14 rounded-[10px] bg-card px-2 text-center text-[13px] text-fg outline-none tabular-nums" />
-            <span class="text-[11.5px] text-fg-muted">min</span>
-            <button type="button" class="grid place-items-center size-9 rounded-[10px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft shrink-0" aria-label="Eliminar paso" @click="removeNewStep(i)"><Trash2 class="size-4" :stroke-width="2" /></button>
+            <span class="text-[11.5px] text-fg-muted">{{ t('routines.create.min') }}</span>
+            <button type="button" class="grid place-items-center size-9 rounded-[10px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft shrink-0" :aria-label="t('routines.aria.deleteStep')" @click="removeNewStep(i)"><Trash2 class="size-4" :stroke-width="2" /></button>
           </div>
           <!-- Subpasos del paso (el subárbol) -->
           <div class="pl-2 sm:pl-9 flex flex-col gap-1.5">
             <div v-for="(sub, si) in s.substeps" :key="si" class="flex items-center gap-2">
               <span class="size-1.5 rounded-full bg-sky-deep/50 shrink-0" aria-hidden="true" />
               <input v-model="sub.title" type="text" class="flex-1 min-w-0 h-9 rounded-[9px] bg-card px-3 text-[13px] text-fg outline-none" />
-              <button type="button" class="grid place-items-center size-8 rounded-[9px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft shrink-0" aria-label="Eliminar subpaso" @click="removeSubstep(i, si)"><X class="size-[14px]" :stroke-width="2.2" /></button>
+              <button type="button" class="grid place-items-center size-8 rounded-[9px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft shrink-0" :aria-label="t('routines.aria.deleteSubstep')" @click="removeSubstep(i, si)"><X class="size-[14px]" :stroke-width="2.2" /></button>
             </div>
             <div class="flex items-center gap-2">
               <span class="size-1.5 rounded-full bg-fg-subtle/40 shrink-0" aria-hidden="true" />
-              <input v-model="subInputs[i]" type="text" placeholder="Añadir subpaso" class="flex-1 min-w-0 h-9 rounded-[9px] bg-card px-3 text-[13px] text-fg outline-none placeholder:text-fg-subtle"
+              <input v-model="subInputs[i]" type="text" :placeholder="t('routines.create.addSubstep')" class="flex-1 min-w-0 h-9 rounded-[9px] bg-card px-3 text-[13px] text-fg outline-none placeholder:text-fg-subtle"
                 @keydown.enter.prevent="addSubstep(i)" />
-              <button type="button" class="grid place-items-center size-8 rounded-[9px] bg-card text-sky-deep shrink-0" aria-label="Añadir subpaso" @click="addSubstep(i)"><Plus class="size-[15px]" :stroke-width="2.4" /></button>
+              <button type="button" class="grid place-items-center size-8 rounded-[9px] bg-card text-sky-deep shrink-0" :aria-label="t('routines.aria.addSubstep')" @click="addSubstep(i)"><Plus class="size-[15px]" :stroke-width="2.4" /></button>
             </div>
           </div>
         </li>
@@ -282,15 +289,15 @@ function removeRoutine(id: string) {
       <!-- Añadir paso nuevo -->
       <div class="flex items-center gap-2 flex-wrap bg-muted rounded-[12px] p-2.5">
         <span class="grid place-items-center size-9 rounded-[10px] bg-card text-fg-subtle shrink-0"><Plus class="size-4" :stroke-width="2.2" /></span>
-        <input v-model="newStepTitle" type="text" placeholder="Nombre del paso" class="flex-1 min-w-0 h-10 rounded-[10px] bg-card px-3 text-[14px] font-semibold text-fg outline-none"
+        <input v-model="newStepTitle" type="text" :placeholder="t('routines.create.stepNamePlaceholder')" class="flex-1 min-w-0 h-10 rounded-[10px] bg-card px-3 text-[14px] font-semibold text-fg outline-none"
           @keydown.enter.prevent="addNewStep" />
         <input v-model.number="newStepMins" type="number" min="1" max="120" class="h-10 w-14 rounded-[10px] bg-card px-2 text-center text-[13px] text-fg outline-none tabular-nums" />
-        <span class="text-[11.5px] text-fg-muted">min</span>
+        <span class="text-[11.5px] text-fg-muted">{{ t('routines.create.min') }}</span>
         <button type="button" class="inline-flex items-center gap-1 h-10 px-3 rounded-[10px] bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white font-bold text-[13px] shrink-0" @click="addNewStep">
-          <Plus class="size-[14px]" :stroke-width="2.4" />Añadir
+          <Plus class="size-[14px]" :stroke-width="2.4" />{{ t('routines.create.add') }}
         </button>
       </div>
-      <p v-if="newSteps.length" class="text-[11.5px] text-fg-muted px-1 tabular-nums mt-1.5">Total: {{ newSteps.reduce((a,s)=>a+s.mins,0) }} min</p>
+      <p v-if="newSteps.length" class="text-[11.5px] text-fg-muted px-1 tabular-nums mt-1.5">{{ t('routines.create.total', { min: newSteps.reduce((a,s)=>a+s.mins,0) }) }}</p>
     </div>
   </AppCreateView>
 
@@ -303,9 +310,9 @@ function removeRoutine(id: string) {
     <HibiHeart :size="16" beat :duration="2.6" class="hidden md:block absolute bottom-[22%] right-[8%] text-fg-subtle opacity-25 pointer-events-none z-40" />
 
     <div class="relative z-10">
-      <PageHero :icon="Repeat" tone="mint" title="Rutinas" :subtitle="`${routinesData.length} rutinas`">
+      <PageHero :icon="Repeat" tone="mint" :title="t('routines.title')" :subtitle="t('routines.subtitle', { count: routinesData.length })">
         <template #actions>
-          <AppButton variant="primary" size="sm" class="w-full md:w-auto" @click="openCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>Nueva</AppButton>
+          <AppButton variant="primary" size="sm" class="w-full md:w-auto" @click="openCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>{{ t('routines.new') }}</AppButton>
         </template>
       </PageHero>
     </div>
@@ -314,11 +321,11 @@ function removeRoutine(id: string) {
       <!-- MÓVIL: SOLO la lista de rutinas; tocar una abre su detalle -->
       <div class="lg:hidden flex flex-col flex-1 min-h-0">
         <div class="shrink-0 flex items-center justify-between pb-2 px-1">
-          <h2 class="text-[13px] font-bold text-fg-muted">Tus rutinas</h2>
+          <h2 class="text-[13px] font-bold text-fg-muted">{{ t('routines.yourRoutines') }}</h2>
           <button type="button"
             class="inline-flex items-center gap-1 h-8 px-3 rounded-full bg-muted text-[12px] font-bold text-fg-muted"
             @click="filter = filter === 'today' ? 'all' : 'today'">
-            {{ filter === 'today' ? 'Hoy' : 'Todas' }}<Repeat class="size-3" :stroke-width="2.4" />
+            {{ filter === 'today' ? t('routines.filter.today') : t('routines.filter.all') }}<Repeat class="size-3" :stroke-width="2.4" />
           </button>
         </div>
         <div class="flex-1 min-h-0 overflow-y-auto scroll-area flex flex-col gap-2">
@@ -328,17 +335,17 @@ function removeRoutine(id: string) {
             <HibiCloudIcon :size="56" :icon="ICONS[r.time]" :icon-size="19" :cloud-color="TONES[r.time].split(' ')[0]" :icon-color="TONES[r.time].split(' ')[1]" :icon-stroke="1.9" class="shrink-0" />
             <div class="flex-1 min-w-0">
               <p class="text-[15px] font-extrabold text-fg leading-tight truncate">{{ r.name }}</p>
-              <p class="text-[12.5px] text-fg-muted mt-0.5 truncate">{{ LABELS[r.time] }} · {{ r.minutes }} min · {{ doneCount(r) }}/{{ r.steps.length }} pasos</p>
+              <p class="text-[12.5px] text-fg-muted mt-0.5 truncate">{{ t('routines.cardMeta', { label: LABELS[r.time], min: r.minutes, done: doneCount(r), total: r.steps.length }) }}</p>
               <div class="flex items-center gap-0.5 mt-2">
-                <span v-for="d in DAYS" :key="d" class="size-5 grid place-items-center rounded-full text-[10px] font-bold" :class="r.days.includes(d) ? 'bg-sky text-[#1f4661]' : 'bg-muted text-fg-subtle'">{{ d }}</span>
+                <span v-for="d in DAYS" :key="d" class="size-5 grid place-items-center rounded-full text-[10px] font-bold" :class="r.days.includes(d) ? 'bg-sky text-[#1f4661]' : 'bg-muted text-fg-subtle'">{{ dayLabel[d] }}</span>
               </div>
             </div>
             <ChevronRight class="size-[18px] text-fg-subtle shrink-0" :stroke-width="2" aria-hidden="true" />
           </button>
           <div v-if="!visibleRoutines.length" class="h-full flex flex-col items-center justify-center text-center gap-3 text-fg-subtle">
             <HibiCloud :size="80" face class="text-sky-soft opacity-70" aria-hidden="true" />
-            <p class="text-[14px] font-semibold">No hay rutinas para hoy</p>
-            <button type="button" class="text-[13px] font-bold text-sky-deep" @click="filter = 'all'">Ver todas</button>
+            <p class="text-[14px] font-semibold">{{ t('routines.empty.noToday') }}</p>
+            <button type="button" class="text-[13px] font-bold text-sky-deep" @click="filter = 'all'">{{ t('routines.empty.seeAll') }}</button>
           </div>
         </div>
       </div>
@@ -346,11 +353,11 @@ function removeRoutine(id: string) {
       <!-- DESKTOP: sidebar con switch hoy/todas -->
       <AppCard class="hidden lg:flex lg:w-[360px] shrink-0 flex-col" :padded="false">
         <div class="px-4 pt-4 pb-3 flex items-center justify-between shrink-0">
-          <h2 class="text-[13px] font-bold text-fg-muted">Tus rutinas</h2>
+          <h2 class="text-[13px] font-bold text-fg-muted">{{ t('routines.yourRoutines') }}</h2>
           <button type="button"
             class="inline-flex items-center gap-1 h-8 px-3 rounded-full bg-muted text-[12px] font-bold text-fg-muted hover:text-fg hover:bg-inset"
             @click="filter = filter === 'today' ? 'all' : 'today'">
-            {{ filter === 'today' ? 'Hoy' : 'Todas' }}
+            {{ filter === 'today' ? t('routines.filter.today') : t('routines.filter.all') }}
             <Repeat class="size-3" :stroke-width="2.4" />
           </button>
         </div>
@@ -363,9 +370,9 @@ function removeRoutine(id: string) {
             <HibiCloudIcon :size="60" :icon="ICONS[r.time]" :icon-size="20" :cloud-color="TONES[r.time].split(' ')[0]" :icon-color="TONES[r.time].split(' ')[1]" :icon-stroke="1.9" class="shrink-0" />
             <div class="flex-1 min-w-0">
               <p class="text-[15px] font-extrabold text-fg leading-tight">{{ r.name }}</p>
-              <p class="text-[12.5px] text-fg-muted mt-0.5">{{ LABELS[r.time] }}, {{ r.minutes }} min, {{ r.steps.length }} pasos</p>
+              <p class="text-[12.5px] text-fg-muted mt-0.5">{{ t('routines.cardMetaDesktop', { label: LABELS[r.time], min: r.minutes, total: r.steps.length }) }}</p>
               <div class="flex items-center gap-0.5 mt-2">
-                <span v-for="d in ['L','M','X','J','V','S','D']" :key="d" class="size-5 grid place-items-center rounded-full text-[10px] font-bold" :class="r.days.includes(d) ? 'bg-sky text-[#1f4661]' : 'bg-card text-fg-subtle'">{{ d }}</span>
+                <span v-for="d in DAYS" :key="d" class="size-5 grid place-items-center rounded-full text-[10px] font-bold" :class="r.days.includes(d) ? 'bg-sky text-[#1f4661]' : 'bg-card text-fg-subtle'">{{ dayLabel[d] }}</span>
               </div>
             </div>
           </button>
@@ -378,15 +385,15 @@ function removeRoutine(id: string) {
         :class="mobileRoutineOpen ? '!absolute inset-0 z-20 flex' : 'hidden lg:flex'">
         <template v-if="selected">
         <div class="flex items-center gap-3 mb-4 shrink-0">
-          <button type="button" class="lg:hidden grid place-items-center size-9 rounded-full text-fg-muted hover:bg-muted shrink-0" aria-label="Volver a rutinas" @click="mobileRoutineOpen = false"><ChevronLeft class="size-[18px]" :stroke-width="2" /></button>
+          <button type="button" class="lg:hidden grid place-items-center size-9 rounded-full text-fg-muted hover:bg-muted shrink-0" :aria-label="t('routines.aria.back')" @click="mobileRoutineOpen = false"><ChevronLeft class="size-[18px]" :stroke-width="2" /></button>
           <div class="flex-1 min-w-0">
             <h2 class="text-[20px] md:text-[22px] font-extrabold text-fg break-words">{{ selected.name }}</h2>
-            <p class="text-[12.5px] md:text-[13px] text-fg-muted">{{ doneCount(selected) }} de {{ selected.steps.length }} pasos · {{ selected.minutes }} min</p>
+            <p class="text-[12.5px] md:text-[13px] text-fg-muted">{{ t('routines.detail.meta', { done: doneCount(selected), total: selected.steps.length, min: selected.minutes }) }}</p>
           </div>
           <button class="shrink-0 inline-flex items-center gap-2 h-10 md:h-11 px-4 md:px-5 rounded-full font-bold text-[13px] md:text-[14px] transition-[background-color,color]"
             :class="addingStep ? 'bg-sky-deep text-white' : 'bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white'"
             @click="toggleAddStep">
-            <Plus class="size-[16px]" :stroke-width="2.4" aria-hidden="true" />Agregar paso
+            <Plus class="size-[16px]" :stroke-width="2.4" aria-hidden="true" />{{ t('routines.detail.addStep') }}
           </button>
         </div>
         <!-- TIMELINE de pasos: línea vertical + circulos numerados + drag&drop -->
@@ -413,11 +420,11 @@ function removeRoutine(id: string) {
                 </Transition>
               </span>
               <p class="min-w-0 break-words text-[14px] font-semibold text-fg" :class="{ 'line-through opacity-50': s.done }">{{ s.title }}</p>
-              <span class="text-[12px] md:text-[12.5px] font-bold text-fg-subtle tabular-nums whitespace-nowrap">{{ s.mins }} min</span>
+              <span class="text-[12px] md:text-[12.5px] font-bold text-fg-subtle tabular-nums whitespace-nowrap">{{ s.mins }} {{ t('routines.detail.min') }}</span>
               <div class="flex items-center gap-1">
-                <span draggable="true" class="grid place-items-center size-8 rounded-[9px] text-fg-subtle cursor-grab active:cursor-grabbing" aria-label="Arrastrar paso" @click.stop @dragstart="onStepDragStart($event, i)"><GripVertical class="size-[14px]" :stroke-width="2" /></span>
-                <button type="button" class="grid place-items-center size-8 rounded-[9px] transition-[background-color,color]" :class="addingSubFor === i ? 'bg-sky-soft text-sky-deep' : 'text-fg-subtle hover:text-sky-deep hover:bg-sky-soft'" aria-label="Añadir subpaso" @click.stop="toggleAddSub(i)"><Plus class="size-[15px]" :stroke-width="2.2" /></button>
-                <button type="button" class="grid place-items-center size-8 rounded-[9px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft" aria-label="Eliminar paso" @click.stop="removeStepAt(i)"><Trash2 class="size-[14px]" :stroke-width="2" /></button>
+                <span draggable="true" class="grid place-items-center size-8 rounded-[9px] text-fg-subtle cursor-grab active:cursor-grabbing" :aria-label="t('routines.aria.dragStep')" @click.stop @dragstart="onStepDragStart($event, i)"><GripVertical class="size-[14px]" :stroke-width="2" /></span>
+                <button type="button" class="grid place-items-center size-8 rounded-[9px] transition-[background-color,color]" :class="addingSubFor === i ? 'bg-sky-soft text-sky-deep' : 'text-fg-subtle hover:text-sky-deep hover:bg-sky-soft'" :aria-label="t('routines.aria.addSubstep')" @click.stop="toggleAddSub(i)"><Plus class="size-[15px]" :stroke-width="2.2" /></button>
+                <button type="button" class="grid place-items-center size-8 rounded-[9px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft" :aria-label="t('routines.aria.deleteStep')" @click.stop="removeStepAt(i)"><Trash2 class="size-[14px]" :stroke-width="2" /></button>
               </div>
             </li>
             <!-- Sub-pasos: con drag & drop para reordenar dentro del paso -->
@@ -442,30 +449,30 @@ function removeRoutine(id: string) {
               </span>
               <p class="min-w-0 text-[13px] text-fg break-words" :class="{ 'line-through opacity-50': sub.done }">{{ sub.title }}</p>
               <div class="flex items-center gap-0.5">
-                <span draggable="true" class="grid place-items-center size-7 rounded-[8px] text-fg-subtle cursor-grab active:cursor-grabbing" aria-label="Arrastrar subpaso" @click.stop @dragstart.stop="onSubDragStart($event, i, si)"><GripVertical class="size-[13px]" :stroke-width="2" /></span>
-                <button type="button" class="grid place-items-center size-7 rounded-[8px] text-fg-subtle md:opacity-0 md:group-hover/sub:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" aria-label="Eliminar subpaso" @click.stop="removeSubstepFromStep(i, si)"><X class="size-[13px]" :stroke-width="2.2" /></button>
+                <span draggable="true" class="grid place-items-center size-7 rounded-[8px] text-fg-subtle cursor-grab active:cursor-grabbing" :aria-label="t('routines.aria.dragSubstep')" @click.stop @dragstart.stop="onSubDragStart($event, i, si)"><GripVertical class="size-[13px]" :stroke-width="2" /></span>
+                <button type="button" class="grid place-items-center size-7 rounded-[8px] text-fg-subtle md:opacity-0 md:group-hover/sub:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" :aria-label="t('routines.aria.deleteSubstep')" @click.stop="removeSubstepFromStep(i, si)"><X class="size-[13px]" :stroke-width="2.2" /></button>
               </div>
             </li>
             <!-- Añadir subpaso a este paso: solo cuando se abre con el botón + -->
             <li v-if="addingSubFor === i" class="relative grid grid-cols-[56px_1fr] gap-3 items-center py-1 pl-12">
               <span class="relative z-10 mx-auto size-1.5 rounded-full bg-sky-deep/40" aria-hidden="true" />
               <div class="flex items-center gap-1.5 pr-1">
-                <input data-subinput v-model="detailSubInputs[i]" type="text" placeholder="Nuevo subpaso"
+                <input data-subinput v-model="detailSubInputs[i]" type="text" :placeholder="t('routines.detail.newSubstep')"
                   class="flex-1 min-w-0 h-9 rounded-[9px] bg-muted px-3 text-[13px] text-fg outline-none placeholder:text-fg-subtle"
                   @keydown.enter.prevent="addSubstepToStep(i)" @blur="onSubBlur(i)" />
-                <button type="button" :disabled="!(detailSubInputs[i] || '').trim()" class="shrink-0 grid place-items-center size-9 rounded-[9px] bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white disabled:opacity-40 transition-[background-color,color]" aria-label="Guardar subpaso" @click="addSubstepToStep(i)"><Check class="size-[15px]" :stroke-width="2.6" /></button>
+                <button type="button" :disabled="!(detailSubInputs[i] || '').trim()" class="shrink-0 grid place-items-center size-9 rounded-[9px] bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white disabled:opacity-40 transition-[background-color,color]" :aria-label="t('routines.aria.saveSubstep')" @click="addSubstepToStep(i)"><Check class="size-[15px]" :stroke-width="2.6" /></button>
               </div>
             </li>
           </template>
           <!-- Añadir paso: solo cuando se abre con "Agregar paso" (uno a la vez) -->
           <li v-if="addingStep" class="relative grid grid-cols-[56px_1fr_auto] gap-2 items-center py-2 pr-1 mt-1">
             <HibiCloudIcon :size="40" :icon="Plus" :icon-size="15" cloud-color="text-card" icon-color="text-fg-subtle" :icon-stroke="2.2" class="relative z-10 mx-auto" />
-            <input ref="stepInputRef" v-model="detailStepTitle" type="text" placeholder="Nuevo paso"
+            <input ref="stepInputRef" v-model="detailStepTitle" type="text" :placeholder="t('routines.detail.newStep')"
               class="min-w-0 h-11 rounded-[10px] bg-muted px-3 text-[14px] font-semibold text-fg outline-none"
               @keydown.enter.prevent="addStepToSelected" @blur="onStepBlur" />
             <div class="flex items-center gap-1.5 shrink-0">
-              <input v-model.number="detailStepMins" type="number" min="1" max="120" aria-label="Minutos" class="h-11 w-14 rounded-[10px] bg-muted px-2 text-center text-[13px] text-fg outline-none tabular-nums" />
-              <button type="button" :disabled="!detailStepTitle.trim()" class="grid place-items-center size-11 rounded-[10px] bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white disabled:opacity-40 transition-[background-color,color]" aria-label="Guardar paso" @click="addStepToSelected"><Check class="size-[18px]" :stroke-width="2.6" /></button>
+              <input v-model.number="detailStepMins" type="number" min="1" max="120" :aria-label="t('routines.aria.minutes')" class="h-11 w-14 rounded-[10px] bg-muted px-2 text-center text-[13px] text-fg outline-none tabular-nums" />
+              <button type="button" :disabled="!detailStepTitle.trim()" class="grid place-items-center size-11 rounded-[10px] bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white disabled:opacity-40 transition-[background-color,color]" :aria-label="t('routines.aria.saveStep')" @click="addStepToSelected"><Check class="size-[18px]" :stroke-width="2.6" /></button>
             </div>
           </li>
         </ul>
@@ -473,8 +480,8 @@ function removeRoutine(id: string) {
         <div v-else class="flex-1 grid place-items-center text-center p-8">
           <div class="flex flex-col items-center gap-3">
             <HibiCloud :size="90" face class="text-sky-soft opacity-70" aria-hidden="true" />
-            <p class="text-[14px] font-semibold text-fg-muted">{{ loading ? 'Cargando rutinas…' : 'Crea tu primera rutina' }}</p>
-            <button v-if="!loading" type="button" class="text-[13px] font-bold text-sky-deep" @click="openCreate">Nueva rutina</button>
+            <p class="text-[14px] font-semibold text-fg-muted">{{ loading ? t('routines.empty.loading') : t('routines.empty.createFirst') }}</p>
+            <button v-if="!loading" type="button" class="text-[13px] font-bold text-sky-deep" @click="openCreate">{{ t('routines.empty.newRoutine') }}</button>
           </div>
         </div>
       </AppCard>

@@ -1,3 +1,48 @@
 {
-  "spotify": {}
+  "spotify": {
+    "head": {
+      "title": "Hibi — Spotify"
+    },
+    "status": {
+      "connected": "Connected",
+      "disconnected": "Not connected"
+    },
+    "searchPlaceholder": "Search song, artist, album…",
+    "disconnect": "Disconnect",
+    "disconnectAria": "Disconnect Spotify",
+    "connect": {
+      "title": "Connect your Spotify",
+      "desc": "Link your account to see your playlists, your queue and control the music from Hibi.",
+      "cta": "Connect Spotify",
+      "demo": "Demo — it doesn't connect to any real account."
+    },
+    "tabs": {
+      "playlists": "Playlists",
+      "queue": "Queue"
+    },
+    "songs": "{count} songs",
+    "nowPlaying": "Now playing",
+    "nowPlayingShort": "Now playing",
+    "controls": {
+      "play": "Play",
+      "pause": "Pause",
+      "next": "Next",
+      "prev": "Previous",
+      "shuffle": "Shuffle",
+      "repeat": "Repeat",
+      "like": "Add to favorites",
+      "unlike": "Remove from favorites",
+      "minimize": "Minimize"
+    },
+    "playlists": {
+      "title": "Your playlists",
+      "saved": "{count} saved"
+    },
+    "queue": {
+      "title": "Queue",
+      "titleCount": "Queue · {count}",
+      "view": "View queue · {count}",
+      "close": "Close queue"
+    }
+  }
 }

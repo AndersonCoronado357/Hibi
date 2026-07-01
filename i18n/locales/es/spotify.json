@@ -1,3 +1,48 @@
 {
-  "spotify": {}
+  "spotify": {
+    "head": {
+      "title": "Hibi — Spotify"
+    },
+    "status": {
+      "connected": "Conectado",
+      "disconnected": "No conectado"
+    },
+    "searchPlaceholder": "Buscar canción, artista, álbum…",
+    "disconnect": "Desconectar",
+    "disconnectAria": "Desconectar Spotify",
+    "connect": {
+      "title": "Conecta tu Spotify",
+      "desc": "Enlaza tu cuenta para ver tus playlists, tu cola y controlar la música desde Hibi.",
+      "cta": "Conectar Spotify",
+      "demo": "Demo — no se conecta a ninguna cuenta real."
+    },
+    "tabs": {
+      "playlists": "Playlists",
+      "queue": "Cola"
+    },
+    "songs": "{count} canciones",
+    "nowPlaying": "Reproduciendo ahora",
+    "nowPlayingShort": "Reproduciendo",
+    "controls": {
+      "play": "Reproducir",
+      "pause": "Pausar",
+      "next": "Siguiente",
+      "prev": "Anterior",
+      "shuffle": "Aleatorio",
+      "repeat": "Repetir",
+      "like": "Añadir a favoritos",
+      "unlike": "Quitar de favoritos",
+      "minimize": "Minimizar"
+    },
+    "playlists": {
+      "title": "Tus playlists",
+      "saved": "{count} guardadas"
+    },
+    "queue": {
+      "title": "Cola",
+      "titleCount": "Cola · {count}",
+      "view": "Ver cola · {count}",
+      "close": "Cerrar cola"
+    }
+  }
 }

@@ -1,3 +1,71 @@
 {
-  "routines": {}
+  "routines": {
+    "head": {
+      "title": "Hibi — Rutinas"
+    },
+    "title": "Rutinas",
+    "subtitle": "{count} rutinas",
+    "new": "Nueva",
+    "filter": {
+      "today": "Hoy",
+      "all": "Todas"
+    },
+    "yourRoutines": "Tus rutinas",
+    "cardMeta": "{label} · {min} min · {done}/{total} pasos",
+    "cardMetaDesktop": "{label}, {min} min, {total} pasos",
+    "times": {
+      "morning": "Mañana",
+      "midday": "Mediodía",
+      "night": "Noche"
+    },
+    "days": {
+      "mon": "L",
+      "tue": "M",
+      "wed": "X",
+      "thu": "J",
+      "fri": "V",
+      "sat": "S",
+      "sun": "D"
+    },
+    "create": {
+      "title": "Nueva rutina",
+      "subtitle": "Una secuencia de pasos para tu día",
+      "nameLabel": "Nombre",
+      "namePlaceholder": "Mañana clara, noche calmada…",
+      "timeLabel": "Momento",
+      "daysLabel": "Días",
+      "stepsLabel": "Pasos",
+      "stepNamePlaceholder": "Nombre del paso",
+      "add": "Añadir",
+      "addSubstep": "Añadir subpaso",
+      "total": "Total: {min} min",
+      "min": "min"
+    },
+    "detail": {
+      "addStep": "Agregar paso",
+      "meta": "{done} de {total} pasos · {min} min",
+      "newStep": "Nuevo paso",
+      "newSubstep": "Nuevo subpaso",
+      "min": "min"
+    },
+    "empty": {
+      "noToday": "No hay rutinas para hoy",
+      "seeAll": "Ver todas",
+      "createFirst": "Crea tu primera rutina",
+      "loading": "Cargando rutinas…",
+      "newRoutine": "Nueva rutina"
+    },
+    "aria": {
+      "back": "Volver a rutinas",
+      "dragStep": "Arrastrar paso",
+      "dragSubstep": "Arrastrar subpaso",
+      "drag": "Arrastrar",
+      "addSubstep": "Añadir subpaso",
+      "deleteStep": "Eliminar paso",
+      "deleteSubstep": "Eliminar subpaso",
+      "saveStep": "Guardar paso",
+      "saveSubstep": "Guardar subpaso",
+      "minutes": "Minutos"
+    }
+  }
 }

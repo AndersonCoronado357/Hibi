@@ -1,3 +1,34 @@
 {
-  "chat": {}
+  "chat": {
+    "head": {
+      "title": "Hibi — Chat"
+    },
+    "title": "Chat with Hibi",
+    "subtitle": "Ask, jot something down, or request a summary",
+    "new": "New",
+    "newConversation": "New conversation",
+    "history": "History",
+    "showHistory": "Show history",
+    "hideHistory": "Hide history",
+    "msgCount": "{count} msgs",
+    "convDateFormat": "MMM d",
+    "suggestions": {
+      "summarizeDay": "Summarize my day",
+      "newTask": "New task, buy bread",
+      "noteIdea": "Jot down an idea",
+      "remindMe": "Remind me in 1 hour",
+      "habits": "How am I doing with my habits",
+      "tomorrow": "What do I have tomorrow"
+    },
+    "empty": {
+      "greeting": "Hi! I'm Hibi",
+      "prompt": "Tell me what you need to get started."
+    },
+    "composer": {
+      "label": "Write to Hibi",
+      "placeholder": "Write to Hibi…",
+      "send": "Send"
+    },
+    "deleteConversation": "Delete conversation"
+  }
 }

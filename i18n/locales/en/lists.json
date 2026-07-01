@@ -1,3 +1,52 @@
 {
-  "lists": {}
+  "lists": {
+    "head": {
+      "title": "Hibi — Lists"
+    },
+    "title": "Lists",
+    "subtitle": "{count} active lists",
+    "new": "New",
+    "types": {
+      "shopping": "Shopping",
+      "movies": "Movies / series",
+      "books": "Books",
+      "places": "Places"
+    },
+    "create": {
+      "title": "New list",
+      "subtitle": "So you don't miss a thing",
+      "nameLabel": "Name",
+      "namePlaceholder": "Weekly groceries, trip to Japan…",
+      "typeLabel": "Type",
+      "initialLabel": "Initial items",
+      "initialPlaceholder": "Bread, milk, apples…"
+    },
+    "sidebar": {
+      "heading": "Your lists",
+      "itemsCount": "{count} items"
+    },
+    "mobile": {
+      "markedCount": "{done} of {total} checked"
+    },
+    "detail": {
+      "markedCount": "{done} of {total} checked",
+      "newItemLabel": "New item",
+      "addItemPlaceholder": "Add item…"
+    },
+    "aria": {
+      "removeInitial": "Remove",
+      "backToLists": "Back to lists",
+      "removeList": "Delete list",
+      "addItem": "Add",
+      "removeItem": "Delete item"
+    },
+    "empty": {
+      "mobileTitle": "You have no lists yet",
+      "mobileSubtitle": "Create your first list to get started",
+      "sidebarTitle": "No lists yet",
+      "sidebarSubtitle": "Tap “New” to create one",
+      "itemsTitle": "Empty list",
+      "itemsSubtitle": "Add your first item above"
+    }
+  }
 }

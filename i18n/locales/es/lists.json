@@ -1,3 +1,52 @@
 {
-  "lists": {}
+  "lists": {
+    "head": {
+      "title": "Hibi — Listas"
+    },
+    "title": "Listas",
+    "subtitle": "{count} listas activas",
+    "new": "Nueva",
+    "types": {
+      "shopping": "Compra",
+      "movies": "Pelis / series",
+      "books": "Libros",
+      "places": "Sitios"
+    },
+    "create": {
+      "title": "Nueva lista",
+      "subtitle": "Para no dejarte nada",
+      "nameLabel": "Nombre",
+      "namePlaceholder": "Compra semanal, viaje a Japón…",
+      "typeLabel": "Tipo",
+      "initialLabel": "Ítems iniciales",
+      "initialPlaceholder": "Pan, leche, manzanas…"
+    },
+    "sidebar": {
+      "heading": "Tus listas",
+      "itemsCount": "{count} ítems"
+    },
+    "mobile": {
+      "markedCount": "{done} de {total} marcados"
+    },
+    "detail": {
+      "markedCount": "{done} de {total} marcados",
+      "newItemLabel": "Nuevo ítem",
+      "addItemPlaceholder": "Añadir ítem…"
+    },
+    "aria": {
+      "removeInitial": "Eliminar",
+      "backToLists": "Volver a listas",
+      "removeList": "Eliminar lista",
+      "addItem": "Añadir",
+      "removeItem": "Eliminar ítem"
+    },
+    "empty": {
+      "mobileTitle": "Aún no tienes listas",
+      "mobileSubtitle": "Crea tu primera lista para empezar",
+      "sidebarTitle": "Sin listas todavía",
+      "sidebarSubtitle": "Pulsa «Nueva» para crear una",
+      "itemsTitle": "Lista vacía",
+      "itemsSubtitle": "Añade tu primer ítem arriba"
+    }
+  }
 }

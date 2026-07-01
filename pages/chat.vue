@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { Send, Trash2, MessageCircle, Sparkles, Plus, ChevronLeft, History, X } from '@lucide/vue'
 import { format, isToday, isYesterday } from 'date-fns'
-import { es } from 'date-fns/locale'
 
-useHead({ title: 'Hibi — Chat' })
+const { t } = useI18n()
+const dateLocale = useDateLocale()
+
+useHead({ title: t('chat.head.title') })
 
 const conversations = useChatConversations()
 const activeId = useActiveChatId()
@@ -15,21 +17,21 @@ const listRef = ref<HTMLElement | null>(null)
 const showHistory = ref(true) // panel colapsable (desktop)
 const showHistoryMobile = ref(false) // overlay historial (móvil)
 
-const SUGGESTIONS = [
-  { text: 'Resúmeme el día',         tone: 'bg-sky-soft text-sky-deep' },
-  { text: 'Nueva tarea, comprar pan', tone: 'bg-mint text-[#34936a]' },
-  { text: 'Anota una idea',          tone: 'bg-cream text-[#bf8f2e]' },
-  { text: 'Recuérdame en 1 hora',    tone: 'bg-peach text-[#c5733f]' },
-  { text: 'Cómo voy con mis hábitos', tone: 'bg-pink-soft text-pink-deep' },
-  { text: 'Qué tengo mañana',        tone: 'bg-lavender text-[#7a63c0]' },
-]
+const SUGGESTIONS = computed(() => [
+  { text: t('chat.suggestions.summarizeDay'), tone: 'bg-sky-soft text-sky-deep' },
+  { text: t('chat.suggestions.newTask'),      tone: 'bg-mint text-[#34936a]' },
+  { text: t('chat.suggestions.noteIdea'),     tone: 'bg-cream text-[#bf8f2e]' },
+  { text: t('chat.suggestions.remindMe'),     tone: 'bg-peach text-[#c5733f]' },
+  { text: t('chat.suggestions.habits'),       tone: 'bg-pink-soft text-pink-deep' },
+  { text: t('chat.suggestions.tomorrow'),     tone: 'bg-lavender text-[#7a63c0]' },
+])
 
 async function send(text?: string) {
-  const t = (text ?? draft.value).trim()
-  if (!t || sending.value) return
+  const msg = (text ?? draft.value).trim()
+  if (!msg || sending.value) return
   draft.value = ''
   sending.value = true
-  await sendUserMessage(t)
+  await sendUserMessage(msg)
   sending.value = false
   await nextTick()
   if (listRef.value) listRef.value.scrollTop = listRef.value.scrollHeight
@@ -41,9 +43,9 @@ function fmtTime(at: number) {
 
 function fmtConvDate(at: number) {
   const d = new Date(at)
-  if (isToday(d)) return 'Hoy ' + format(d, 'HH:mm')
-  if (isYesterday(d)) return 'Ayer'
-  return format(d, "d 'de' MMM", { locale: es })
+  if (isToday(d)) return t('common.today') + ' ' + format(d, 'HH:mm')
+  if (isYesterday(d)) return t('common.yesterday')
+  return format(d, t('chat.convDateFormat'), { locale: dateLocale.value })
 }
 
 function onNewConversation() {
@@ -87,7 +89,7 @@ watch(() => activeId.value, async () => {
 
     <!-- Header -->
     <div class="relative z-10">
-      <PageHero :icon="MessageCircle" tone="sky" title="Chat con Hibi" subtitle="Pregunta, anota o pide un resumen">
+      <PageHero :icon="MessageCircle" tone="sky" :title="t('chat.title')" :subtitle="t('chat.subtitle')">
         <template #actions>
           <!-- En PC, Nueva en la barra. En móvil va DENTRO del chat (abajo). -->
           <div class="hidden md:block">
@@ -98,7 +100,7 @@ watch(() => activeId.value, async () => {
             >
               <span class="inline-flex items-center gap-1.5 transition-opacity duration-200 group-hover/hibibtn:opacity-0">
                 <Plus class="size-[15px]" :stroke-width="2.4" aria-hidden="true" />
-                Nueva
+                {{ t('chat.new') }}
               </span>
               <HibiButtonFace variant="primary" />
             </button>
@@ -117,7 +119,7 @@ watch(() => activeId.value, async () => {
         @click="!showHistory && (showHistory = true)"
       >
         <!-- Modo COLAPSADO -->
-        <button v-show="!showHistory" type="button" class="grid place-items-center size-9 rounded-full text-fg-muted hover:text-fg" title="Mostrar historial">
+        <button v-show="!showHistory" type="button" class="grid place-items-center size-9 rounded-full text-fg-muted hover:text-fg" :title="t('chat.showHistory')">
           <MessageCircle class="size-[18px]" :stroke-width="1.9" />
         </button>
         <!-- Modo EXPANDIDO -->
@@ -125,9 +127,9 @@ watch(() => activeId.value, async () => {
         <header class="shrink-0 px-4 pt-4 pb-3 flex items-center justify-between">
           <h2 class="text-[14px] font-extrabold text-fg flex items-center gap-2">
             <MessageCircle class="size-[15px] text-sky-deep" :stroke-width="2" />
-            Historial
+            {{ t('chat.history') }}
           </h2>
-          <button type="button" class="grid place-items-center size-8 rounded-full text-fg-subtle hover:text-fg hover:bg-muted" aria-label="Ocultar historial" @click.stop="showHistory = false">
+          <button type="button" class="grid place-items-center size-8 rounded-full text-fg-subtle hover:text-fg hover:bg-muted" :aria-label="t('chat.hideHistory')" @click.stop="showHistory = false">
             <ChevronLeft class="size-[16px]" :stroke-width="2" />
           </button>
         </header>
@@ -147,14 +149,14 @@ watch(() => activeId.value, async () => {
                 <HibiCloudIcon :size="36" :icon="MessageCircle" :icon-size="14" :cloud-color="c.id === activeId ? 'text-card' : 'text-sky-soft'" :icon-color="c.id === activeId ? 'text-sky-deep' : 'text-sky-deep'" :icon-stroke="2" class="shrink-0 mt-0.5" />
                 <div class="flex-1 min-w-0">
                   <p class="text-[13.5px] font-bold text-fg truncate" :class="c.id === activeId ? 'text-sky-deep' : ''">{{ c.title }}</p>
-                  <p class="text-[11px] text-fg-muted truncate">{{ fmtConvDate(c.updatedAt) }} · {{ c.messages.filter(m => m.role === 'user').length }} msgs</p>
+                  <p class="text-[11px] text-fg-muted truncate">{{ fmtConvDate(c.updatedAt) }} · {{ t('chat.msgCount', { count: c.messages.filter(m => m.role === 'user').length }) }}</p>
                 </div>
               </div>
               <button
                 v-if="conversations.length > 1"
                 type="button"
                 class="absolute top-1.5 right-1.5 grid place-items-center size-7 rounded-full text-fg-subtle opacity-0 group-hover/conv:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]"
-                aria-label="Eliminar conversación"
+                :aria-label="t('chat.deleteConversation')"
                 @click="(e) => onDeleteConversation(c.id, e)"
               >
                 <Trash2 class="size-[13px]" :stroke-width="2" />
@@ -170,10 +172,10 @@ watch(() => activeId.value, async () => {
         <!-- Barra móvil DENTRO del chat: Historial (izq) + Nueva (der) -->
         <div class="md:hidden shrink-0 flex items-center justify-between gap-2 px-3 pt-3 pb-1">
           <button type="button" class="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-muted text-fg-muted text-[13px] font-bold active:bg-inset" @click="showHistoryMobile = true">
-            <History class="size-[16px] text-sky-deep" :stroke-width="2.1" aria-hidden="true" /> Historial
+            <History class="size-[16px] text-sky-deep" :stroke-width="2.1" aria-hidden="true" /> {{ t('chat.history') }}
           </button>
           <button type="button" class="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-sky text-[#1f4661] text-[13px] font-bold active:bg-sky-deep active:text-white" @click="onNewConversation">
-            <Plus class="size-[15px]" :stroke-width="2.4" aria-hidden="true" /> Nueva
+            <Plus class="size-[15px]" :stroke-width="2.4" aria-hidden="true" /> {{ t('chat.new') }}
           </button>
         </div>
         <!-- Mensajes -->
@@ -187,8 +189,8 @@ watch(() => activeId.value, async () => {
               <HibiHeart :size="16" beat :duration="2.4" class="absolute bottom-2 -right-2 text-pink-deep opacity-85" />
             </div>
             <div class="text-center">
-              <p class="text-[18px] font-extrabold text-fg">¡Hola! Soy Hibi</p>
-              <p class="text-[13px] text-fg-muted mt-1 max-w-[36ch]">Cuéntame qué necesitas para empezar.</p>
+              <p class="text-[18px] font-extrabold text-fg">{{ t('chat.empty.greeting') }}</p>
+              <p class="text-[13px] text-fg-muted mt-1 max-w-[36ch]">{{ t('chat.empty.prompt') }}</p>
             </div>
           </div>
 
@@ -239,19 +241,19 @@ watch(() => activeId.value, async () => {
             </Transition>
 
             <form class="relative" @submit.prevent="send()">
-              <label for="chat-input" class="sr-only">Escribe a Hibi</label>
+              <label for="chat-input" class="sr-only">{{ t('chat.composer.label') }}</label>
               <input
                 id="chat-input"
                 v-model="draft"
                 type="text"
-                placeholder="Escribe a Hibi…"
+                :placeholder="t('chat.composer.placeholder')"
                 class="w-full h-13 rounded-full bg-muted pl-5 pr-14 text-[15px] text-fg outline-none"
               />
               <button
                 type="submit"
                 :disabled="!draft.trim() || sending"
                 class="group/hibibtn absolute right-1.5 top-1/2 -translate-y-1/2 grid place-items-center size-10 rounded-full bg-sky text-[#1f4661] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-sky-deep hover:text-white transition-[background-color,color]"
-                aria-label="Enviar"
+                :aria-label="t('chat.composer.send')"
               >
                 <Send class="size-[17px] transition-opacity group-hover/hibibtn:opacity-0" :stroke-width="2.1" aria-hidden="true" />
                 <HibiButtonFace variant="primary" />
@@ -266,14 +268,14 @@ watch(() => activeId.value, async () => {
         <AppCard v-if="showHistoryMobile" class="md:hidden !absolute inset-0 z-30 flex flex-col" :padded="false">
           <header class="shrink-0 px-4 pt-4 pb-3 flex items-center justify-between">
             <h2 class="text-[16px] font-extrabold text-fg flex items-center gap-2">
-              <History class="size-[17px] text-sky-deep" :stroke-width="2" /> Historial
+              <History class="size-[17px] text-sky-deep" :stroke-width="2" /> {{ t('chat.history') }}
             </h2>
-            <button type="button" class="grid place-items-center size-9 rounded-full bg-muted text-fg-muted" aria-label="Cerrar" @click="showHistoryMobile = false">
+            <button type="button" class="grid place-items-center size-9 rounded-full bg-muted text-fg-muted" :aria-label="t('common.close')" @click="showHistoryMobile = false">
               <X class="size-[18px]" :stroke-width="2" />
             </button>
           </header>
           <button type="button" class="shrink-0 mx-4 mb-2 inline-flex items-center justify-center gap-2 h-11 rounded-full bg-sky text-[#1f4661] font-bold text-[14px] active:bg-sky-deep active:text-white" @click="onNewConversation">
-            <Plus class="size-[16px]" :stroke-width="2.4" /> Nueva conversación
+            <Plus class="size-[16px]" :stroke-width="2.4" /> {{ t('chat.newConversation') }}
           </button>
           <ul class="flex-1 min-h-0 overflow-y-auto scroll-area px-3 pb-3 flex flex-col gap-1.5">
             <li v-for="c in conversations" :key="c.id">
@@ -286,13 +288,13 @@ watch(() => activeId.value, async () => {
                 <HibiCloudIcon :size="40" :icon="MessageCircle" :icon-size="15" :cloud-color="c.id === activeId ? 'text-card' : 'text-sky-soft'" icon-color="text-sky-deep" :icon-stroke="2" class="shrink-0" />
                 <div class="flex-1 min-w-0 pr-7">
                   <p class="text-[14px] font-bold text-fg truncate" :class="c.id === activeId ? 'text-sky-deep' : ''">{{ c.title }}</p>
-                  <p class="text-[11.5px] text-fg-muted truncate">{{ fmtConvDate(c.updatedAt) }} · {{ c.messages.filter(m => m.role === 'user').length }} msgs</p>
+                  <p class="text-[11.5px] text-fg-muted truncate">{{ fmtConvDate(c.updatedAt) }} · {{ t('chat.msgCount', { count: c.messages.filter(m => m.role === 'user').length }) }}</p>
                 </div>
                 <button
                   v-if="conversations.length > 1"
                   type="button"
                   class="absolute top-1/2 -translate-y-1/2 right-2 grid place-items-center size-8 rounded-full text-fg-subtle active:text-pink-deep active:bg-pink-soft"
-                  aria-label="Eliminar conversación"
+                  :aria-label="t('chat.deleteConversation')"
                   @click="(e) => onDeleteConversation(c.id, e)">
                   <Trash2 class="size-[15px]" :stroke-width="2" />
                 </button>

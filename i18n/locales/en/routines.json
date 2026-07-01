@@ -1,3 +1,71 @@
 {
-  "routines": {}
+  "routines": {
+    "head": {
+      "title": "Hibi — Routines"
+    },
+    "title": "Routines",
+    "subtitle": "{count} routines",
+    "new": "New",
+    "filter": {
+      "today": "Today",
+      "all": "All"
+    },
+    "yourRoutines": "Your routines",
+    "cardMeta": "{label} · {min} min · {done}/{total} steps",
+    "cardMetaDesktop": "{label}, {min} min, {total} steps",
+    "times": {
+      "morning": "Morning",
+      "midday": "Midday",
+      "night": "Night"
+    },
+    "days": {
+      "mon": "M",
+      "tue": "T",
+      "wed": "W",
+      "thu": "T",
+      "fri": "F",
+      "sat": "S",
+      "sun": "S"
+    },
+    "create": {
+      "title": "New routine",
+      "subtitle": "A sequence of steps for your day",
+      "nameLabel": "Name",
+      "namePlaceholder": "Bright morning, calm night…",
+      "timeLabel": "Time of day",
+      "daysLabel": "Days",
+      "stepsLabel": "Steps",
+      "stepNamePlaceholder": "Step name",
+      "add": "Add",
+      "addSubstep": "Add substep",
+      "total": "Total: {min} min",
+      "min": "min"
+    },
+    "detail": {
+      "addStep": "Add step",
+      "meta": "{done} of {total} steps · {min} min",
+      "newStep": "New step",
+      "newSubstep": "New substep",
+      "min": "min"
+    },
+    "empty": {
+      "noToday": "No routines for today",
+      "seeAll": "See all",
+      "createFirst": "Create your first routine",
+      "loading": "Loading routines…",
+      "newRoutine": "New routine"
+    },
+    "aria": {
+      "back": "Back to routines",
+      "dragStep": "Drag step",
+      "dragSubstep": "Drag substep",
+      "drag": "Drag",
+      "addSubstep": "Add substep",
+      "deleteStep": "Delete step",
+      "deleteSubstep": "Delete substep",
+      "saveStep": "Save step",
+      "saveSubstep": "Save substep",
+      "minutes": "Minutes"
+    }
+  }
 }

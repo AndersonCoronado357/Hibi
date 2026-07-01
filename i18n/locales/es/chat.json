@@ -1,3 +1,34 @@
 {
-  "chat": {}
+  "chat": {
+    "head": {
+      "title": "Hibi — Chat"
+    },
+    "title": "Chat con Hibi",
+    "subtitle": "Pregunta, anota o pide un resumen",
+    "new": "Nueva",
+    "newConversation": "Nueva conversación",
+    "history": "Historial",
+    "showHistory": "Mostrar historial",
+    "hideHistory": "Ocultar historial",
+    "msgCount": "{count} msgs",
+    "convDateFormat": "d 'de' MMM",
+    "suggestions": {
+      "summarizeDay": "Resúmeme el día",
+      "newTask": "Nueva tarea, comprar pan",
+      "noteIdea": "Anota una idea",
+      "remindMe": "Recuérdame en 1 hora",
+      "habits": "Cómo voy con mis hábitos",
+      "tomorrow": "Qué tengo mañana"
+    },
+    "empty": {
+      "greeting": "¡Hola! Soy Hibi",
+      "prompt": "Cuéntame qué necesitas para empezar."
+    },
+    "composer": {
+      "label": "Escribe a Hibi",
+      "placeholder": "Escribe a Hibi…",
+      "send": "Enviar"
+    },
+    "deleteConversation": "Eliminar conversación"
+  }
 }
