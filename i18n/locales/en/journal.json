@@ -1,3 +1,73 @@
 {
-  "journal": {}
+  "journal": {
+    "head": {
+      "title": "Hibi — Journal"
+    },
+    "title": "Journal",
+    "subtitle": "{count} entries · average mood {avg} / 5",
+    "views": {
+      "editor": "Editor",
+      "stats": "Statistics"
+    },
+    "today": "Today",
+    "moods": {
+      "1": "Bad",
+      "2": "Low",
+      "3": "Okay",
+      "4": "Good",
+      "5": "Great"
+    },
+    "prompts": {
+      "0": "What was the best part of your day.",
+      "1": "Why you felt the way you did.",
+      "2": "Someone you feel grateful for.",
+      "3": "What you'd like to remember about today a year from now.",
+      "4": "Something small that made you smile."
+    },
+    "prompt": {
+      "use": "Use",
+      "another": "Another"
+    },
+    "editorPlaceholder": "Write freely, or tap the suggestion to get started…",
+    "saving": "Saving…",
+    "delete": "Delete",
+    "deleteAria": "Delete entry",
+    "save": "Save",
+    "calendar": "Calendar",
+    "calendarEntriesAria": "Calendar and entries",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "weekdays": {
+      "0": "M",
+      "1": "T",
+      "2": "W",
+      "3": "T",
+      "4": "F",
+      "5": "S",
+      "6": "S"
+    },
+    "entries": "Entries",
+    "empty": {
+      "title": "No entries yet",
+      "subtitle": "Write about how your day went and tap Save."
+    },
+    "stats": {
+      "moodAverage": "Average mood",
+      "entries": "{count} entries",
+      "distributionAria": "Mood distribution",
+      "total": "Total",
+      "heatmapTitle": "Mood map · last 84 days",
+      "noEntry": "no entry",
+      "less": "Less",
+      "more": "More"
+    },
+    "dateFormat": {
+      "weekday": "EEEE",
+      "month": "MMM",
+      "monthYear": "MMMM yyyy",
+      "weekdayDay": "EEEE d",
+      "heatSelected": "EEEE d",
+      "heatTitle": "EEE d"
+    }
+  }
 }

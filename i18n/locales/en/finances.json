@@ -1,3 +1,73 @@
 {
-  "finances": {}
+  "finances": {
+    "head": {
+      "title": "Hibi — Finances"
+    },
+    "title": "Finances",
+    "subtitle": "June · {amount} spent",
+    "month": "June",
+    "dateFormat": "MMM d",
+    "tabs": {
+      "expenses": "Expenses",
+      "subs": "Subscriptions"
+    },
+    "new": {
+      "expense": "Expense",
+      "sub": "Subscription"
+    },
+    "categories": {
+      "title": "Categories",
+      "subtitle": "Create, edit and delete; each with its own icon and color.",
+      "new": "New",
+      "movements": "{count} movements",
+      "deleteAria": "Delete category"
+    },
+    "expenses": {
+      "spentThisMonth": "Spent in June",
+      "categoriesButton": "Categories",
+      "movements": "Movements",
+      "thisMonth": "{count} this month",
+      "emptyTitle": "No movements yet",
+      "emptySubtitle": "Log your first expense with the button above.",
+      "deleteAria": "Delete expense"
+    },
+    "subs": {
+      "monthlyRecurring": "Recurring monthly spend",
+      "perMonth": "/mo",
+      "active": "{count} active",
+      "listTitle": "Active subscriptions",
+      "emptyTitle": "No subscriptions",
+      "emptySubtitle": "Add your recurring services with the button above.",
+      "nextCharge": "Next charge {date}",
+      "deleteAria": "Delete subscription"
+    },
+    "entryForm": {
+      "editSub": "Edit subscription",
+      "newSub": "New subscription",
+      "editExpense": "Edit expense",
+      "newExpense": "New expense",
+      "serviceLabel": "Service",
+      "conceptLabel": "Concept",
+      "servicePlaceholder": "Service name",
+      "conceptPlaceholder": "Expense concept",
+      "monthlyAmountLabel": "Monthly amount",
+      "amountLabel": "Amount",
+      "nextChargeLabel": "Next charge",
+      "dateLabel": "Date",
+      "nextChargePlaceholder": "Next charge",
+      "datePlaceholder": "Date",
+      "categoryLabel": "Category",
+      "categoryPlaceholder": "Category",
+      "submitCreateSub": "Create",
+      "submitCreateExpense": "Log"
+    },
+    "catForm": {
+      "newTitle": "New category",
+      "editTitle": "Edit category",
+      "nameLabel": "Name",
+      "namePlaceholder": "Category name",
+      "iconLabel": "Icon",
+      "colorLabel": "Color"
+    }
+  }
 }

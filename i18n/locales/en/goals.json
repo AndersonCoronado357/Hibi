@@ -1,3 +1,37 @@
 {
-  "goals": {}
+  "goals": {
+    "head": {
+      "title": "Hibi — Goals"
+    },
+    "title": "Goals",
+    "subtitle": "{n} active · avg. progress {pct}%",
+    "new": "New",
+    "targetFormat": "MMM d, yyyy",
+    "noDate": "No date",
+    "deleteAria": "Delete goal",
+    "progressHint": "Drag the bar to log progress",
+    "progressHintShort": "Drag to log",
+    "create": {
+      "title": "New goal",
+      "subtitle": "Define where you want to get to",
+      "titleLabel": "Title",
+      "titlePlaceholder": "What do you want to achieve?",
+      "targetLabel": "Target date",
+      "targetPlaceholder": "Select date",
+      "areaLabel": "Area",
+      "areaPlaceholder": "Health, Study, Finances…",
+      "totalLabel": "Total goal",
+      "totalPlaceholder": "100",
+      "unitLabel": "Unit",
+      "unitPlaceholder": "books, km, COP, lessons…",
+      "colorLabel": "Color"
+    },
+    "tones": {
+      "sky": "Sky",
+      "pink": "Pink",
+      "mint": "Mint",
+      "peach": "Peach",
+      "lavender": "Lavender"
+    }
+  }
 }

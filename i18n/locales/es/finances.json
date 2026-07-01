@@ -1,3 +1,73 @@
 {
-  "finances": {}
+  "finances": {
+    "head": {
+      "title": "Hibi — Finanzas"
+    },
+    "title": "Finanzas",
+    "subtitle": "Junio · {amount} gastado",
+    "month": "junio",
+    "dateFormat": "d MMM",
+    "tabs": {
+      "expenses": "Gastos",
+      "subs": "Suscripciones"
+    },
+    "new": {
+      "expense": "Gasto",
+      "sub": "Suscripción"
+    },
+    "categories": {
+      "title": "Categorías",
+      "subtitle": "Crea, edita y elimina; cada una con su icono y color.",
+      "new": "Nueva",
+      "movements": "{count} movimientos",
+      "deleteAria": "Eliminar categoría"
+    },
+    "expenses": {
+      "spentThisMonth": "Gastado en junio",
+      "categoriesButton": "Categorías",
+      "movements": "Movimientos",
+      "thisMonth": "{count} este mes",
+      "emptyTitle": "Sin movimientos todavía",
+      "emptySubtitle": "Anota tu primer gasto con el botón de arriba.",
+      "deleteAria": "Eliminar gasto"
+    },
+    "subs": {
+      "monthlyRecurring": "Gasto mensual recurrente",
+      "perMonth": "/mes",
+      "active": "{count} activas",
+      "listTitle": "Suscripciones activas",
+      "emptyTitle": "Sin suscripciones",
+      "emptySubtitle": "Agrega tus servicios recurrentes con el botón de arriba.",
+      "nextCharge": "Próximo cobro {date}",
+      "deleteAria": "Eliminar suscripción"
+    },
+    "entryForm": {
+      "editSub": "Editar suscripción",
+      "newSub": "Nueva suscripción",
+      "editExpense": "Editar gasto",
+      "newExpense": "Nuevo gasto",
+      "serviceLabel": "Servicio",
+      "conceptLabel": "Concepto",
+      "servicePlaceholder": "Nombre del servicio",
+      "conceptPlaceholder": "Concepto del gasto",
+      "monthlyAmountLabel": "Monto mensual",
+      "amountLabel": "Monto",
+      "nextChargeLabel": "Próximo cobro",
+      "dateLabel": "Fecha",
+      "nextChargePlaceholder": "Próximo cobro",
+      "datePlaceholder": "Fecha",
+      "categoryLabel": "Categoría",
+      "categoryPlaceholder": "Categoría",
+      "submitCreateSub": "Crear",
+      "submitCreateExpense": "Anotar"
+    },
+    "catForm": {
+      "newTitle": "Nueva categoría",
+      "editTitle": "Editar categoría",
+      "nameLabel": "Nombre",
+      "namePlaceholder": "Nombre de la categoría",
+      "iconLabel": "Icono",
+      "colorLabel": "Color"
+    }
+  }
 }

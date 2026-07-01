@@ -1,3 +1,37 @@
 {
-  "goals": {}
+  "goals": {
+    "head": {
+      "title": "Hibi — Objetivos"
+    },
+    "title": "Objetivos",
+    "subtitle": "{n} activos · avance medio {pct}%",
+    "new": "Nuevo",
+    "targetFormat": "d 'de' MMM yyyy",
+    "noDate": "Sin fecha",
+    "deleteAria": "Eliminar objetivo",
+    "progressHint": "Arrastra la barra para aportar progreso",
+    "progressHintShort": "Arrastra para aportar",
+    "create": {
+      "title": "Nuevo objetivo",
+      "subtitle": "Define a dónde quieres llegar",
+      "titleLabel": "Título",
+      "titlePlaceholder": "¿Qué quieres conseguir?",
+      "targetLabel": "Fecha objetivo",
+      "targetPlaceholder": "Selecciona fecha",
+      "areaLabel": "Área",
+      "areaPlaceholder": "Salud, Estudio, Finanzas…",
+      "totalLabel": "Meta total",
+      "totalPlaceholder": "100",
+      "unitLabel": "Unidad",
+      "unitPlaceholder": "libros, km, COP, lecciones…",
+      "colorLabel": "Color"
+    },
+    "tones": {
+      "sky": "Cielo",
+      "pink": "Rosa",
+      "mint": "Menta",
+      "peach": "Melocotón",
+      "lavender": "Lavanda"
+    }
+  }
 }

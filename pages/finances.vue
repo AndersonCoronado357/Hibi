@@ -2,8 +2,12 @@
 import { Plus, Wallet, Repeat, ShoppingBag, Home as HomeI, Utensils, Bus, Film, HeartPulse, TrendingDown, TrendingUp, Settings2,
   Car, Coffee, Pizza, Gift, Plane, Book, Shirt, Sparkles, Heart, Music, Gamepad2, Dog, Baby, Banknote, Trash2, Check, X, ArrowLeft } from '@lucide/vue'
 import { markRaw, type Component } from 'vue'
+import { format } from 'date-fns'
 
-useHead({ title: 'Hibi — Finanzas' })
+const { t } = useI18n()
+const dateLocale = useDateLocale()
+
+useHead({ title: t('finances.head.title') })
 
 const {
   categories, expenses, subscriptions,
@@ -56,10 +60,10 @@ const todayIso = () => new Date().toISOString().slice(0, 10)
 const shiftIso = (n: number) => { const x = new Date(); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10) }
 function fmtDate(iso?: string | null) {
   if (!iso) return ''
-  if (iso === todayIso()) return 'Hoy'
-  if (iso === shiftIso(-1)) return 'Ayer'
+  if (iso === todayIso()) return t('common.today')
+  if (iso === shiftIso(-1)) return t('common.yesterday')
   try {
-    return new Date(iso + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+    return format(new Date(iso + 'T00:00:00'), t('finances.dateFormat'), { locale: dateLocale.value })
   } catch { return iso }
 }
 
@@ -71,6 +75,10 @@ type View = 'list' | 'categories'
 const tab = ref<Tab>('expenses')
 const view = ref<View>('list')
 const showForm = ref(false) // formulario colapsable de alta
+const tabOptions = computed(() => [
+  { value: 'expenses', label: t('finances.tabs.expenses') },
+  { value: 'subs', label: t('finances.tabs.subs') },
+])
 
 // Desglose por categoría para la tarjeta de resumen
 const byCat = computed(() => {
@@ -218,12 +226,12 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
 
     <!-- Toolbar -->
     <div class="relative z-10">
-      <PageHero :icon="Wallet" tone="mint" title="Finanzas" :subtitle="`Junio · ${fmt(totalMonth)} gastado`">
+      <PageHero :icon="Wallet" tone="mint" :title="t('finances.title')" :subtitle="t('finances.subtitle', { amount: fmt(totalMonth) })">
         <template #actions>
-          <AppSegmented :model-value="tab" :options="[{ value: 'expenses', label: 'Gastos' }, { value: 'subs', label: 'Suscripciones' }]" @update:model-value="(v) => switchTab(v as Tab)" />
+          <AppSegmented :model-value="tab" :options="tabOptions" @update:model-value="(v) => switchTab(v as Tab)" />
           <AppButton variant="primary" size="sm" class="ml-auto shrink-0" @click="newEntry">
             <template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>
-            {{ tab === 'subs' ? 'Suscripción' : 'Gasto' }}
+            {{ tab === 'subs' ? t('finances.new.sub') : t('finances.new.expense') }}
           </AppButton>
         </template>
       </PageHero>
@@ -236,14 +244,14 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
           class="inline-flex items-center gap-2 h-10 pl-2.5 pr-4 rounded-full bg-muted text-fg hover:bg-inset transition-[background-color] shrink-0"
           @click="view = 'list'">
           <ArrowLeft class="size-[17px]" :stroke-width="2" />
-          <span class="text-[13.5px] font-bold">Atrás</span>
+          <span class="text-[13.5px] font-bold">{{ t('common.back') }}</span>
         </button>
         <div class="flex-1 min-w-0">
-          <h2 class="text-[16px] font-extrabold text-fg truncate">Categorías</h2>
-          <p class="hidden sm:block text-[12.5px] text-fg-muted truncate">Crea, edita y elimina; cada una con su icono y color.</p>
+          <h2 class="text-[16px] font-extrabold text-fg truncate">{{ t('finances.categories.title') }}</h2>
+          <p class="hidden sm:block text-[12.5px] text-fg-muted truncate">{{ t('finances.categories.subtitle') }}</p>
         </div>
         <AppButton variant="primary" size="sm" class="shrink-0" @click="startNewCat">
-          <template #icon><Plus class="size-[15px]" :stroke-width="2.3" /></template>Nueva
+          <template #icon><Plus class="size-[15px]" :stroke-width="2.3" /></template>{{ t('finances.categories.new') }}
         </AppButton>
       </header>
 
@@ -267,10 +275,10 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
               </span>
               <div class="flex-1 min-w-0">
                 <p class="text-[15px] font-bold text-fg truncate">{{ meta.name }}</p>
-                <p class="text-[12px] text-fg-muted">{{ expenses.filter(t => t.categoryId === key).length }} movimientos</p>
+                <p class="text-[12px] text-fg-muted">{{ t('finances.categories.movements', { count: expenses.filter(e => e.categoryId === key).length }) }}</p>
               </div>
             </div>
-            <button type="button" class="grid place-items-center size-10 rounded-[11px] bg-card text-fg-subtle active:text-pink-deep shrink-0" aria-label="Eliminar categoría" @click.stop="deleteCat(key)"><Trash2 class="size-[16px]" :stroke-width="2" /></button>
+            <button type="button" class="grid place-items-center size-10 rounded-[11px] bg-card text-fg-subtle active:text-pink-deep shrink-0" :aria-label="t('finances.categories.deleteAria')" @click.stop="deleteCat(key)"><Trash2 class="size-[16px]" :stroke-width="2" /></button>
           </li>
         </ul>
       </div>
@@ -282,11 +290,11 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
       <AppCard class="shrink-0 !p-4 md:!p-5 flex flex-col gap-2.5">
         <div class="flex items-end justify-between gap-3">
           <div class="min-w-0">
-            <p class="text-[11.5px] font-bold text-fg-muted uppercase tracking-wide">Gastado en junio</p>
+            <p class="text-[11.5px] font-bold text-fg-muted uppercase tracking-wide">{{ t('finances.expenses.spentThisMonth') }}</p>
             <p class="text-[26px] md:text-[28px] font-extrabold text-fg leading-none tabular-nums mt-0.5">{{ fmt(totalMonth) }}</p>
           </div>
           <button type="button" class="shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-muted text-fg-muted text-[12.5px] font-bold" @click="view = 'categories'">
-            <Settings2 class="size-[14px]" :stroke-width="2.2" /> Categorías
+            <Settings2 class="size-[14px]" :stroke-width="2.2" /> {{ t('finances.expenses.categoriesButton') }}
           </button>
         </div>
         <div class="h-3 rounded-full overflow-hidden flex bg-muted">
@@ -297,8 +305,8 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
       <!-- Lista de movimientos: llena el alto disponible -->
       <AppCard class="flex-1 min-h-0 min-w-0 flex flex-col" :padded="false">
         <header class="px-4 md:px-5 pt-4 md:pt-5 pb-2 md:pb-3 shrink-0 flex items-center justify-between">
-          <h2 class="text-[14px] font-bold text-fg">Movimientos</h2>
-          <span class="text-[12.5px] font-bold text-fg-muted tabular-nums">{{ expenses.length }} este mes</span>
+          <h2 class="text-[14px] font-bold text-fg">{{ t('finances.expenses.movements') }}</h2>
+          <span class="text-[12.5px] font-bold text-fg-muted tabular-nums">{{ t('finances.expenses.thisMonth', { count: expenses.length }) }}</span>
         </header>
         <!-- Carga inicial -->
         <div v-if="expensesLoadingEmpty" class="flex-1 min-h-0 overflow-hidden px-2 md:px-3 pb-3 flex flex-col gap-1">
@@ -318,25 +326,25 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
               <HibiCloud :size="72" :body-opacity="0.3" class="absolute inset-0 text-mint" />
               <Wallet class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[#34936a]" :style="{ width: '22px', height: '22px' }" :stroke-width="2" />
             </span>
-            <p class="text-[14px] font-bold text-fg">Sin movimientos todavía</p>
-            <p class="text-[12.5px] text-fg-muted max-w-[220px]">Anota tu primer gasto con el botón de arriba.</p>
+            <p class="text-[14px] font-bold text-fg">{{ t('finances.expenses.emptyTitle') }}</p>
+            <p class="text-[12.5px] text-fg-muted max-w-[220px]">{{ t('finances.expenses.emptySubtitle') }}</p>
           </div>
         </div>
         <ul v-else class="flex-1 min-h-0 overflow-y-auto scroll-area px-2 md:px-3 pb-3 flex flex-col">
-          <li v-for="t in expenses" :key="t.id" class="group/tx flex items-center gap-2 p-2 rounded-[12px] hover:bg-muted transition-[background-color]">
-            <div role="button" tabindex="0" class="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer text-left outline-none rounded-[10px] focus-visible:ring-2 focus-visible:ring-sky-deep" @click="startEditExpense(t)" @keydown.enter.prevent="startEditExpense(t)" @keydown.space.prevent="startEditExpense(t)">
+          <li v-for="tx in expenses" :key="tx.id" class="group/tx flex items-center gap-2 p-2 rounded-[12px] hover:bg-muted transition-[background-color]">
+            <div role="button" tabindex="0" class="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer text-left outline-none rounded-[10px] focus-visible:ring-2 focus-visible:ring-sky-deep" @click="startEditExpense(tx)" @keydown.enter.prevent="startEditExpense(tx)" @keydown.space.prevent="startEditExpense(tx)">
               <span class="relative inline-block shrink-0" :style="{ width: '54px', height: '37px' }" aria-hidden="true">
-                <HibiCloud :size="54" :body-opacity="0.25" :style="{ color: CAT_META[t.categoryId || '']?.color || '#bf8f2e' }" class="absolute inset-0" />
-                <component :is="CAT_META[t.categoryId || '']?.icon || ShoppingBag" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-                  :style="{ width: '17px', height: '17px', color: CAT_META[t.categoryId || '']?.color || '#bf8f2e' }" :stroke-width="2" />
+                <HibiCloud :size="54" :body-opacity="0.25" :style="{ color: CAT_META[tx.categoryId || '']?.color || '#bf8f2e' }" class="absolute inset-0" />
+                <component :is="CAT_META[tx.categoryId || '']?.icon || ShoppingBag" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                  :style="{ width: '17px', height: '17px', color: CAT_META[tx.categoryId || '']?.color || '#bf8f2e' }" :stroke-width="2" />
               </span>
               <div class="flex-1 min-w-0">
-                <p class="text-[14px] font-semibold text-fg truncate">{{ t.title }}</p>
-                <p class="text-[12px] text-fg-muted truncate">{{ fmtDate(t.spentDate) }}<template v-if="CAT_META[t.categoryId || '']"> · {{ CAT_META[t.categoryId || '']?.name }}</template></p>
+                <p class="text-[14px] font-semibold text-fg truncate">{{ tx.title }}</p>
+                <p class="text-[12px] text-fg-muted truncate">{{ fmtDate(tx.spentDate) }}<template v-if="CAT_META[tx.categoryId || '']"> · {{ CAT_META[tx.categoryId || '']?.name }}</template></p>
               </div>
-              <span class="text-[15px] font-bold text-fg tabular-nums shrink-0">{{ fmt(t.amount) }}</span>
+              <span class="text-[15px] font-bold text-fg tabular-nums shrink-0">{{ fmt(tx.amount) }}</span>
             </div>
-            <button type="button" class="shrink-0 grid place-items-center size-8 rounded-[9px] text-fg-subtle md:opacity-0 md:group-hover/tx:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" aria-label="Eliminar gasto" @click.stop="removeExpense(t.id)"><Trash2 class="size-[15px]" :stroke-width="2" /></button>
+            <button type="button" class="shrink-0 grid place-items-center size-8 rounded-[9px] text-fg-subtle md:opacity-0 md:group-hover/tx:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" :aria-label="t('finances.expenses.deleteAria')" @click.stop="removeExpense(tx.id)"><Trash2 class="size-[15px]" :stroke-width="2" /></button>
           </li>
         </ul>
       </AppCard>
@@ -347,18 +355,18 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
       <!-- Resumen suscripciones (compacto) -->
       <AppCard class="shrink-0 !p-4 md:!p-5 flex items-end justify-between gap-3">
         <div class="min-w-0">
-          <p class="text-[11.5px] font-bold text-fg-muted uppercase tracking-wide">Gasto mensual recurrente</p>
-          <p class="text-[26px] md:text-[28px] font-extrabold text-fg leading-none tabular-nums mt-0.5">{{ fmt(totalSubs) }}<span class="text-[15px] text-fg-muted font-bold">/mes</span></p>
+          <p class="text-[11.5px] font-bold text-fg-muted uppercase tracking-wide">{{ t('finances.subs.monthlyRecurring') }}</p>
+          <p class="text-[26px] md:text-[28px] font-extrabold text-fg leading-none tabular-nums mt-0.5">{{ fmt(totalSubs) }}<span class="text-[15px] text-fg-muted font-bold">{{ t('finances.subs.perMonth') }}</span></p>
         </div>
         <span class="shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-mint text-[#34936a] text-[12.5px] font-bold">
-          <Repeat class="size-[14px]" :stroke-width="2.2" /> {{ subscriptions.length }} activas
+          <Repeat class="size-[14px]" :stroke-width="2.2" /> {{ t('finances.subs.active', { count: subscriptions.length }) }}
         </span>
       </AppCard>
 
       <!-- Lista: llena el alto disponible -->
       <AppCard class="flex-1 min-h-0 min-w-0 flex flex-col" :padded="false">
         <header class="px-4 md:px-5 pt-4 md:pt-5 pb-2 md:pb-3 shrink-0">
-          <h2 class="text-[14px] font-bold text-fg">Suscripciones activas</h2>
+          <h2 class="text-[14px] font-bold text-fg">{{ t('finances.subs.listTitle') }}</h2>
         </header>
         <!-- Carga inicial -->
         <div v-if="subsLoadingEmpty" class="flex-1 min-h-0 overflow-hidden px-2 md:px-3 pb-3 flex flex-col gap-1">
@@ -378,8 +386,8 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
               <HibiCloud :size="72" :body-opacity="0.3" class="absolute inset-0 text-mint" />
               <Repeat class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[#34936a]" :style="{ width: '22px', height: '22px' }" :stroke-width="2" />
             </span>
-            <p class="text-[14px] font-bold text-fg">Sin suscripciones</p>
-            <p class="text-[12.5px] text-fg-muted max-w-[220px]">Agrega tus servicios recurrentes con el botón de arriba.</p>
+            <p class="text-[14px] font-bold text-fg">{{ t('finances.subs.emptyTitle') }}</p>
+            <p class="text-[12.5px] text-fg-muted max-w-[220px]">{{ t('finances.subs.emptySubtitle') }}</p>
           </div>
         </div>
         <ul v-else class="flex-1 min-h-0 overflow-y-auto scroll-area px-2 md:px-3 pb-3 flex flex-col">
@@ -392,11 +400,11 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
               </span>
               <div class="flex-1 min-w-0">
                 <p class="text-[14px] font-semibold text-fg truncate">{{ s.title }}</p>
-                <p class="text-[12px] text-fg-muted truncate"><template v-if="s.nextCharge">Próximo cobro {{ fmtDate(s.nextCharge) }}</template><template v-if="s.nextCharge && CAT_META[s.categoryId || '']"> · </template><template v-if="CAT_META[s.categoryId || '']">{{ CAT_META[s.categoryId || '']?.name }}</template></p>
+                <p class="text-[12px] text-fg-muted truncate"><template v-if="s.nextCharge">{{ t('finances.subs.nextCharge', { date: fmtDate(s.nextCharge) }) }}</template><template v-if="s.nextCharge && CAT_META[s.categoryId || '']"> · </template><template v-if="CAT_META[s.categoryId || '']">{{ CAT_META[s.categoryId || '']?.name }}</template></p>
               </div>
               <span class="text-[15px] font-bold text-fg tabular-nums shrink-0">{{ fmt(s.amount) }}</span>
             </div>
-            <button type="button" class="shrink-0 grid place-items-center size-8 rounded-[9px] text-fg-subtle md:opacity-0 md:group-hover/sub:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" aria-label="Eliminar suscripción" @click.stop="removeSubscription(s.id)"><Trash2 class="size-[15px]" :stroke-width="2" /></button>
+            <button type="button" class="shrink-0 grid place-items-center size-8 rounded-[9px] text-fg-subtle md:opacity-0 md:group-hover/sub:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" :aria-label="t('finances.subs.deleteAria')" @click.stop="removeSubscription(s.id)"><Trash2 class="size-[15px]" :stroke-width="2" /></button>
           </li>
         </ul>
       </AppCard>
@@ -409,21 +417,21 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
           <div v-if="showForm" class="fixed inset-0 z-[60] bg-base md:bg-fg/30 md:grid md:place-items-center md:p-6">
             <div class="h-full md:h-auto md:max-h-[88vh] w-full md:max-w-[460px] bg-base md:rounded-[24px] flex flex-col overflow-hidden">
               <header class="shrink-0 flex items-center justify-between px-4 pb-3" style="padding-top: max(1rem, env(safe-area-inset-top))">
-                <button type="button" class="grid place-items-center size-10 rounded-full bg-muted text-fg-muted" aria-label="Cerrar" @click="closeForm"><X class="size-[19px]" :stroke-width="2.2" /></button>
-                <h2 class="text-[16px] font-extrabold text-fg">{{ tab === 'subs' ? (editId ? 'Editar suscripción' : 'Nueva suscripción') : (editId ? 'Editar gasto' : 'Nuevo gasto') }}</h2>
+                <button type="button" class="grid place-items-center size-10 rounded-full bg-muted text-fg-muted" :aria-label="t('common.close')" @click="closeForm"><X class="size-[19px]" :stroke-width="2.2" /></button>
+                <h2 class="text-[16px] font-extrabold text-fg">{{ tab === 'subs' ? (editId ? t('finances.entryForm.editSub') : t('finances.entryForm.newSub')) : (editId ? t('finances.entryForm.editExpense') : t('finances.entryForm.newExpense')) }}</h2>
                 <div class="size-10" aria-hidden="true" />
               </header>
               <form class="flex-1 min-h-0 overflow-y-auto scroll-area px-5 pb-4 flex flex-col gap-5" @submit.prevent="saveEntry">
                 <!-- Concepto / Servicio -->
                 <div>
-                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">{{ tab === 'subs' ? 'Servicio' : 'Concepto' }}</label>
-                  <input v-model="entryTitle" type="text" :placeholder="tab === 'subs' ? 'Nombre del servicio' : 'Concepto del gasto'" autofocus
+                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">{{ tab === 'subs' ? t('finances.entryForm.serviceLabel') : t('finances.entryForm.conceptLabel') }}</label>
+                  <input v-model="entryTitle" type="text" :placeholder="tab === 'subs' ? t('finances.entryForm.servicePlaceholder') : t('finances.entryForm.conceptPlaceholder')" autofocus
                     class="w-full h-[52px] rounded-[14px] bg-muted px-4 text-[16px] font-semibold text-fg outline-none placeholder:text-fg-subtle"
                     @keydown.enter.prevent="entryValid && saveEntry()" />
                 </div>
                 <!-- Monto (formato COP con punto de miles en vivo) -->
                 <div>
-                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">{{ tab === 'subs' ? 'Monto mensual' : 'Monto' }}</label>
+                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">{{ tab === 'subs' ? t('finances.entryForm.monthlyAmountLabel') : t('finances.entryForm.amountLabel') }}</label>
                   <div class="relative">
                     <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[16px] font-semibold text-fg-muted pointer-events-none">$</span>
                     <input v-model="entryAmountDisplay" type="text" inputmode="numeric" placeholder="0"
@@ -432,19 +440,19 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
                 </div>
                 <!-- Fecha / Próximo cobro -->
                 <div>
-                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">{{ tab === 'subs' ? 'Próximo cobro' : 'Fecha' }}</label>
-                  <AppDate v-model="entryDate" :placeholder="tab === 'subs' ? 'Próximo cobro' : 'Fecha'" tone="muted" class="w-full" />
+                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">{{ tab === 'subs' ? t('finances.entryForm.nextChargeLabel') : t('finances.entryForm.dateLabel') }}</label>
+                  <AppDate v-model="entryDate" :placeholder="tab === 'subs' ? t('finances.entryForm.nextChargePlaceholder') : t('finances.entryForm.datePlaceholder')" tone="muted" class="w-full" />
                 </div>
                 <!-- Categoría -->
                 <div>
-                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">Categoría</label>
-                  <AppSelect v-model="entryCat" :options="CAT_OPTS" placeholder="Categoría" tone="muted" class="w-full" />
+                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">{{ t('finances.entryForm.categoryLabel') }}</label>
+                  <AppSelect v-model="entryCat" :options="CAT_OPTS" :placeholder="t('finances.entryForm.categoryPlaceholder')" tone="muted" class="w-full" />
                 </div>
               </form>
               <div class="shrink-0 flex gap-2 px-5 pt-3" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom))">
-                <button type="button" class="flex-1 h-12 rounded-[14px] bg-muted text-fg font-bold text-[15px]" @click="closeForm">Cancelar</button>
+                <button type="button" class="flex-1 h-12 rounded-[14px] bg-muted text-fg font-bold text-[15px]" @click="closeForm">{{ t('common.cancel') }}</button>
                 <button type="button" :disabled="!entryValid" class="flex-1 h-12 rounded-[14px] bg-sky-deep text-white font-bold text-[15px] disabled:opacity-40 inline-flex items-center justify-center gap-2" @click="saveEntry">
-                  <Check class="size-[17px]" :stroke-width="2.4" /> {{ editId ? 'Guardar' : (tab === 'subs' ? 'Crear' : 'Anotar') }}
+                  <Check class="size-[17px]" :stroke-width="2.4" /> {{ editId ? t('common.save') : (tab === 'subs' ? t('finances.entryForm.submitCreateSub') : t('finances.entryForm.submitCreateExpense')) }}
                 </button>
               </div>
             </div>
@@ -460,8 +468,8 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
           <div v-if="editingCatKey" class="fixed inset-0 z-[60] bg-base md:bg-fg/30 md:grid md:place-items-center md:p-6">
             <div class="h-full md:h-auto md:max-h-[88vh] w-full md:max-w-[460px] bg-base md:rounded-[24px] flex flex-col overflow-hidden">
               <header class="shrink-0 flex items-center justify-between px-4 pb-3" style="padding-top: max(1rem, env(safe-area-inset-top))">
-                <button type="button" class="grid place-items-center size-10 rounded-full bg-muted text-fg-muted" aria-label="Cerrar" @click="editingCatKey = null"><X class="size-[19px]" :stroke-width="2.2" /></button>
-                <h2 class="text-[16px] font-extrabold text-fg">{{ editingCatKey === '__new__' ? 'Nueva categoría' : 'Editar categoría' }}</h2>
+                <button type="button" class="grid place-items-center size-10 rounded-full bg-muted text-fg-muted" :aria-label="t('common.close')" @click="editingCatKey = null"><X class="size-[19px]" :stroke-width="2.2" /></button>
+                <h2 class="text-[16px] font-extrabold text-fg">{{ editingCatKey === '__new__' ? t('finances.catForm.newTitle') : t('finances.catForm.editTitle') }}</h2>
                 <div class="size-10" aria-hidden="true" />
               </header>
               <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-5 pb-4 flex flex-col gap-5">
@@ -473,14 +481,14 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
                 </div>
                 <!-- Nombre -->
                 <div>
-                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">Nombre</label>
-                  <input v-model="catDraft.name" type="text" placeholder="Nombre de la categoría" autofocus
+                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">{{ t('finances.catForm.nameLabel') }}</label>
+                  <input v-model="catDraft.name" type="text" :placeholder="t('finances.catForm.namePlaceholder')" autofocus
                     class="w-full h-[52px] rounded-[14px] bg-muted px-4 text-[16px] font-semibold text-fg outline-none placeholder:text-fg-subtle"
                     @keydown.enter.prevent="saveCat" />
                 </div>
                 <!-- Icono -->
                 <div>
-                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">Icono</label>
+                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">{{ t('finances.catForm.iconLabel') }}</label>
                   <div class="grid grid-cols-5 sm:grid-cols-6 gap-2">
                     <button v-for="g in ICON_GALLERY" :key="g.key" type="button"
                       class="grid place-items-center aspect-square rounded-[14px] bg-muted transition-[background-color]"
@@ -493,14 +501,14 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
                 </div>
                 <!-- Color -->
                 <div>
-                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">Color</label>
+                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">{{ t('finances.catForm.colorLabel') }}</label>
                   <AppColorPicker v-model="catDraft.color" format="hex" />
                 </div>
               </div>
               <div class="shrink-0 flex gap-2 px-5 pt-3" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom))">
-                <button type="button" class="flex-1 h-12 rounded-[14px] bg-muted text-fg font-bold text-[15px]" @click="editingCatKey = null">Cancelar</button>
+                <button type="button" class="flex-1 h-12 rounded-[14px] bg-muted text-fg font-bold text-[15px]" @click="editingCatKey = null">{{ t('common.cancel') }}</button>
                 <button type="button" :disabled="!catDraft.name.trim()" class="flex-1 h-12 rounded-[14px] bg-sky-deep text-white font-bold text-[15px] disabled:opacity-40 inline-flex items-center justify-center gap-2" @click="saveCat">
-                  <Check class="size-[17px]" :stroke-width="2.4" /> Guardar
+                  <Check class="size-[17px]" :stroke-width="2.4" /> {{ t('common.save') }}
                 </button>
               </div>
             </div>

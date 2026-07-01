@@ -1,3 +1,56 @@
 {
-  "focus": {}
+  "focus": {
+    "head": {
+      "title": "Hibi — Focus"
+    },
+    "modes": {
+      "focus": "Focus ({min})",
+      "short": "Short ({min})",
+      "long": "Long ({min})"
+    },
+    "timer": {
+      "aria": "Timer",
+      "sessions": "Sessions",
+      "running": "In focus",
+      "ready": "Ready",
+      "taskPlaceholder": "What are you focusing on?",
+      "reset": "Reset",
+      "start": "Start",
+      "pause": "Pause"
+    },
+    "ago": {
+      "now": "Just now",
+      "minutes": "{n} min ago",
+      "hourOne": "{n} hour ago",
+      "hourOther": "{n} hours ago"
+    },
+    "session": {
+      "minutes": "{n} min",
+      "untitled": "Focus session"
+    },
+    "side": {
+      "mode": "Mode",
+      "customize": "Customize",
+      "createPreset": "Create a preset"
+    },
+    "today": {
+      "title": "Today's sessions",
+      "emptyTitle": "No sessions yet today",
+      "emptySubtitle": "When you finish a focus, it'll show up here."
+    },
+    "presets": {
+      "title": "Pomodoro presets",
+      "saved": "{count} saved",
+      "active": "ACTIVE",
+      "namePlaceholder": "Name",
+      "newNamePlaceholder": "Preset name",
+      "focusTitle": "Focus (min)",
+      "shortTitle": "Short (min)",
+      "longTitle": "Long (min)",
+      "row": "Focus {focus} · Short {short} · Long {long}",
+      "emptyTitle": "No presets yet",
+      "emptySubtitle": "Create your first pomodoro rhythm.",
+      "emptyCreate": "Create preset"
+    }
+  }
 }

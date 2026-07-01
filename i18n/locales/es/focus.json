@@ -1,3 +1,56 @@
 {
-  "focus": {}
+  "focus": {
+    "head": {
+      "title": "Hibi — Enfoque"
+    },
+    "modes": {
+      "focus": "Foco ({min})",
+      "short": "Corto ({min})",
+      "long": "Largo ({min})"
+    },
+    "timer": {
+      "aria": "Temporizador",
+      "sessions": "Sesiones",
+      "running": "En foco",
+      "ready": "Listo",
+      "taskPlaceholder": "¿En qué te enfocas?",
+      "reset": "Reiniciar",
+      "start": "Empezar",
+      "pause": "Pausar"
+    },
+    "ago": {
+      "now": "Recién",
+      "minutes": "Hace {n} min",
+      "hourOne": "Hace {n} hora",
+      "hourOther": "Hace {n} horas"
+    },
+    "session": {
+      "minutes": "{n} min",
+      "untitled": "Sesión de enfoque"
+    },
+    "side": {
+      "mode": "Modo",
+      "customize": "Personalizar",
+      "createPreset": "Crear un preset"
+    },
+    "today": {
+      "title": "Sesiones de hoy",
+      "emptyTitle": "Aún no hay sesiones hoy",
+      "emptySubtitle": "Cuando termines un foco, aparecerá aquí."
+    },
+    "presets": {
+      "title": "Presets de pomodoro",
+      "saved": "{count} guardados",
+      "active": "ACTIVO",
+      "namePlaceholder": "Nombre",
+      "newNamePlaceholder": "Nombre del preset",
+      "focusTitle": "Foco (min)",
+      "shortTitle": "Corto (min)",
+      "longTitle": "Largo (min)",
+      "row": "Foco {focus} · Corto {short} · Largo {long}",
+      "emptyTitle": "Sin presets todavía",
+      "emptySubtitle": "Crea tu primer ritmo de pomodoro.",
+      "emptyCreate": "Crear preset"
+    }
+  }
 }

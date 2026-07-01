@@ -1,3 +1,73 @@
 {
-  "journal": {}
+  "journal": {
+    "head": {
+      "title": "Hibi — Diario"
+    },
+    "title": "Diario",
+    "subtitle": "{count} entradas · ánimo medio {avg} / 5",
+    "views": {
+      "editor": "Editor",
+      "stats": "Estadísticas"
+    },
+    "today": "Hoy",
+    "moods": {
+      "1": "Mal",
+      "2": "Bajo",
+      "3": "Normal",
+      "4": "Bien",
+      "5": "Genial"
+    },
+    "prompts": {
+      "0": "Qué fue lo mejor del día.",
+      "1": "Por qué te sentiste así.",
+      "2": "Una persona por la que te sientes agradecido.",
+      "3": "Qué te gustaría recordar de hoy en un año.",
+      "4": "Algo pequeño que te hizo sonreír."
+    },
+    "prompt": {
+      "use": "Usar",
+      "another": "Otro"
+    },
+    "editorPlaceholder": "Escribe libre, o pulsa la sugerencia para empezar…",
+    "saving": "Guardando…",
+    "delete": "Borrar",
+    "deleteAria": "Borrar entrada",
+    "save": "Guardar",
+    "calendar": "Calendario",
+    "calendarEntriesAria": "Calendario y entradas",
+    "prevMonth": "Mes anterior",
+    "nextMonth": "Mes siguiente",
+    "weekdays": {
+      "0": "L",
+      "1": "M",
+      "2": "X",
+      "3": "J",
+      "4": "V",
+      "5": "S",
+      "6": "D"
+    },
+    "entries": "Entradas",
+    "empty": {
+      "title": "Aún no hay entradas",
+      "subtitle": "Escribe cómo fue tu día y pulsa Guardar."
+    },
+    "stats": {
+      "moodAverage": "Ánimo medio",
+      "entries": "{count} entradas",
+      "distributionAria": "Distribución de ánimo",
+      "total": "Total",
+      "heatmapTitle": "Mapa de ánimo · últimos 84 días",
+      "noEntry": "sin entrada",
+      "less": "Menos",
+      "more": "Más"
+    },
+    "dateFormat": {
+      "weekday": "EEEE",
+      "month": "MMM",
+      "monthYear": "MMMM yyyy",
+      "weekdayDay": "EEEE d",
+      "heatSelected": "EEEE d 'de' MMM",
+      "heatTitle": "EEE d"
+    }
+  }
 }
