@@ -71,6 +71,8 @@
     "more": "Más",
     "moreOptions": "Más opciones",
     "closeMore": "Cerrar más opciones",
+    "emptyHintTitle": "Selecciona algo a la izquierda",
+    "emptyHintText": "Aquí verás el detalle de lo que elijas.",
     "editor": {
       "bold": "Negrita", "italic": "Cursiva", "strike": "Tachado",
       "h1": "Título grande", "h2": "Título medio", "quote": "Cita", "code": "Código",

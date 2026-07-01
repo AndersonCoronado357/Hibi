@@ -71,6 +71,8 @@
     "more": "More",
     "moreOptions": "More options",
     "closeMore": "Close more options",
+    "emptyHintTitle": "Select something on the left",
+    "emptyHintText": "You'll see the details of what you pick here.",
     "editor": {
       "bold": "Bold", "italic": "Italic", "strike": "Strikethrough",
       "h1": "Heading 1", "h2": "Heading 2", "quote": "Quote", "code": "Code",
