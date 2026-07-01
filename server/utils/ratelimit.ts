@@ -13,7 +13,7 @@ export function rateLimit(event: H3Event, opts: { key: string; limit: number; wi
   const now = Date.now()
   const hits = (buckets.get(k) ?? []).filter((t) => now - t < opts.windowMs)
   if (hits.length >= opts.limit) {
-    throw createError({ statusCode: 429, message: 'Demasiados intentos. Espera un momento e inténtalo de nuevo.' })
+    throw createError({ statusCode: 429, message: tServer(event, 'tooManyAttempts') })
   }
   hits.push(now)
   buckets.set(k, hits)

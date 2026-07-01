@@ -46,7 +46,7 @@ function isActive(to: string) {
     <button
       type="button"
       class="flex-1 flex flex-col items-center justify-center gap-1 py-1.5 rounded-[16px] transition-colors duration-200"
-      :aria-label="open ? 'Cerrar más opciones' : 'Más opciones'"
+      :aria-label="open ? t('common.closeMore') : t('common.moreOptions')"
       :aria-expanded="open"
       @click="open = !open"
     >
@@ -56,7 +56,7 @@ function isActive(to: string) {
       >
         <LayoutGrid class="size-[21px]" :stroke-width="open ? 2.1 : 1.7" />
       </span>
-      <span class="text-[10px] font-semibold" :class="open ? 'text-sky-deep' : 'text-fg-subtle'">Más</span>
+      <span class="text-[10px] font-semibold" :class="open ? 'text-sky-deep' : 'text-fg-subtle'">{{ t('common.more') }}</span>
     </button>
   </nav>
 </template>

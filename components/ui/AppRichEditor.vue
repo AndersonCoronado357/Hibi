@@ -4,6 +4,7 @@ import AppColorPicker from './AppColorPicker.vue'
 
 const props = defineProps<{ modelValue: string; placeholder?: string; minHeight?: string; toolbarOpen?: boolean }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: string): void; (e: 'update:toolbarOpen', v: boolean): void }>()
+const { t } = useI18n()
 
 // En movil la barra de formato se pliega para no comer espacio del editor.
 // En desktop (md+) siempre está visible.
@@ -87,7 +88,7 @@ function onInput() {
 }
 
 function insertLink() {
-  const url = window.prompt('URL del enlace')
+  const url = window.prompt(t('common.editor.linkPrompt'))
   if (url) cmd('createLink', url)
 }
 
@@ -108,22 +109,22 @@ watch(() => props.modelValue, (v) => {
 })
 
 const tools = [
-  { icon: Bold, action: 'bold', label: 'Negrita' },
-  { icon: Italic, action: 'italic', label: 'Cursiva' },
-  { icon: Strikethrough, action: 'strikeThrough', label: 'Tachado' },
+  { icon: Bold, action: 'bold', tkey: 'bold' },
+  { icon: Italic, action: 'italic', tkey: 'italic' },
+  { icon: Strikethrough, action: 'strikeThrough', tkey: 'strike' },
   { sep: true },
-  { icon: Heading1, action: 'formatBlock', value: '<h1>', label: 'Título grande' },
-  { icon: Heading2, action: 'formatBlock', value: '<h2>', label: 'Título medio' },
-  { icon: Quote, action: 'formatBlock', value: '<blockquote>', label: 'Cita' },
-  { icon: Code2, action: 'formatBlock', value: '<pre>', label: 'Código' },
+  { icon: Heading1, action: 'formatBlock', value: '<h1>', tkey: 'h1' },
+  { icon: Heading2, action: 'formatBlock', value: '<h2>', tkey: 'h2' },
+  { icon: Quote, action: 'formatBlock', value: '<blockquote>', tkey: 'quote' },
+  { icon: Code2, action: 'formatBlock', value: '<pre>', tkey: 'code' },
   { sep: true },
-  { icon: List, action: 'insertUnorderedList', label: 'Lista' },
-  { icon: ListOrdered, action: 'insertOrderedList', label: 'Lista numerada' },
+  { icon: List, action: 'insertUnorderedList', tkey: 'ul' },
+  { icon: ListOrdered, action: 'insertOrderedList', tkey: 'ol' },
   { sep: true },
-  { icon: LinkIcon, action: 'link', label: 'Enlace' },
+  { icon: LinkIcon, action: 'link', tkey: 'link' },
   { sep: true },
-  { icon: Undo2, action: 'undo', label: 'Deshacer' },
-  { icon: Redo2, action: 'redo', label: 'Rehacer' },
+  { icon: Undo2, action: 'undo', tkey: 'undo' },
+  { icon: Redo2, action: 'redo', tkey: 'redo' },
 ] as const
 </script>
 
@@ -137,7 +138,7 @@ const tools = [
       :aria-expanded="toolbarOpen"
       @click="toolbarOpen = !toolbarOpen">
       <Type class="size-[15px]" :stroke-width="2" aria-hidden="true" />
-      <span class="text-[13px] font-semibold">Formato</span>
+      <span class="text-[13px] font-semibold">{{ t('common.editor.format') }}</span>
       <ChevronDown class="size-3.5 transition-[transform] duration-200" :class="toolbarOpen ? 'rotate-180' : ''" :stroke-width="2.2" aria-hidden="true" />
     </button>
 
@@ -145,14 +146,14 @@ const tools = [
     <div
       class="shrink-0 items-center gap-0.5 px-2 py-1.5 rounded-[12px] bg-muted flex-wrap"
       :class="toolbarOpen ? 'flex' : 'hidden md:flex'">
-      <template v-for="(t, i) in tools" :key="i">
-        <span v-if="(t as any).sep" class="w-px h-5 bg-[var(--bg-inset)] mx-1" aria-hidden="true" />
+      <template v-for="(tool, i) in tools" :key="i">
+        <span v-if="(tool as any).sep" class="w-px h-5 bg-[var(--bg-inset)] mx-1" aria-hidden="true" />
         <button v-else type="button"
           class="grid place-items-center size-8 rounded-[8px] text-fg-muted hover:bg-card hover:text-fg transition-[background-color,color]"
-          :title="(t as any).label"
+          :title="t('common.editor.' + (tool as any).tkey)"
           @mousedown.prevent
-          @click="(t as any).action === 'link' ? insertLink() : cmd((t as any).action, (t as any).value)">
-          <component :is="(t as any).icon" class="size-[15px]" :stroke-width="2" />
+          @click="(tool as any).action === 'link' ? insertLink() : cmd((tool as any).action, (tool as any).value)">
+          <component :is="(tool as any).icon" class="size-[15px]" :stroke-width="2" />
         </button>
       </template>
 
@@ -160,7 +161,7 @@ const tools = [
 
       <!-- Color de letra -->
       <div class="relative">
-        <button type="button" title="Color del texto" data-color-trigger
+        <button type="button" :title="t('common.editor.textColor')" data-color-trigger
           class="grid place-items-center size-8 rounded-[8px] text-fg-muted hover:bg-card hover:text-fg relative"
           @mousedown.prevent @click="toggleColorPopup('color')">
           <Palette class="size-[15px]" :stroke-width="2" />
@@ -178,7 +179,7 @@ const tools = [
 
       <!-- Resaltador -->
       <div class="relative">
-        <button type="button" title="Resaltador" data-color-trigger
+        <button type="button" :title="t('common.editor.highlight')" data-color-trigger
           class="grid place-items-center size-8 rounded-[8px] text-fg-muted hover:bg-card hover:text-fg relative"
           @mousedown.prevent @click="toggleColorPopup('hilite')">
           <Highlighter class="size-[15px]" :stroke-width="2" />
@@ -196,7 +197,7 @@ const tools = [
 
       <!-- Tamaño con números -->
       <div class="relative">
-        <button type="button" title="Tamaño" data-size-trigger
+        <button type="button" :title="t('common.editor.size')" data-size-trigger
           class="inline-flex items-center gap-1 h-8 px-2 rounded-[8px] text-fg-muted hover:bg-card hover:text-fg"
           @mousedown.prevent @click="showSizeMenu = !showSizeMenu">
           <span class="text-[12px] font-bold">pt</span>
@@ -217,7 +218,7 @@ const tools = [
       contenteditable="true"
       class="hibi-rich flex-1 min-h-0 overflow-y-auto scroll-area mt-3 px-1 text-[15px] text-fg leading-relaxed outline-none"
       :style="{ minHeight: minHeight || '200px' }"
-      :data-placeholder="placeholder || 'Empieza a escribir…'"
+      :data-placeholder="placeholder || t('common.editor.placeholder')"
       @input="onInput"></div>
 
   </div>

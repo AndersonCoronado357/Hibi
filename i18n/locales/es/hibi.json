@@ -1,3 +1,110 @@
 {
-  "hibi": {}
+  "hibi": {
+    "head": {
+      "title": "Hibi — Tu mascota"
+    },
+    "chooser": {
+      "careTitle": "Cuida a tu Hibi",
+      "careSubtitle": "Aliméntala, juega y mímala",
+      "chatTitle": "Habla con Hibi",
+      "chatSubtitle": "Pregunta, anota o pide un resumen"
+    },
+    "streak": "Racha {n} {unit}",
+    "streakUnit": {
+      "one": "día",
+      "other": "días"
+    },
+    "sections": {
+      "casa": "Casa",
+      "cocina": "Cocina",
+      "juegos": "Juegos",
+      "dormir": "Dormitorio"
+    },
+    "stats": {
+      "energia": "Energía",
+      "pancita": "Pancita",
+      "carino": "Cariño",
+      "diversion": "Diversión"
+    },
+    "moods": {
+      "happy": "Radiante",
+      "content": "Contenta",
+      "meh": "Aburrida",
+      "hungry": "Tiene hambre",
+      "sleepy": "Con sueño",
+      "sad": "Necesita mimos",
+      "sleeping": "Durmiendo…"
+    },
+    "nav": {
+      "prevSection": "Sección anterior",
+      "nextSection": "Siguiente sección",
+      "prev": "Anterior",
+      "next": "Siguiente"
+    },
+    "kitchen": {
+      "fridge": "Nevera",
+      "shop": "Tienda",
+      "dragToFeed": "Arrástrala hasta Hibi para darle de comer",
+      "emptyHint": "Tu nevera está vacía — abre la Tienda",
+      "fridgeEmptyL1": "Tu nevera está vacía.",
+      "fridgeEmptyL2": "Compra comida en la Tienda.",
+      "chosen": "Elegida",
+      "choose": "Elegir",
+      "gain": "+{n} de pancita"
+    },
+    "home": {
+      "petHint": "Toca a Hibi para mimarla"
+    },
+    "games": {
+      "play": "Jugar",
+      "won": "Ganaste {n} {unit}",
+      "coinUnit": {
+        "one": "moneda",
+        "other": "monedas"
+      },
+      "hint": "Esquiva lo que cae, gana monedas y la diviertes"
+    },
+    "bedroom": {
+      "lightOn": "Encender luz",
+      "lightOff": "Apagar luz",
+      "sleeping": "Durmiendo… la energía sube",
+      "sleepHint": "Apaga la luz para que duerma"
+    },
+    "game": {
+      "hud": "Muévete en cualquier dirección",
+      "exitAria": "Salir del juego"
+    },
+    "items": {
+      "galleta": { "name": "Galleta", "desc": "Dulce y crujiente" },
+      "manzana": { "name": "Manzana", "desc": "Fruta fresca" },
+      "banana": { "name": "Banana", "desc": "Rica en energía" },
+      "cereza": { "name": "Cerezas", "desc": "Dulces y jugosas" },
+      "uvas": { "name": "Uvas", "desc": "Racimo jugoso" },
+      "zanahoria": { "name": "Zanahoria", "desc": "Crujiente y sana" },
+      "naranja": { "name": "Naranja", "desc": "Cítrica y fresca" },
+      "croissant": { "name": "Croissant", "desc": "Hojaldre mantecoso" },
+      "cafe": { "name": "Café", "desc": "Un empujoncito" },
+      "leche": { "name": "Leche", "desc": "Vasito tibio" },
+      "huevo": { "name": "Huevo", "desc": "Proteína pura" },
+      "ensalada": { "name": "Ensalada", "desc": "Verde y ligera" },
+      "sopa": { "name": "Sopa", "desc": "Calentita" },
+      "sandwich": { "name": "Sándwich", "desc": "Relleno completo" },
+      "sushi": { "name": "Sushi", "desc": "Fresco del mar" },
+      "pollo": { "name": "Pollo", "desc": "Muslo jugoso" },
+      "carne": { "name": "Carne", "desc": "Filete sustancioso" },
+      "jamon": { "name": "Jamón", "desc": "Lonchas saladas" },
+      "pizza": { "name": "Pizza", "desc": "Porción con queso" },
+      "palomitas": { "name": "Palomitas", "desc": "Para la peli" },
+      "dona": { "name": "Dona", "desc": "Glaseada" },
+      "dulce": { "name": "Dulce", "desc": "Caramelito" },
+      "paleta": { "name": "Paleta", "desc": "Chupa-chupa" },
+      "helado": { "name": "Helado", "desc": "Frío y cremoso" },
+      "pastel": { "name": "Pastel", "desc": "Festín de cumpleaños" },
+      "pan": { "name": "Pan", "desc": "Recién horneado" },
+      "frijoles": { "name": "Frijoles", "desc": "Plato casero" },
+      "refresco": { "name": "Refresco", "desc": "Burbujeante" },
+      "malta": { "name": "Malta", "desc": "Maltita dulce" },
+      "jugo": { "name": "Jugo", "desc": "Natural exprimido" }
+    }
+  }
 }
