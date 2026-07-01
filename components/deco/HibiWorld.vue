@@ -15,6 +15,8 @@ import {
 } from '@lucide/vue'
 import type { Component } from 'vue'
 
+const { t } = useI18n()
+
 const props = defineProps<{
   energia: number; pancita: number; carino: number; diversion: number
   coins: number; streak: number; state: string; room: string
@@ -30,19 +32,26 @@ const emit = defineEmits<{
 }>()
 
 type SectionKey = 'casa' | 'cocina' | 'juegos' | 'dormir'
-const SECTIONS: { key: SectionKey; name: string }[] = [
-  { key: 'casa', name: 'Casa' },
-  { key: 'cocina', name: 'Cocina' },
-  { key: 'juegos', name: 'Juegos' },
-  { key: 'dormir', name: 'Dormitorio' },
+// Claves de sección (persistidas / usadas en lógica). El NOMBRE visible sale del mapa i18n.
+const SECTIONS: { key: SectionKey }[] = [
+  { key: 'casa' },
+  { key: 'cocina' },
+  { key: 'juegos' },
+  { key: 'dormir' },
 ]
+const sectionLabel = computed<Record<SectionKey, string>>(() => ({
+  casa: t('hibi.sections.casa'),
+  cocina: t('hibi.sections.cocina'),
+  juegos: t('hibi.sections.juegos'),
+  dormir: t('hibi.sections.dormir'),
+}))
 // Cada cuarto tiene su propio color de pared (se diferencian de un vistazo)
 const ROOM_WALL: Record<SectionKey, string> = {
   casa: 'bg-sky-soft', cocina: 'bg-peach', juegos: 'bg-pink-soft', dormir: 'bg-lavender',
 }
 const idx = computed(() => { const i = SECTIONS.findIndex(s => s.key === props.room); return i < 0 ? 0 : i })
 const room = computed<SectionKey>(() => SECTIONS[idx.value]!.key)
-const sectionName = computed(() => SECTIONS[idx.value]!.name)
+const sectionName = computed(() => sectionLabel.value[room.value])
 const slideDir = ref<1 | -1>(1)
 function goTo(i: number) {
   const n = (i + SECTIONS.length) % SECTIONS.length
@@ -56,10 +65,10 @@ function prev() { goTo(idx.value - 1) }
 function next() { goTo(idx.value + 1) }
 
 const STATS = computed(() => [
-  { key: 'e', icon: SparkIcon, ink: 'text-sky-deep', fill: '#5aa6d2', label: 'Energía', v: props.energia, go: 'dormir' },
-  { key: 'p', icon: Cookie, ink: 'text-[#bf8f2e]', fill: '#d8a43a', label: 'Pancita', v: props.pancita, go: 'cocina' },
-  { key: 'c', icon: Heart, ink: 'text-pink-deep', fill: '#db8aa3', label: 'Cariño', v: props.carino, go: 'casa' },
-  { key: 'd', icon: Gamepad2, ink: 'text-[#7a63c0]', fill: '#9a7fd1', label: 'Diversión', v: props.diversion, go: 'juegos' },
+  { key: 'e', icon: SparkIcon, ink: 'text-sky-deep', fill: '#5aa6d2', label: t('hibi.stats.energia'), v: props.energia, go: 'dormir' },
+  { key: 'p', icon: Cookie, ink: 'text-[#bf8f2e]', fill: '#d8a43a', label: t('hibi.stats.pancita'), v: props.pancita, go: 'cocina' },
+  { key: 'c', icon: Heart, ink: 'text-pink-deep', fill: '#db8aa3', label: t('hibi.stats.carino'), v: props.carino, go: 'casa' },
+  { key: 'd', icon: Gamepad2, ink: 'text-[#7a63c0]', fill: '#9a7fd1', label: t('hibi.stats.diversion'), v: props.diversion, go: 'juegos' },
 ])
 function tapStat(go: string) { const i = SECTIONS.findIndex(s => s.key === go); if (i >= 0) goTo(i) }
 
@@ -76,10 +85,10 @@ const reacting = ref(false)
 const eating = ref(false)
 const giggle = ref(false)
 const effState = computed(() => (sleeping.value ? 'sleepy' : props.state))
-const STATE_LABEL: Record<string, string> = {
-  happy: 'Radiante', content: 'Contenta', meh: 'Aburrida', hungry: 'Tiene hambre', sleepy: 'Con sueño', sad: 'Necesita mimos',
-}
-const moodLabel = computed(() => (sleeping.value ? 'Durmiendo…' : (STATE_LABEL[props.state] || 'Contenta')))
+const STATE_LABEL = computed<Record<string, string>>(() => ({
+  happy: t('hibi.moods.happy'), content: t('hibi.moods.content'), meh: t('hibi.moods.meh'), hungry: t('hibi.moods.hungry'), sleepy: t('hibi.moods.sleepy'), sad: t('hibi.moods.sad'),
+}))
+const moodLabel = computed(() => (sleeping.value ? t('hibi.moods.sleeping') : (STATE_LABEL.value[props.state] || t('hibi.moods.content'))))
 
 // ── Mirada: sigue el cursor; al arrastrar comida, sigue la comida ────
 const { x: mx, y: my } = useMouse({ type: 'client' })
@@ -137,40 +146,44 @@ function popHearts() {
 function onActorDown(_e: PointerEvent) { if (!sleeping.value) petHibi() }
 
 // ── Catálogo de comida (30) — gains modestos, precios más caros ─────
-interface Food { id: string; name: string; desc: string; icon: Component; gain: number; price: number; bg: string; ink: string }
+// `id` es la CLAVE de inventario (persistida): NO se traduce. name/desc salen de i18n por id.
+interface Food { id: string; icon: Component; gain: number; price: number; bg: string; ink: string }
 const FOODS: Food[] = [
-  { id: 'galleta', name: 'Galleta', desc: 'Dulce y crujiente', icon: Cookie, gain: 6, price: 8, bg: 'bg-cream', ink: 'text-[#bf8f2e]' },
-  { id: 'manzana', name: 'Manzana', desc: 'Fruta fresca', icon: Apple, gain: 8, price: 12, bg: 'bg-mint', ink: 'text-[#34936a]' },
-  { id: 'banana', name: 'Banana', desc: 'Rica en energía', icon: Banana, gain: 8, price: 12, bg: 'bg-yellow', ink: 'text-[#bf8f2e]' },
-  { id: 'cereza', name: 'Cerezas', desc: 'Dulces y jugosas', icon: Cherry, gain: 7, price: 10, bg: 'bg-pink-soft', ink: 'text-pink-deep' },
-  { id: 'uvas', name: 'Uvas', desc: 'Racimo jugoso', icon: Grape, gain: 9, price: 16, bg: 'bg-lavender', ink: 'text-[#7a63c0]' },
-  { id: 'zanahoria', name: 'Zanahoria', desc: 'Crujiente y sana', icon: Carrot, gain: 7, price: 10, bg: 'bg-peach', ink: 'text-[#c5733f]' },
-  { id: 'naranja', name: 'Naranja', desc: 'Cítrica y fresca', icon: Citrus, gain: 8, price: 14, bg: 'bg-cream', ink: 'text-[#bf8f2e]' },
-  { id: 'croissant', name: 'Croissant', desc: 'Hojaldre mantecoso', icon: Croissant, gain: 11, price: 22, bg: 'bg-cream', ink: 'text-[#bf8f2e]' },
-  { id: 'cafe', name: 'Café', desc: 'Un empujoncito', icon: Coffee, gain: 5, price: 10, bg: 'bg-peach', ink: 'text-[#c5733f]' },
-  { id: 'leche', name: 'Leche', desc: 'Vasito tibio', icon: Milk, gain: 7, price: 12, bg: 'bg-sky-soft', ink: 'text-sky-deep' },
-  { id: 'huevo', name: 'Huevo', desc: 'Proteína pura', icon: Egg, gain: 10, price: 18, bg: 'bg-cream', ink: 'text-[#bf8f2e]' },
-  { id: 'ensalada', name: 'Ensalada', desc: 'Verde y ligera', icon: Salad, gain: 12, price: 26, bg: 'bg-mint', ink: 'text-[#34936a]' },
-  { id: 'sopa', name: 'Sopa', desc: 'Calentita', icon: Soup, gain: 13, price: 28, bg: 'bg-peach', ink: 'text-[#c5733f]' },
-  { id: 'sandwich', name: 'Sándwich', desc: 'Relleno completo', icon: Sandwich, gain: 14, price: 32, bg: 'bg-peach', ink: 'text-[#c5733f]' },
-  { id: 'sushi', name: 'Sushi', desc: 'Fresco del mar', icon: Fish, gain: 17, price: 40, bg: 'bg-sky-soft', ink: 'text-sky-deep' },
-  { id: 'pollo', name: 'Pollo', desc: 'Muslo jugoso', icon: Drumstick, gain: 18, price: 44, bg: 'bg-cream', ink: 'text-[#bf8f2e]' },
-  { id: 'carne', name: 'Carne', desc: 'Filete sustancioso', icon: Beef, gain: 20, price: 50, bg: 'bg-pink-soft', ink: 'text-pink-deep' },
-  { id: 'jamon', name: 'Jamón', desc: 'Lonchas saladas', icon: Ham, gain: 15, price: 34, bg: 'bg-pink-soft', ink: 'text-pink-deep' },
-  { id: 'pizza', name: 'Pizza', desc: 'Porción con queso', icon: Pizza, gain: 21, price: 54, bg: 'bg-pink-soft', ink: 'text-pink-deep' },
-  { id: 'palomitas', name: 'Palomitas', desc: 'Para la peli', icon: Popcorn, gain: 10, price: 20, bg: 'bg-cream', ink: 'text-[#bf8f2e]' },
-  { id: 'dona', name: 'Dona', desc: 'Glaseada', icon: Donut, gain: 15, price: 34, bg: 'bg-pink-soft', ink: 'text-pink-deep' },
-  { id: 'dulce', name: 'Dulce', desc: 'Caramelito', icon: Candy, gain: 6, price: 10, bg: 'bg-lavender', ink: 'text-[#7a63c0]' },
-  { id: 'paleta', name: 'Paleta', desc: 'Chupa-chupa', icon: Lollipop, gain: 7, price: 12, bg: 'bg-pink-soft', ink: 'text-pink-deep' },
-  { id: 'helado', name: 'Helado', desc: 'Frío y cremoso', icon: IceCreamCone, gain: 16, price: 38, bg: 'bg-sky-soft', ink: 'text-sky-deep' },
-  { id: 'pastel', name: 'Pastel', desc: 'Festín de cumpleaños', icon: Cake, gain: 27, price: 78, bg: 'bg-lavender', ink: 'text-[#7a63c0]' },
-  { id: 'pan', name: 'Pan', desc: 'Recién horneado', icon: Wheat, gain: 8, price: 14, bg: 'bg-cream', ink: 'text-[#bf8f2e]' },
-  { id: 'frijoles', name: 'Frijoles', desc: 'Plato casero', icon: Bean, gain: 11, price: 24, bg: 'bg-mint', ink: 'text-[#34936a]' },
-  { id: 'refresco', name: 'Refresco', desc: 'Burbujeante', icon: CupSoda, gain: 6, price: 12, bg: 'bg-sky-soft', ink: 'text-sky-deep' },
-  { id: 'malta', name: 'Malta', desc: 'Maltita dulce', icon: Beer, gain: 9, price: 20, bg: 'bg-cream', ink: 'text-[#bf8f2e]' },
-  { id: 'jugo', name: 'Jugo', desc: 'Natural exprimido', icon: Wine, gain: 10, price: 24, bg: 'bg-pink-soft', ink: 'text-pink-deep' },
+  { id: 'galleta', icon: Cookie, gain: 6, price: 8, bg: 'bg-cream', ink: 'text-[#bf8f2e]' },
+  { id: 'manzana', icon: Apple, gain: 8, price: 12, bg: 'bg-mint', ink: 'text-[#34936a]' },
+  { id: 'banana', icon: Banana, gain: 8, price: 12, bg: 'bg-yellow', ink: 'text-[#bf8f2e]' },
+  { id: 'cereza', icon: Cherry, gain: 7, price: 10, bg: 'bg-pink-soft', ink: 'text-pink-deep' },
+  { id: 'uvas', icon: Grape, gain: 9, price: 16, bg: 'bg-lavender', ink: 'text-[#7a63c0]' },
+  { id: 'zanahoria', icon: Carrot, gain: 7, price: 10, bg: 'bg-peach', ink: 'text-[#c5733f]' },
+  { id: 'naranja', icon: Citrus, gain: 8, price: 14, bg: 'bg-cream', ink: 'text-[#bf8f2e]' },
+  { id: 'croissant', icon: Croissant, gain: 11, price: 22, bg: 'bg-cream', ink: 'text-[#bf8f2e]' },
+  { id: 'cafe', icon: Coffee, gain: 5, price: 10, bg: 'bg-peach', ink: 'text-[#c5733f]' },
+  { id: 'leche', icon: Milk, gain: 7, price: 12, bg: 'bg-sky-soft', ink: 'text-sky-deep' },
+  { id: 'huevo', icon: Egg, gain: 10, price: 18, bg: 'bg-cream', ink: 'text-[#bf8f2e]' },
+  { id: 'ensalada', icon: Salad, gain: 12, price: 26, bg: 'bg-mint', ink: 'text-[#34936a]' },
+  { id: 'sopa', icon: Soup, gain: 13, price: 28, bg: 'bg-peach', ink: 'text-[#c5733f]' },
+  { id: 'sandwich', icon: Sandwich, gain: 14, price: 32, bg: 'bg-peach', ink: 'text-[#c5733f]' },
+  { id: 'sushi', icon: Fish, gain: 17, price: 40, bg: 'bg-sky-soft', ink: 'text-sky-deep' },
+  { id: 'pollo', icon: Drumstick, gain: 18, price: 44, bg: 'bg-cream', ink: 'text-[#bf8f2e]' },
+  { id: 'carne', icon: Beef, gain: 20, price: 50, bg: 'bg-pink-soft', ink: 'text-pink-deep' },
+  { id: 'jamon', icon: Ham, gain: 15, price: 34, bg: 'bg-pink-soft', ink: 'text-pink-deep' },
+  { id: 'pizza', icon: Pizza, gain: 21, price: 54, bg: 'bg-pink-soft', ink: 'text-pink-deep' },
+  { id: 'palomitas', icon: Popcorn, gain: 10, price: 20, bg: 'bg-cream', ink: 'text-[#bf8f2e]' },
+  { id: 'dona', icon: Donut, gain: 15, price: 34, bg: 'bg-pink-soft', ink: 'text-pink-deep' },
+  { id: 'dulce', icon: Candy, gain: 6, price: 10, bg: 'bg-lavender', ink: 'text-[#7a63c0]' },
+  { id: 'paleta', icon: Lollipop, gain: 7, price: 12, bg: 'bg-pink-soft', ink: 'text-pink-deep' },
+  { id: 'helado', icon: IceCreamCone, gain: 16, price: 38, bg: 'bg-sky-soft', ink: 'text-sky-deep' },
+  { id: 'pastel', icon: Cake, gain: 27, price: 78, bg: 'bg-lavender', ink: 'text-[#7a63c0]' },
+  { id: 'pan', icon: Wheat, gain: 8, price: 14, bg: 'bg-cream', ink: 'text-[#bf8f2e]' },
+  { id: 'frijoles', icon: Bean, gain: 11, price: 24, bg: 'bg-mint', ink: 'text-[#34936a]' },
+  { id: 'refresco', icon: CupSoda, gain: 6, price: 12, bg: 'bg-sky-soft', ink: 'text-sky-deep' },
+  { id: 'malta', icon: Beer, gain: 9, price: 20, bg: 'bg-cream', ink: 'text-[#bf8f2e]' },
+  { id: 'jugo', icon: Wine, gain: 10, price: 24, bg: 'bg-pink-soft', ink: 'text-pink-deep' },
 ]
 const FOOD_BY_ID = Object.fromEntries(FOODS.map(f => [f.id, f]))
+// Etiquetas de comida por id (solo DISPLAY): nombre + descripción.
+const foodName = (id: string) => t(`hibi.items.${id}.name`)
+const foodDesc = (id: string) => t(`hibi.items.${id}.desc`)
 
 const cocinaPanel = ref<'none' | 'nevera' | 'tienda'>('none')
 const owned = computed(() => FOODS.filter(f => (props.inventory[f.id] || 0) > 0))
@@ -372,16 +385,16 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- flechas laterales -->
-    <button type="button" class="absolute left-2 top-1/2 -translate-y-1/2 z-30 grid place-items-center size-11 rounded-full bg-card/85 text-fg active:scale-90 transition-transform" aria-label="Sección anterior" @click="prev"><ChevronLeft class="size-6" :stroke-width="2.3" /></button>
-    <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 z-30 grid place-items-center size-11 rounded-full bg-card/85 text-fg active:scale-90 transition-transform" aria-label="Siguiente sección" @click="next"><ChevronRight class="size-6" :stroke-width="2.3" /></button>
+    <button type="button" class="absolute left-2 top-1/2 -translate-y-1/2 z-30 grid place-items-center size-11 rounded-full bg-card/85 text-fg active:scale-90 transition-transform" :aria-label="t('hibi.nav.prevSection')" @click="prev"><ChevronLeft class="size-6" :stroke-width="2.3" /></button>
+    <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 z-30 grid place-items-center size-11 rounded-full bg-card/85 text-fg active:scale-90 transition-transform" :aria-label="t('hibi.nav.nextSection')" @click="next"><ChevronRight class="size-6" :stroke-width="2.3" /></button>
 
     <!-- Cocina: NEVERA (esquina izq) · TIENDA (esquina der) — abren su panel -->
     <template v-if="room === 'cocina'">
       <button type="button" class="absolute left-3 bottom-[92px] md:bottom-4 z-40 inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full bg-card text-[#1f4661] text-[12.5px] font-bold active:scale-95 transition-transform" @click="cocinaPanel = 'nevera'">
-        <Refrigerator class="size-[16px] text-sky-deep" :stroke-width="2.2" /> Nevera
+        <Refrigerator class="size-[16px] text-sky-deep" :stroke-width="2.2" /> {{ t('hibi.kitchen.fridge') }}
       </button>
       <button type="button" class="absolute right-3 bottom-[92px] md:bottom-4 z-40 inline-flex items-center gap-1.5 h-10 px-3.5 rounded-full bg-cream text-[#9a5a33] text-[12.5px] font-bold active:scale-95 transition-transform" @click="cocinaPanel = 'tienda'">
-        <ShoppingBag class="size-[16px]" :stroke-width="2.2" /> Tienda
+        <ShoppingBag class="size-[16px]" :stroke-width="2.2" /> {{ t('hibi.kitchen.shop') }}
       </button>
     </template>
 
@@ -406,40 +419,40 @@ onBeforeUnmount(() => {
       <Transition :name="slideDir === 1 ? 'sec-next' : 'sec-prev'" mode="out-in">
         <div :key="room" class="flex flex-col items-center gap-2">
           <!-- Casa -->
-          <p v-if="room === 'casa'" class="text-[13px] font-bold text-sky-deep py-3">Toca a Hibi para mimarla</p>
+          <p v-if="room === 'casa'" class="text-[13px] font-bold text-sky-deep py-3">{{ t('hibi.home.petHint') }}</p>
 
           <!-- Cocina: el seleccionado abajo con flechitas; se arrastra a Hibi -->
           <template v-else-if="room === 'cocina'">
             <div v-if="selFood" class="flex items-center gap-3">
-              <button type="button" class="grid place-items-center size-9 rounded-full bg-card text-fg-muted active:scale-90 transition-transform" aria-label="Anterior" @click="cycleSel(-1)"><ChevronLeft class="size-5" :stroke-width="2.3" /></button>
+              <button type="button" class="grid place-items-center size-9 rounded-full bg-card text-fg-muted active:scale-90 transition-transform" :aria-label="t('hibi.nav.prev')" @click="cycleSel(-1)"><ChevronLeft class="size-5" :stroke-width="2.3" /></button>
               <div class="flex flex-col items-center gap-1">
                 <button type="button" class="relative grid place-items-center size-[66px] rounded-[20px] touch-none active:scale-95 transition-transform cursor-grab" :class="[selFood.bg, selFood.ink]" @pointerdown.prevent="startDrag($event)">
                   <component :is="selFood.icon" class="size-9" :stroke-width="1.85" />
                   <span class="absolute -top-1.5 -right-1.5 grid place-items-center min-w-5 h-5 px-1 rounded-full bg-sky-deep text-white text-[11px] font-extrabold tabular-nums">{{ selQty }}</span>
                 </button>
-                <span class="text-[12px] font-bold text-fg">{{ selFood.name }}</span>
+                <span class="text-[12px] font-bold text-fg">{{ foodName(selFood.id) }}</span>
               </div>
-              <button type="button" class="grid place-items-center size-9 rounded-full bg-card text-fg-muted active:scale-90 transition-transform" aria-label="Siguiente" @click="cycleSel(1)"><ChevronRight class="size-5" :stroke-width="2.3" /></button>
+              <button type="button" class="grid place-items-center size-9 rounded-full bg-card text-fg-muted active:scale-90 transition-transform" :aria-label="t('hibi.nav.next')" @click="cycleSel(1)"><ChevronRight class="size-5" :stroke-width="2.3" /></button>
             </div>
-            <p v-if="selFood" class="text-[11.5px] font-bold text-[#9a5a33]">Arrástrala hasta Hibi para darle de comer</p>
-            <p v-else class="text-[12.5px] font-bold text-[#9a5a33] py-2">Tu nevera está vacía — abre la Tienda</p>
+            <p v-if="selFood" class="text-[11.5px] font-bold text-[#9a5a33]">{{ t('hibi.kitchen.dragToFeed') }}</p>
+            <p v-else class="text-[12.5px] font-bold text-[#9a5a33] py-2">{{ t('hibi.kitchen.emptyHint') }}</p>
           </template>
 
           <!-- Juegos -->
           <template v-else-if="room === 'juegos'">
             <button type="button" class="inline-flex items-center gap-2 h-12 px-7 rounded-full bg-pink-deep text-white font-bold text-[15px] active:scale-95 transition-transform" @click="emit('playGame')">
-              <Gamepad2 class="size-[18px]" :stroke-width="2.1" /> Jugar
+              <Gamepad2 class="size-[18px]" :stroke-width="2.1" /> {{ t('hibi.games.play') }}
             </button>
-            <p v-if="lastGameCoins" class="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#bf8f2e]"><Coins class="size-[14px]" :stroke-width="2.3" /> Ganaste {{ lastGameCoins }} {{ lastGameCoins === 1 ? 'moneda' : 'monedas' }}</p>
-            <p v-else class="text-[12px] font-bold text-pink-deep/80">Esquiva lo que cae, gana monedas y la diviertes</p>
+            <p v-if="lastGameCoins" class="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#bf8f2e]"><Coins class="size-[14px]" :stroke-width="2.3" /> {{ t('hibi.games.won', { n: lastGameCoins, unit: t(lastGameCoins === 1 ? 'hibi.games.coinUnit.one' : 'hibi.games.coinUnit.other') }) }}</p>
+            <p v-else class="text-[12px] font-bold text-pink-deep/80">{{ t('hibi.games.hint') }}</p>
           </template>
 
           <!-- Dormitorio -->
           <template v-else>
             <button type="button" class="inline-flex items-center gap-2 h-12 px-6 rounded-full font-bold text-[14.5px] active:scale-95 transition-transform" :class="sleeping ? 'bg-card text-[#7a63c0]' : 'bg-lavender text-[#7a63c0]'" @click="toggleSleep">
-              <Power class="size-[17px]" :stroke-width="2.3" /> {{ sleeping ? 'Encender luz' : 'Apagar luz' }}
+              <Power class="size-[17px]" :stroke-width="2.3" /> {{ sleeping ? t('hibi.bedroom.lightOn') : t('hibi.bedroom.lightOff') }}
             </button>
-            <p class="text-[12px] font-bold" :class="sleeping ? 'text-white/80' : 'text-[#6b5aa6]'">{{ sleeping ? 'Durmiendo… la energía sube' : 'Apaga la luz para que duerma' }}</p>
+            <p class="text-[12px] font-bold" :class="sleeping ? 'text-white/80' : 'text-[#6b5aa6]'">{{ sleeping ? t('hibi.bedroom.sleeping') : t('hibi.bedroom.sleepHint') }}</p>
           </template>
         </div>
       </Transition>
@@ -448,7 +461,7 @@ onBeforeUnmount(() => {
       <div class="flex flex-col items-center gap-1.5 pt-2">
         <span class="text-[12px] font-extrabold text-fg">{{ sectionName }}</span>
         <div class="flex items-center gap-1.5">
-          <button v-for="(s, i) in SECTIONS" :key="s.key" type="button" class="rounded-full transition-all" :class="i === idx ? 'w-5 h-1.5 bg-sky-deep' : 'size-1.5 bg-fg-subtle/40'" :aria-label="s.name" @click="goTo(i)" />
+          <button v-for="(s, i) in SECTIONS" :key="s.key" type="button" class="rounded-full transition-all" :class="i === idx ? 'w-5 h-1.5 bg-sky-deep' : 'size-1.5 bg-fg-subtle/40'" :aria-label="sectionLabel[s.key]" @click="goTo(i)" />
         </div>
       </div>
     </div>
@@ -457,8 +470,8 @@ onBeforeUnmount(() => {
     <Transition name="sheet-up">
       <div v-if="room === 'cocina' && cocinaPanel === 'nevera'" class="absolute inset-x-0 bottom-0 top-[96px] z-[45] bg-base rounded-t-[22px] flex flex-col overflow-hidden">
         <header class="shrink-0 flex items-center justify-between px-4 py-3">
-          <h3 class="text-[15px] font-extrabold text-fg inline-flex items-center gap-2"><Refrigerator class="size-[17px] text-sky-deep" :stroke-width="2.2" /> Nevera</h3>
-          <button type="button" class="grid place-items-center size-9 rounded-full bg-muted text-fg-muted" aria-label="Cerrar" @click="cocinaPanel = 'none'"><X class="size-[18px]" :stroke-width="2.2" /></button>
+          <h3 class="text-[15px] font-extrabold text-fg inline-flex items-center gap-2"><Refrigerator class="size-[17px] text-sky-deep" :stroke-width="2.2" /> {{ t('hibi.kitchen.fridge') }}</h3>
+          <button type="button" class="grid place-items-center size-9 rounded-full bg-muted text-fg-muted" :aria-label="t('common.close')" @click="cocinaPanel = 'none'"><X class="size-[18px]" :stroke-width="2.2" /></button>
         </header>
         <ul v-if="owned.length" class="flex-1 min-h-0 overflow-y-auto scroll-area px-3 pb-4 flex flex-col gap-2">
           <li v-for="f in owned" :key="f.id">
@@ -468,18 +481,18 @@ onBeforeUnmount(() => {
                 <span class="absolute -top-1.5 -right-1.5 grid place-items-center min-w-[18px] h-[18px] px-1 rounded-full bg-sky-deep text-white text-[10px] font-extrabold tabular-nums">{{ inventory[f.id] }}</span>
               </span>
               <div class="flex-1 min-w-0 text-left">
-                <p class="text-[14px] font-bold text-fg leading-tight">{{ f.name }}</p>
-                <p class="text-[12px] text-fg-muted truncate">{{ f.desc }}</p>
-                <p class="text-[11.5px] font-bold text-[#34936a]">+{{ f.gain }} de pancita</p>
+                <p class="text-[14px] font-bold text-fg leading-tight">{{ foodName(f.id) }}</p>
+                <p class="text-[12px] text-fg-muted truncate">{{ foodDesc(f.id) }}</p>
+                <p class="text-[11.5px] font-bold text-[#34936a]">{{ t('hibi.kitchen.gain', { n: f.gain }) }}</p>
               </div>
               <span class="shrink-0 inline-flex items-center gap-1 h-9 px-3.5 rounded-full text-[12.5px] font-bold" :class="selId === f.id ? 'bg-sky-deep text-white' : 'bg-muted text-fg-muted'">
-                <Check v-if="selId === f.id" class="size-[14px]" :stroke-width="2.6" /> {{ selId === f.id ? 'Elegida' : 'Elegir' }}
+                <Check v-if="selId === f.id" class="size-[14px]" :stroke-width="2.6" /> {{ selId === f.id ? t('hibi.kitchen.chosen') : t('hibi.kitchen.choose') }}
               </span>
             </button>
           </li>
         </ul>
         <div v-else class="flex-1 grid place-items-center px-6 text-center">
-          <p class="text-[13.5px] font-bold text-fg-muted">Tu nevera está vacía.<br>Compra comida en la Tienda.</p>
+          <p class="text-[13.5px] font-bold text-fg-muted">{{ t('hibi.kitchen.fridgeEmptyL1') }}<br>{{ t('hibi.kitchen.fridgeEmptyL2') }}</p>
         </div>
       </div>
     </Transition>
@@ -488,9 +501,9 @@ onBeforeUnmount(() => {
     <Transition name="sheet-up">
       <div v-if="room === 'cocina' && cocinaPanel === 'tienda'" class="absolute inset-x-0 bottom-0 top-[96px] z-[45] bg-base rounded-t-[22px] flex flex-col overflow-hidden">
         <header class="shrink-0 flex items-center justify-between px-4 py-3">
-          <h3 class="text-[15px] font-extrabold text-fg inline-flex items-center gap-2"><ShoppingBag class="size-[17px] text-[#9a5a33]" :stroke-width="2.2" /> Tienda</h3>
+          <h3 class="text-[15px] font-extrabold text-fg inline-flex items-center gap-2"><ShoppingBag class="size-[17px] text-[#9a5a33]" :stroke-width="2.2" /> {{ t('hibi.kitchen.shop') }}</h3>
           <span class="inline-flex items-center gap-1.5 px-3 h-8 rounded-full bg-cream text-[#bf8f2e] text-[13px] font-bold tabular-nums"><Coins class="size-[14px]" :stroke-width="2.3" /> {{ coins }}</span>
-          <button type="button" class="grid place-items-center size-9 rounded-full bg-muted text-fg-muted" aria-label="Cerrar" @click="cocinaPanel = 'none'"><X class="size-[18px]" :stroke-width="2.2" /></button>
+          <button type="button" class="grid place-items-center size-9 rounded-full bg-muted text-fg-muted" :aria-label="t('common.close')" @click="cocinaPanel = 'none'"><X class="size-[18px]" :stroke-width="2.2" /></button>
         </header>
         <ul class="flex-1 min-h-0 overflow-y-auto scroll-area px-3 pb-4 flex flex-col gap-2">
           <li v-for="f in FOODS" :key="f.id" class="flex items-center gap-3 p-2.5 rounded-[14px] bg-card">
@@ -499,9 +512,9 @@ onBeforeUnmount(() => {
               <span v-if="inventory[f.id]" class="absolute -top-1.5 -right-1.5 grid place-items-center min-w-[18px] h-[18px] px-1 rounded-full bg-sky-deep text-white text-[10px] font-extrabold tabular-nums">{{ inventory[f.id] }}</span>
             </span>
             <div class="flex-1 min-w-0">
-              <p class="text-[14px] font-bold text-fg leading-tight">{{ f.name }}</p>
-              <p class="text-[12px] text-fg-muted truncate">{{ f.desc }}</p>
-              <p class="text-[11.5px] font-bold text-[#34936a]">+{{ f.gain }} de pancita</p>
+              <p class="text-[14px] font-bold text-fg leading-tight">{{ foodName(f.id) }}</p>
+              <p class="text-[12px] text-fg-muted truncate">{{ foodDesc(f.id) }}</p>
+              <p class="text-[11.5px] font-bold text-[#34936a]">{{ t('hibi.kitchen.gain', { n: f.gain }) }}</p>
             </div>
             <button type="button" :disabled="coins < f.price" class="shrink-0 inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-sky text-[#1f4661] font-bold text-[13px] tabular-nums disabled:opacity-40" @click="buy(f)">
               <Coins class="size-[13px]" :stroke-width="2.4" /> {{ f.price }}

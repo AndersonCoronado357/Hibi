@@ -5,7 +5,8 @@
 //    aquí sólo vive el estado persistido, la decadencia, monedas y el mini-juego.
 import { Flame, MessageCircle, Coins } from '@lucide/vue'
 
-useHead({ title: 'Hibi — Tu mascota' })
+const { t } = useI18n()
+useHead({ title: t('hibi.head.title') })
 
 const router = useRouter()
 const careOpen = ref(false) // móvil: false = selector, true = mundo. Desktop lo ignora.
@@ -157,11 +158,11 @@ onBeforeUnmount(() => { if (sleepInt) clearInterval(sleepInt) })
         <HibiCloud :size="70" :delay="0.6" class="absolute -bottom-3 -left-3 text-white opacity-40 pointer-events-none" aria-hidden="true" />
         <MascotCloud :size="112" class="text-white relative pointer-events-none" />
         <div class="relative text-center">
-          <p class="text-[19px] font-extrabold text-sky-deep">Cuida a tu Hibi</p>
-          <p class="text-[12.5px] text-sky-deep/80 mt-0.5">Aliméntala, juega y mímala</p>
+          <p class="text-[19px] font-extrabold text-sky-deep">{{ t('hibi.chooser.careTitle') }}</p>
+          <p class="text-[12.5px] text-sky-deep/80 mt-0.5">{{ t('hibi.chooser.careSubtitle') }}</p>
         </div>
         <span class="relative inline-flex items-center gap-1.5 px-3 h-8 rounded-full bg-card text-sky-deep text-[12px] font-bold">
-          <Flame class="size-[14px]" :stroke-width="2.2" /> Racha {{ pet.streak }} {{ pet.streak === 1 ? 'día' : 'días' }}
+          <Flame class="size-[14px]" :stroke-width="2.2" /> {{ t('hibi.streak', { n: pet.streak, unit: t(pet.streak === 1 ? 'hibi.streakUnit.one' : 'hibi.streakUnit.other') }) }}
         </span>
       </button>
 
@@ -172,8 +173,8 @@ onBeforeUnmount(() => { if (sleepInt) clearInterval(sleepInt) })
           <MessageCircle class="size-10" :stroke-width="1.7" />
         </span>
         <div class="relative text-center">
-          <p class="text-[19px] font-extrabold text-pink-deep">Habla con Hibi</p>
-          <p class="text-[12.5px] text-pink-deep/80 mt-0.5">Pregunta, anota o pide un resumen</p>
+          <p class="text-[19px] font-extrabold text-pink-deep">{{ t('hibi.chooser.chatTitle') }}</p>
+          <p class="text-[12.5px] text-pink-deep/80 mt-0.5">{{ t('hibi.chooser.chatSubtitle') }}</p>
         </div>
       </button>
     </div>

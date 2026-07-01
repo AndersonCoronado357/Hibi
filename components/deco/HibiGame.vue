@@ -5,6 +5,8 @@
 // (no se puede cheesear pegado al borde). Si la golpean, la nube EXPLOTA.
 import { X, Coins } from '@lucide/vue'
 
+const { t } = useI18n()
+
 const emit = defineEmits<{ end: [coins: number]; exit: [] }>()
 
 const areaRef = ref<HTMLElement | null>(null)
@@ -42,9 +44,9 @@ function startCountdown() {
   const tick = () => { if (countdown.value <= 1) { countdown.value = 0; begin(); return } countdown.value--; setTimeout(tick, 700) }
   setTimeout(tick, 700)
 }
-function loop(t: number) {
+function loop(now: number) {
   if (!running.value) return
-  const dt = Math.min(48, t - last); last = t; elapsed += dt
+  const dt = Math.min(48, now - last); last = now; elapsed += dt
   const sec = elapsed / 1000
   const speed = 0.12 + Math.min(0.42, sec * 0.006)      // acelera con el tiempo
   const spawnEvery = Math.max(250, 720 - sec * 9)        // más seguido con el tiempo
@@ -89,10 +91,10 @@ onBeforeUnmount(() => { running.value = false; cancelAnimationFrame(raf); window
     <div class="absolute top-3 left-3 z-20 inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-card text-fg font-extrabold text-[14px] tabular-nums">
       <Coins class="size-[15px] text-[#bf8f2e]" :stroke-width="2.2" /> {{ score }}
     </div>
-    <button type="button" class="absolute top-3 right-3 z-20 grid place-items-center size-9 rounded-full bg-card text-fg-muted cursor-pointer" aria-label="Salir del juego" @click="emit('exit')">
+    <button type="button" class="absolute top-3 right-3 z-20 grid place-items-center size-9 rounded-full bg-card text-fg-muted cursor-pointer" :aria-label="t('hibi.game.exitAria')" @click="emit('exit')">
       <X class="size-[18px]" :stroke-width="2.2" />
     </button>
-    <p class="absolute top-[14px] left-1/2 -translate-x-1/2 z-10 text-[12px] font-bold text-sky-deep pointer-events-none">Muévete en cualquier dirección</p>
+    <p class="absolute top-[14px] left-1/2 -translate-x-1/2 z-10 text-[12px] font-bold text-sky-deep pointer-events-none">{{ t('hibi.game.hud') }}</p>
 
     <Transition name="hibi-fade">
       <div v-if="countdown > 0" class="absolute inset-0 z-30 grid place-items-center bg-base/40">

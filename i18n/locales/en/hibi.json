@@ -1,3 +1,110 @@
 {
-  "hibi": {}
+  "hibi": {
+    "head": {
+      "title": "Hibi — Your pet"
+    },
+    "chooser": {
+      "careTitle": "Care for your Hibi",
+      "careSubtitle": "Feed it, play and cuddle it",
+      "chatTitle": "Talk to Hibi",
+      "chatSubtitle": "Ask, jot down or request a summary"
+    },
+    "streak": "{n}-{unit} streak",
+    "streakUnit": {
+      "one": "day",
+      "other": "day"
+    },
+    "sections": {
+      "casa": "Home",
+      "cocina": "Kitchen",
+      "juegos": "Games",
+      "dormir": "Bedroom"
+    },
+    "stats": {
+      "energia": "Energy",
+      "pancita": "Tummy",
+      "carino": "Love",
+      "diversion": "Fun"
+    },
+    "moods": {
+      "happy": "Radiant",
+      "content": "Content",
+      "meh": "Bored",
+      "hungry": "Hungry",
+      "sleepy": "Sleepy",
+      "sad": "Needs cuddles",
+      "sleeping": "Sleeping…"
+    },
+    "nav": {
+      "prevSection": "Previous section",
+      "nextSection": "Next section",
+      "prev": "Previous",
+      "next": "Next"
+    },
+    "kitchen": {
+      "fridge": "Fridge",
+      "shop": "Shop",
+      "dragToFeed": "Drag it to Hibi to feed it",
+      "emptyHint": "Your fridge is empty — open the Shop",
+      "fridgeEmptyL1": "Your fridge is empty.",
+      "fridgeEmptyL2": "Buy food in the Shop.",
+      "chosen": "Chosen",
+      "choose": "Choose",
+      "gain": "+{n} tummy"
+    },
+    "home": {
+      "petHint": "Tap Hibi to cuddle it"
+    },
+    "games": {
+      "play": "Play",
+      "won": "You won {n} {unit}",
+      "coinUnit": {
+        "one": "coin",
+        "other": "coins"
+      },
+      "hint": "Dodge what falls, earn coins and have fun"
+    },
+    "bedroom": {
+      "lightOn": "Turn light on",
+      "lightOff": "Turn light off",
+      "sleeping": "Sleeping… energy is rising",
+      "sleepHint": "Turn off the light so it sleeps"
+    },
+    "game": {
+      "hud": "Move in any direction",
+      "exitAria": "Exit the game"
+    },
+    "items": {
+      "galleta": { "name": "Cookie", "desc": "Sweet and crunchy" },
+      "manzana": { "name": "Apple", "desc": "Fresh fruit" },
+      "banana": { "name": "Banana", "desc": "Energy-rich" },
+      "cereza": { "name": "Cherries", "desc": "Sweet and juicy" },
+      "uvas": { "name": "Grapes", "desc": "Juicy bunch" },
+      "zanahoria": { "name": "Carrot", "desc": "Crunchy and healthy" },
+      "naranja": { "name": "Orange", "desc": "Citrusy and fresh" },
+      "croissant": { "name": "Croissant", "desc": "Buttery pastry" },
+      "cafe": { "name": "Coffee", "desc": "A little boost" },
+      "leche": { "name": "Milk", "desc": "Warm little glass" },
+      "huevo": { "name": "Egg", "desc": "Pure protein" },
+      "ensalada": { "name": "Salad", "desc": "Green and light" },
+      "sopa": { "name": "Soup", "desc": "Nice and warm" },
+      "sandwich": { "name": "Sandwich", "desc": "Fully loaded" },
+      "sushi": { "name": "Sushi", "desc": "Fresh from the sea" },
+      "pollo": { "name": "Chicken", "desc": "Juicy drumstick" },
+      "carne": { "name": "Steak", "desc": "Hearty fillet" },
+      "jamon": { "name": "Ham", "desc": "Salty slices" },
+      "pizza": { "name": "Pizza", "desc": "Cheesy slice" },
+      "palomitas": { "name": "Popcorn", "desc": "For the movie" },
+      "dona": { "name": "Donut", "desc": "Glazed" },
+      "dulce": { "name": "Candy", "desc": "Little sweet" },
+      "paleta": { "name": "Lollipop", "desc": "Lick and lick" },
+      "helado": { "name": "Ice cream", "desc": "Cold and creamy" },
+      "pastel": { "name": "Cake", "desc": "Birthday feast" },
+      "pan": { "name": "Bread", "desc": "Freshly baked" },
+      "frijoles": { "name": "Beans", "desc": "Homemade dish" },
+      "refresco": { "name": "Soda", "desc": "Fizzy" },
+      "malta": { "name": "Malt", "desc": "Sweet malt drink" },
+      "jugo": { "name": "Juice", "desc": "Freshly squeezed" }
+    }
+  }
 }
