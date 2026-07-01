@@ -8,6 +8,7 @@ defineProps<{
   disabled?: boolean
 }>()
 const emit = defineEmits<{ (e: 'close'): void; (e: 'save'): void }>()
+const { t } = useI18n()
 </script>
 
 <template>
@@ -24,7 +25,7 @@ const emit = defineEmits<{ (e: 'close'): void; (e: 'save'): void }>()
         class="inline-flex items-center gap-2 h-12 pl-3 pr-5 rounded-full bg-card text-fg hover:bg-muted transition-[background-color]"
         @click="emit('close')">
         <ArrowLeft class="size-[18px]" :stroke-width="2" aria-hidden="true" />
-        <span class="text-[14px] font-bold">Atrás</span>
+        <span class="text-[14px] font-bold">{{ t('common.back') }}</span>
       </button>
       <div class="flex-1 min-w-0 text-center hidden md:block">
         <h1 class="text-[18px] font-extrabold text-fg leading-tight truncate">{{ title }}</h1>
@@ -35,7 +36,7 @@ const emit = defineEmits<{ (e: 'close'): void; (e: 'save'): void }>()
         :disabled="disabled">
         <span class="inline-flex items-center gap-2 transition-opacity duration-200 group-hover/hibibtn:opacity-0">
           <Check class="size-[16px]" :stroke-width="2.4" aria-hidden="true" />
-          {{ saveLabel || 'Guardar' }}
+          {{ saveLabel || t('common.save') }}
         </span>
         <HibiButtonFace variant="primary" />
       </button>

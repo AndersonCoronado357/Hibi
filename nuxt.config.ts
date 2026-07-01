@@ -71,8 +71,14 @@ export default defineNuxtConfig({
     bundle: { optimizeTranslationDirective: false },
     detectBrowserLanguage: false,
     locales: [
-      { code: 'es', name: 'Español', files: ['es/common.json'] },
-      { code: 'en', name: 'English', files: ['en/common.json'] },
+      {
+        code: 'es', name: 'Español',
+        files: ['es/common.json', 'es/auth.json', 'es/login.json', 'es/inicio.json', 'es/calendar.json', 'es/tasks.json', 'es/notes.json', 'es/reminders.json', 'es/habits.json', 'es/goals.json', 'es/journal.json', 'es/focus.json', 'es/routines.json', 'es/lists.json', 'es/finances.json', 'es/spotify.json', 'es/chat.json', 'es/settings.json', 'es/hibi.json'],
+      },
+      {
+        code: 'en', name: 'English',
+        files: ['en/common.json', 'en/auth.json', 'en/login.json', 'en/inicio.json', 'en/calendar.json', 'en/tasks.json', 'en/notes.json', 'en/reminders.json', 'en/habits.json', 'en/goals.json', 'en/journal.json', 'en/focus.json', 'en/routines.json', 'en/lists.json', 'en/finances.json', 'en/spotify.json', 'en/chat.json', 'en/settings.json', 'en/hibi.json'],
+      },
     ],
   },
 

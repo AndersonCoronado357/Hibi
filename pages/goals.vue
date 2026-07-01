@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { Plus, Target, Calendar, TrendingUp, Minus, Check, Hash, Palette, FileText, Folder, Trash2 } from '@lucide/vue'
 import { format, parseISO, isValid } from 'date-fns'
-import { es } from 'date-fns/locale'
 
-useHead({ title: 'Hibi — Objetivos' })
+const { t } = useI18n()
+const dateLocale = useDateLocale()
+
+useHead({ title: t('goals.head.title') })
 
 const { goals, isLoading, createGoal, removeGoal: apiRemoveGoal, setLocalCurrent, saveCurrent } = useGoals()
 
@@ -47,19 +49,19 @@ function fmtTotal(g: GoalView) {
   return `${g.total} ${g.unit}`
 }
 function fmtTarget(target: string) {
-  if (!target) return 'Sin fecha'
-  if (/^\d{4}-\d{2}-\d{2}$/.test(target)) { const d = parseISO(target); if (isValid(d)) return format(d, "d 'de' MMM yyyy", { locale: es }) }
+  if (!target) return t('goals.noDate')
+  if (/^\d{4}-\d{2}-\d{2}$/.test(target)) { const d = parseISO(target); if (isValid(d)) return format(d, t('goals.targetFormat'), { locale: dateLocale.value }) }
   return target
 }
 
-const TONES = [
-  { value: '0', label: 'Cielo', tone: 'bg-sky-soft text-sky-deep', ringColor: 'var(--color-sky-deep)', swatch: 'bg-sky-soft' },
-  { value: '1', label: 'Rosa', tone: 'bg-pink-soft text-pink-deep', ringColor: 'var(--color-pink-deep)', swatch: 'bg-pink-soft' },
-  { value: '2', label: 'Menta', tone: 'bg-mint text-[#34936a]', ringColor: '#34936a', swatch: 'bg-mint' },
-  { value: '3', label: 'Melocotón', tone: 'bg-peach text-[#c5733f]', ringColor: '#c5733f', swatch: 'bg-peach' },
-  { value: '4', label: 'Lavanda', tone: 'bg-lavender text-[#7a63c0]', ringColor: '#7a63c0', swatch: 'bg-lavender' },
-]
-const TONE_OPTS = TONES.map(t => ({ value: t.value, label: t.label }))
+const TONES = computed(() => [
+  { value: '0', label: t('goals.tones.sky'), tone: 'bg-sky-soft text-sky-deep', ringColor: 'var(--color-sky-deep)', swatch: 'bg-sky-soft' },
+  { value: '1', label: t('goals.tones.pink'), tone: 'bg-pink-soft text-pink-deep', ringColor: 'var(--color-pink-deep)', swatch: 'bg-pink-soft' },
+  { value: '2', label: t('goals.tones.mint'), tone: 'bg-mint text-[#34936a]', ringColor: '#34936a', swatch: 'bg-mint' },
+  { value: '3', label: t('goals.tones.peach'), tone: 'bg-peach text-[#c5733f]', ringColor: '#c5733f', swatch: 'bg-peach' },
+  { value: '4', label: t('goals.tones.lavender'), tone: 'bg-lavender text-[#7a63c0]', ringColor: '#7a63c0', swatch: 'bg-lavender' },
+])
+const TONE_OPTS = computed(() => TONES.value.map(tone => ({ value: tone.value, label: tone.label })))
 
 const view = ref<'list' | 'create'>('list')
 const newTitle = ref('')
@@ -80,9 +82,9 @@ function cancelCreate() { view.value = 'list' }
 function removeGoal(id: string) { apiRemoveGoal(id) }
 
 async function saveGoal() {
-  const t = newTitle.value.trim(); if (!t) return
+  const title = newTitle.value.trim(); if (!title) return
   await createGoal({
-    title: t, target: newTarget.value || '', area: newArea.value || null,
+    title, target: newTarget.value || '', area: newArea.value || null,
     unit: newUnit.value || '', total: Number(newTotalStr.value) || 100, ringColor: newGoalColor.value,
   })
   view.value = 'list'
@@ -92,38 +94,38 @@ async function saveGoal() {
 <template>
   <!-- VISTA DE CREACIÓN -->
   <AppCreateView v-if="view === 'create'"
-    title="Nuevo objetivo"
-    subtitle="Define a dónde quieres llegar"
+    :title="t('goals.create.title')"
+    :subtitle="t('goals.create.subtitle')"
     :disabled="!newTitle.trim()"
     @close="cancelCreate" @save="saveGoal">
     <div class="flex flex-col gap-2">
-      <label class="text-[12.5px] font-bold text-fg-muted px-1">Título</label>
-      <input v-model="newTitle" type="text" placeholder="¿Qué quieres conseguir?" autofocus
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('goals.create.titleLabel') }}</label>
+      <input v-model="newTitle" type="text" :placeholder="t('goals.create.titlePlaceholder')" autofocus
         class="w-full h-14 rounded-[14px] bg-card px-4 text-[18px] font-semibold text-fg outline-none placeholder:text-fg-subtle" />
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div class="flex flex-col gap-2">
-        <label class="text-[12.5px] font-bold text-fg-muted px-1">Fecha objetivo</label>
-        <AppDate v-model="newTarget" placeholder="Selecciona fecha" />
+        <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('goals.create.targetLabel') }}</label>
+        <AppDate v-model="newTarget" :placeholder="t('goals.create.targetPlaceholder')" />
       </div>
       <div class="flex flex-col gap-2">
-        <label class="text-[12.5px] font-bold text-fg-muted px-1">Área</label>
-        <input v-model="newArea" type="text" placeholder="Salud, Estudio, Finanzas…"
+        <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('goals.create.areaLabel') }}</label>
+        <input v-model="newArea" type="text" :placeholder="t('goals.create.areaPlaceholder')"
           class="w-full h-12 rounded-[12px] bg-card px-3 text-[14.5px] text-fg outline-none" />
       </div>
       <div class="flex flex-col gap-2">
-        <label class="text-[12.5px] font-bold text-fg-muted px-1">Meta total</label>
-        <input v-model="newTotalStr" type="number" min="1" placeholder="100"
+        <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('goals.create.totalLabel') }}</label>
+        <input v-model="newTotalStr" type="number" min="1" :placeholder="t('goals.create.totalPlaceholder')"
           class="w-full h-12 rounded-[12px] bg-card px-3 text-[14.5px] text-fg outline-none tabular-nums" />
       </div>
       <div class="flex flex-col gap-2">
-        <label class="text-[12.5px] font-bold text-fg-muted px-1">Unidad</label>
-        <input v-model="newUnit" type="text" placeholder="libros, km, COP, lecciones…"
+        <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('goals.create.unitLabel') }}</label>
+        <input v-model="newUnit" type="text" :placeholder="t('goals.create.unitPlaceholder')"
           class="w-full h-12 rounded-[12px] bg-card px-3 text-[14.5px] text-fg outline-none" />
       </div>
     </div>
     <div class="flex flex-col gap-2 flex-1 min-h-0">
-      <label class="text-[12.5px] font-bold text-fg-muted px-1 shrink-0">Color</label>
+      <label class="text-[12.5px] font-bold text-fg-muted px-1 shrink-0">{{ t('goals.create.colorLabel') }}</label>
       <div class="flex-1 min-h-0">
         <AppColorPicker v-model="newGoalColor" format="hex" />
       </div>
@@ -140,9 +142,9 @@ async function saveGoal() {
     <HibiHeart :size="16" beat :duration="2.6" class="hidden md:block absolute bottom-[20%] right-[8%] text-fg-subtle opacity-25 pointer-events-none z-40" />
 
     <div class="relative z-10">
-      <PageHero :icon="Target" tone="lavender" title="Objetivos" :subtitle="`${goalsData.length} activos · avance medio ${goalsData.length ? Math.round(goalsData.reduce((a,g)=>a+g.progress,0)/goalsData.length) : 0}%`">
+      <PageHero :icon="Target" tone="lavender" :title="t('goals.title')" :subtitle="t('goals.subtitle', { n: goalsData.length, pct: goalsData.length ? Math.round(goalsData.reduce((a,g)=>a+g.progress,0)/goalsData.length) : 0 })">
         <template #actions>
-          <AppButton variant="primary" size="sm" class="w-full md:w-auto" @click="openCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>Nuevo</AppButton>
+          <AppButton variant="primary" size="sm" class="w-full md:w-auto" @click="openCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>{{ t('goals.new') }}</AppButton>
         </template>
       </PageHero>
     </div>
@@ -164,7 +166,7 @@ async function saveGoal() {
               <!-- current/total: largo en COP → solo desde sm -->
               <p class="hidden sm:block text-[11px] text-fg-muted tabular-nums">{{ fmtCurrent(g) }} / {{ fmtTotal(g) }}</p>
             </div>
-            <button type="button" class="grid place-items-center size-7 rounded-full text-fg-subtle md:opacity-0 md:group-hover/goal:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" aria-label="Eliminar objetivo" @click="removeGoal(g.id)"><Trash2 class="size-[14px]" :stroke-width="2" /></button>
+            <button type="button" class="grid place-items-center size-7 rounded-full text-fg-subtle md:opacity-0 md:group-hover/goal:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" :aria-label="t('goals.deleteAria')" @click="removeGoal(g.id)"><Trash2 class="size-[14px]" :stroke-width="2" /></button>
           </div>
         </div>
 
@@ -199,7 +201,7 @@ async function saveGoal() {
             :style="{ left: m.at + '%' }">{{ m.label }}</span>
         </div>
         <div class="mt-2 flex items-center justify-between gap-2">
-          <p class="text-[11.5px] text-fg-muted font-semibold inline-flex items-center gap-1"><TrendingUp class="size-3" :stroke-width="2.2" /><span class="hidden sm:inline">Arrastra la barra para aportar progreso</span><span class="sm:hidden">Arrastra para aportar</span></p>
+          <p class="text-[11.5px] text-fg-muted font-semibold inline-flex items-center gap-1"><TrendingUp class="size-3" :stroke-width="2.2" /><span class="hidden sm:inline">{{ t('goals.progressHint') }}</span><span class="sm:hidden">{{ t('goals.progressHintShort') }}</span></p>
           <!-- En móvil el conteo va aquí (en el header se ocultaba por ser largo en COP) -->
           <p class="sm:hidden text-[12px] text-fg-muted tabular-nums font-bold text-right">{{ fmtCurrent(g) }} / {{ fmtTotal(g) }}</p>
         </div>

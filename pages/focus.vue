@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Play, Pause, RotateCcw, Timer, ChevronDown, Sparkles, ListChecks, Plus, X, Pencil, Check, Trash2, ArrowLeft, Settings2 } from '@lucide/vue'
 
-useHead({ title: 'Hibi — Enfoque' })
+const { t } = useI18n()
+
+useHead({ title: t('focus.head.title') })
 
 // Datos reales por usuario (presets configurables + sesiones registradas).
 const {
@@ -37,10 +39,10 @@ const sessionsToday = computed(() => todaySessions.value.length)
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
   const min = Math.floor(diff / 60000)
-  if (min < 1) return 'Recién'
-  if (min < 60) return `Hace ${min} min`
+  if (min < 1) return t('focus.ago.now')
+  if (min < 60) return t('focus.ago.minutes', { n: min })
   const h = Math.floor(min / 60)
-  return `Hace ${h} ${h === 1 ? 'hora' : 'horas'}`
+  return h === 1 ? t('focus.ago.hourOne', { n: h }) : t('focus.ago.hourOther', { n: h })
 }
 
 let interval: ReturnType<typeof setInterval> | undefined
@@ -132,13 +134,13 @@ function deletePreset(p: typeof presets.value[number]) {
       <AppCard class="relative z-10 flex-1 min-w-0 flex flex-col" :padded="false">
         <header class="shrink-0 px-5 pt-5 pb-3 flex items-center justify-between gap-3">
           <button class="inline-flex items-center gap-2 h-10 pl-2.5 pr-4 rounded-full bg-muted text-fg hover:bg-inset transition-[background-color]" @click="view = 'timer'">
-            <ArrowLeft class="size-[17px]" :stroke-width="2" /> <span class="text-[13.5px] font-bold">Volver</span>
+            <ArrowLeft class="size-[17px]" :stroke-width="2" /> <span class="text-[13.5px] font-bold">{{ t('common.back') }}</span>
           </button>
           <div class="text-center">
-            <h2 class="text-[18px] font-extrabold text-fg">Presets de pomodoro</h2>
-            <p class="text-[12.5px] text-fg-muted">{{ presets.length }} guardados</p>
+            <h2 class="text-[18px] font-extrabold text-fg">{{ t('focus.presets.title') }}</h2>
+            <p class="text-[12.5px] text-fg-muted">{{ t('focus.presets.saved', { count: presets.length }) }}</p>
           </div>
-          <button class="inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white font-bold text-[13.5px] transition-[background-color,color]" @click="startNew"><Plus class="size-[15px]" :stroke-width="2.4" />Nuevo</button>
+          <button class="inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white font-bold text-[13.5px] transition-[background-color,color]" @click="startNew"><Plus class="size-[15px]" :stroke-width="2.4" />{{ t('common.new') }}</button>
         </header>
         <ul class="flex-1 min-h-0 overflow-y-auto scroll-area px-5 pb-5 flex flex-col gap-2">
           <!-- Carga -->
@@ -155,12 +157,12 @@ function deletePreset(p: typeof presets.value[number]) {
           </template>
           <li v-for="p in presets" :key="p.id">
             <div v-if="editingId === p.id" class="bg-muted rounded-[14px] p-2 flex items-center gap-2 flex-wrap">
-              <input v-model="editLabel" type="text" placeholder="Nombre" class="flex-1 h-11 rounded-[10px] bg-card px-3 text-[14px] font-semibold text-fg outline-none" />
-              <input v-model.number="editFocus" type="number" min="1" max="180" class="h-11 w-16 rounded-[10px] bg-card px-2 text-center text-[13px] text-fg outline-none tabular-nums" title="Foco (min)" />
-              <input v-model.number="editShort" type="number" min="1" max="60" class="h-11 w-16 rounded-[10px] bg-card px-2 text-center text-[13px] text-fg outline-none tabular-nums" title="Corto (min)" />
-              <input v-model.number="editLong" type="number" min="1" max="120" class="h-11 w-16 rounded-[10px] bg-card px-2 text-center text-[13px] text-fg outline-none tabular-nums" title="Largo (min)" />
-              <button class="grid place-items-center size-11 rounded-[10px] text-fg-muted hover:bg-card hover:text-fg" aria-label="Cancelar" @click="cancelEdit"><X class="size-4" :stroke-width="2.4" /></button>
-              <button class="grid place-items-center size-11 rounded-[10px] bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white" aria-label="Guardar" @click="saveEdit"><Check class="size-4" :stroke-width="2.5" /></button>
+              <input v-model="editLabel" type="text" :placeholder="t('focus.presets.namePlaceholder')" class="flex-1 h-11 rounded-[10px] bg-card px-3 text-[14px] font-semibold text-fg outline-none" />
+              <input v-model.number="editFocus" type="number" min="1" max="180" class="h-11 w-16 rounded-[10px] bg-card px-2 text-center text-[13px] text-fg outline-none tabular-nums" :title="t('focus.presets.focusTitle')" />
+              <input v-model.number="editShort" type="number" min="1" max="60" class="h-11 w-16 rounded-[10px] bg-card px-2 text-center text-[13px] text-fg outline-none tabular-nums" :title="t('focus.presets.shortTitle')" />
+              <input v-model.number="editLong" type="number" min="1" max="120" class="h-11 w-16 rounded-[10px] bg-card px-2 text-center text-[13px] text-fg outline-none tabular-nums" :title="t('focus.presets.longTitle')" />
+              <button class="grid place-items-center size-11 rounded-[10px] text-fg-muted hover:bg-card hover:text-fg" :aria-label="t('common.cancel')" @click="cancelEdit"><X class="size-4" :stroke-width="2.4" /></button>
+              <button class="grid place-items-center size-11 rounded-[10px] bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white" :aria-label="t('common.save')" @click="saveEdit"><Check class="size-4" :stroke-width="2.5" /></button>
             </div>
             <div v-else
               role="button"
@@ -174,21 +176,21 @@ function deletePreset(p: typeof presets.value[number]) {
               <HibiCloudIcon :size="60" :icon="Timer" :icon-size="20" :cloud-color="p.color.split(' ')[0]" :icon-color="p.color.split(' ')[1]" :icon-stroke="1.9" class="shrink-0" />
               <div class="flex-1 min-w-0">
                 <p class="text-[15px] font-extrabold text-fg truncate">{{ p.label }}</p>
-                <p class="text-[12.5px] text-fg-muted tabular-nums">Foco {{ p.focus }} · Corto {{ p.short }} · Largo {{ p.long }}</p>
+                <p class="text-[12.5px] text-fg-muted tabular-nums">{{ t('focus.presets.row', { focus: p.focus, short: p.short, long: p.long }) }}</p>
               </div>
-              <span v-if="activePresetId === p.id" class="text-[11px] font-bold text-sky-deep bg-card px-2 h-6 rounded-full grid place-items-center">ACTIVO</span>
-              <button type="button" class="grid place-items-center size-9 rounded-[10px] text-fg-subtle hover:text-fg hover:bg-card" aria-label="Editar" @click.stop="startEdit(p)"><Pencil class="size-[15px]" :stroke-width="2" /></button>
-              <button v-if="presets.length > 1" type="button" class="grid place-items-center size-9 rounded-[10px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft" aria-label="Eliminar" @click.stop="deletePreset(p)"><Trash2 class="size-[15px]" :stroke-width="2" /></button>
+              <span v-if="activePresetId === p.id" class="text-[11px] font-bold text-sky-deep bg-card px-2 h-6 rounded-full grid place-items-center">{{ t('focus.presets.active') }}</span>
+              <button type="button" class="grid place-items-center size-9 rounded-[10px] text-fg-subtle hover:text-fg hover:bg-card" :aria-label="t('common.edit')" @click.stop="startEdit(p)"><Pencil class="size-[15px]" :stroke-width="2" /></button>
+              <button v-if="presets.length > 1" type="button" class="grid place-items-center size-9 rounded-[10px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft" :aria-label="t('common.delete')" @click.stop="deletePreset(p)"><Trash2 class="size-[15px]" :stroke-width="2" /></button>
             </div>
           </li>
           <li v-if="editingId === 'new'">
             <div class="bg-muted rounded-[14px] p-2 flex items-center gap-2 flex-wrap">
-              <input v-model="editLabel" type="text" placeholder="Nombre del preset" autofocus class="flex-1 h-11 rounded-[10px] bg-card px-3 text-[14px] font-semibold text-fg outline-none" />
-              <input v-model.number="editFocus" type="number" min="1" max="180" class="h-11 w-16 rounded-[10px] bg-card px-2 text-center text-[13px] text-fg outline-none tabular-nums" title="Foco (min)" />
-              <input v-model.number="editShort" type="number" min="1" max="60" class="h-11 w-16 rounded-[10px] bg-card px-2 text-center text-[13px] text-fg outline-none tabular-nums" title="Corto (min)" />
-              <input v-model.number="editLong" type="number" min="1" max="120" class="h-11 w-16 rounded-[10px] bg-card px-2 text-center text-[13px] text-fg outline-none tabular-nums" title="Largo (min)" />
-              <button class="grid place-items-center size-11 rounded-[10px] text-fg-muted hover:bg-card hover:text-fg" aria-label="Cancelar" @click="cancelEdit"><X class="size-4" :stroke-width="2.4" /></button>
-              <button class="grid place-items-center size-11 rounded-[10px] bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white" aria-label="Crear" @click="saveEdit"><Check class="size-4" :stroke-width="2.5" /></button>
+              <input v-model="editLabel" type="text" :placeholder="t('focus.presets.newNamePlaceholder')" autofocus class="flex-1 h-11 rounded-[10px] bg-card px-3 text-[14px] font-semibold text-fg outline-none" />
+              <input v-model.number="editFocus" type="number" min="1" max="180" class="h-11 w-16 rounded-[10px] bg-card px-2 text-center text-[13px] text-fg outline-none tabular-nums" :title="t('focus.presets.focusTitle')" />
+              <input v-model.number="editShort" type="number" min="1" max="60" class="h-11 w-16 rounded-[10px] bg-card px-2 text-center text-[13px] text-fg outline-none tabular-nums" :title="t('focus.presets.shortTitle')" />
+              <input v-model.number="editLong" type="number" min="1" max="120" class="h-11 w-16 rounded-[10px] bg-card px-2 text-center text-[13px] text-fg outline-none tabular-nums" :title="t('focus.presets.longTitle')" />
+              <button class="grid place-items-center size-11 rounded-[10px] text-fg-muted hover:bg-card hover:text-fg" :aria-label="t('common.cancel')" @click="cancelEdit"><X class="size-4" :stroke-width="2.4" /></button>
+              <button class="grid place-items-center size-11 rounded-[10px] bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white" :aria-label="t('common.create')" @click="saveEdit"><Check class="size-4" :stroke-width="2.5" /></button>
             </div>
           </li>
           <!-- Vacío -->
@@ -196,10 +198,10 @@ function deletePreset(p: typeof presets.value[number]) {
             <div class="grid place-items-center text-center py-12 px-6 gap-3">
               <HibiCloudIcon :size="70" :icon="Timer" :icon-size="24" cloud-color="bg-sky-soft" icon-color="text-sky-deep" :icon-stroke="1.9" />
               <div>
-                <p class="text-[14.5px] font-bold text-fg">Sin presets todavía</p>
-                <p class="text-[12.5px] text-fg-muted mt-0.5">Crea tu primer ritmo de pomodoro.</p>
+                <p class="text-[14.5px] font-bold text-fg">{{ t('focus.presets.emptyTitle') }}</p>
+                <p class="text-[12.5px] text-fg-muted mt-0.5">{{ t('focus.presets.emptySubtitle') }}</p>
               </div>
-              <button class="inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white font-bold text-[13.5px] transition-[background-color,color]" @click="startNew"><Plus class="size-[15px]" :stroke-width="2.4" />Crear preset</button>
+              <button class="inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white font-bold text-[13.5px] transition-[background-color,color]" @click="startNew"><Plus class="size-[15px]" :stroke-width="2.4" />{{ t('focus.presets.emptyCreate') }}</button>
             </div>
           </li>
         </ul>
@@ -214,16 +216,16 @@ function deletePreset(p: typeof presets.value[number]) {
         <div class="inline-flex p-1 rounded-full bg-muted gap-0.5 md:gap-1">
           <button type="button" class="h-9 px-2.5 md:px-4 rounded-full text-[12px] md:text-[13px] font-semibold whitespace-nowrap transition-[background-color,color]"
             :class="mode === 'focus' ? `bg-card ${activeTone.split(' ')[1]}` : 'text-fg-muted hover:text-fg'"
-            @click="mode = 'focus'">Foco ({{ activePreset?.focus ?? 25 }})</button>
+            @click="mode = 'focus'">{{ t('focus.modes.focus', { min: activePreset?.focus ?? 25 }) }}</button>
           <button type="button" class="h-9 px-2.5 md:px-4 rounded-full text-[12px] md:text-[13px] font-semibold whitespace-nowrap transition-[background-color,color]"
             :class="mode === 'short' ? 'bg-card text-[#34936a]' : 'text-fg-muted hover:text-fg'"
-            @click="mode = 'short'">Corto ({{ activePreset?.short ?? 5 }})</button>
+            @click="mode = 'short'">{{ t('focus.modes.short', { min: activePreset?.short ?? 5 }) }}</button>
           <button type="button" class="h-9 px-2.5 md:px-4 rounded-full text-[12px] md:text-[13px] font-semibold whitespace-nowrap transition-[background-color,color]"
             :class="mode === 'long' ? 'bg-card text-pink-deep' : 'text-fg-muted hover:text-fg'"
-            @click="mode = 'long'">Largo ({{ activePreset?.long ?? 15 }})</button>
+            @click="mode = 'long'">{{ t('focus.modes.long', { min: activePreset?.long ?? 15 }) }}</button>
         </div>
         <div class="text-right shrink-0">
-          <p class="text-[11px] md:text-[12px] font-bold text-fg-muted leading-tight">Sesiones</p>
+          <p class="text-[11px] md:text-[12px] font-bold text-fg-muted leading-tight">{{ t('focus.timer.sessions') }}</p>
           <p class="text-[20px] md:text-[22px] font-extrabold text-fg leading-none tabular-nums mt-0.5">{{ sessionsToday }}</p>
         </div>
       </div>
@@ -231,7 +233,7 @@ function deletePreset(p: typeof presets.value[number]) {
       <!-- Pomodoro con CONTORNO de nube (no se rellena). El trazo va
            apareciendo a lo largo del outline conforme avanza el tiempo,
            igual que el anillo circular original lo hacía. -->
-      <div class="relative shrink-0 w-full max-w-[270px] sm:max-w-[400px] md:max-w-[520px] aspect-[152/107]" aria-label="Temporizador">
+      <div class="relative shrink-0 w-full max-w-[270px] sm:max-w-[400px] md:max-w-[520px] aspect-[152/107]" :aria-label="t('focus.timer.aria')">
         <div class="absolute inset-0 flex items-center justify-center">
           <HibiCloudRing
             :size="520"
@@ -246,7 +248,7 @@ function deletePreset(p: typeof presets.value[number]) {
         <div class="absolute inset-0 grid place-items-center text-center">
           <div>
             <p class="text-[clamp(48px,7vw,88px)] font-extrabold text-fg leading-none tabular-nums tracking-tight">{{ mm }}<span class="text-fg-subtle">:</span>{{ ss }}</p>
-            <p class="text-[12px] text-fg-muted mt-1.5 font-bold uppercase tracking-wide">{{ running ? 'En foco' : 'Listo' }}</p>
+            <p class="text-[12px] text-fg-muted mt-1.5 font-bold uppercase tracking-wide">{{ running ? t('focus.timer.running') : t('focus.timer.ready') }}</p>
           </div>
         </div>
       </div>
@@ -254,15 +256,15 @@ function deletePreset(p: typeof presets.value[number]) {
       <!-- Tarea en foco: editable, se guarda al escribir -->
       <div class="mt-4 md:mt-6 relative w-full max-w-[340px]">
         <Sparkles class="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-sky-deep" :stroke-width="1.9" aria-hidden="true" />
-        <input v-model="task" type="text" placeholder="¿En qué te enfocas?"
+        <input v-model="task" type="text" :placeholder="t('focus.timer.taskPlaceholder')"
           class="w-full h-11 rounded-full bg-muted pl-10 pr-4 text-center text-[14.5px] font-semibold text-fg outline-none placeholder:text-fg-subtle" />
       </div>
 
       <div class="flex items-center gap-3 mt-4 md:mt-6">
-        <button class="grid place-items-center size-12 rounded-full bg-muted text-fg-muted hover:text-fg hover:bg-inset transition-[background-color,color]" aria-label="Reiniciar" @click="reset"><RotateCcw class="size-5" :stroke-width="1.9" /></button>
+        <button class="grid place-items-center size-12 rounded-full bg-muted text-fg-muted hover:text-fg hover:bg-inset transition-[background-color,color]" :aria-label="t('focus.timer.reset')" @click="reset"><RotateCcw class="size-5" :stroke-width="1.9" /></button>
         <button class="inline-flex items-center gap-2 h-14 px-10 rounded-full bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white font-bold text-[17px] transition-[background-color,color]" @click="running ? stop() : start()">
           <component :is="running ? Pause : Play" class="size-5" :stroke-width="2.2" aria-hidden="true" />
-          {{ running ? 'Pausar' : 'Empezar' }}
+          {{ running ? t('focus.timer.pause') : t('focus.timer.start') }}
         </button>
       </div>
     </AppCard>
@@ -271,22 +273,22 @@ function deletePreset(p: typeof presets.value[number]) {
     <div class="relative z-10 flex flex-col w-full lg:w-[320px] shrink-0 gap-2 lg:gap-3 lg:min-h-0">
       <AppCard class="!p-4 flex flex-col shrink-0">
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-[14px] font-bold text-fg inline-flex items-center gap-2"><Timer class="size-4 text-sky-deep" :stroke-width="2" />Modo</h3>
+          <h3 class="text-[14px] font-bold text-fg inline-flex items-center gap-2"><Timer class="size-4 text-sky-deep" :stroke-width="2" />{{ t('focus.side.mode') }}</h3>
           <button class="inline-flex items-center gap-1 h-8 px-2.5 rounded-[9px] bg-muted text-fg-muted hover:text-fg hover:bg-inset text-[12px] font-bold" @click="view = 'presets'">
-            <Settings2 class="size-[13px]" :stroke-width="2.2" /> Personalizar
+            <Settings2 class="size-[13px]" :stroke-width="2.2" /> {{ t('focus.side.customize') }}
           </button>
         </div>
         <!-- Select con todos los presets (scroll si hay muchos) -->
         <AppSelect v-if="presets.length" v-model="activePresetId" :options="presets.map(p => ({ value: p.id, label: `${p.label} · ${p.focus}/${p.short}/${p.long}` }))" />
         <button v-else class="w-full inline-flex items-center justify-center gap-1.5 h-11 rounded-[12px] bg-muted text-fg-muted hover:bg-inset hover:text-fg text-[13px] font-bold transition-[background-color,color]" @click="view = 'presets'">
-          <Plus class="size-[15px]" :stroke-width="2.4" /> Crear un preset
+          <Plus class="size-[15px]" :stroke-width="2.4" /> {{ t('focus.side.createPreset') }}
         </button>
       </AppCard>
 
       <AppCard class="lg:flex-1 lg:min-h-0 flex flex-col" :padded="false">
         <header class="px-5 pt-5 pb-3 shrink-0 flex items-center gap-2">
           <ListChecks class="size-[18px] text-fg-muted" :stroke-width="1.9" aria-hidden="true" />
-          <h3 class="text-[14px] font-bold text-fg">Sesiones de hoy</h3>
+          <h3 class="text-[14px] font-bold text-fg">{{ t('focus.today.title') }}</h3>
         </header>
         <div class="lg:flex-1 lg:min-h-0 lg:overflow-y-auto lg:scroll-area px-3 pb-4 flex flex-col gap-1.5">
           <!-- Carga -->
@@ -302,16 +304,16 @@ function deletePreset(p: typeof presets.value[number]) {
           <div v-for="s in todaySessions" :key="s.id" class="flex items-center gap-3 p-3 rounded-[12px] bg-muted">
             <span class="grid place-items-center size-9 rounded-[11px] bg-sky-soft text-sky-deep" aria-hidden="true"><Timer class="size-[16px]" :stroke-width="2" /></span>
             <div class="flex-1 min-w-0">
-              <p class="text-[13.5px] font-semibold text-fg truncate">{{ s.task || 'Sesión de enfoque' }}</p>
+              <p class="text-[13.5px] font-semibold text-fg truncate">{{ s.task || t('focus.session.untitled') }}</p>
               <p class="text-[11.5px] text-fg-muted">{{ timeAgo(s.finishedAt) }}</p>
             </div>
-            <span class="text-[12.5px] font-bold text-fg tabular-nums">{{ s.minutes }} min</span>
+            <span class="text-[12.5px] font-bold text-fg tabular-nums">{{ t('focus.session.minutes', { n: s.minutes }) }}</span>
           </div>
           <!-- Vacío -->
           <div v-if="!sessionsLoading && !todaySessions.length" class="grid place-items-center text-center py-8 px-4 gap-2">
             <HibiCloudIcon :size="56" :icon="Timer" :icon-size="20" cloud-color="bg-sky-soft" icon-color="text-sky-deep" :icon-stroke="1.9" />
-            <p class="text-[13px] font-bold text-fg">Aún no hay sesiones hoy</p>
-            <p class="text-[12px] text-fg-muted">Cuando termines un foco, aparecerá aquí.</p>
+            <p class="text-[13px] font-bold text-fg">{{ t('focus.today.emptyTitle') }}</p>
+            <p class="text-[12px] text-fg-muted">{{ t('focus.today.emptySubtitle') }}</p>
           </div>
         </div>
       </AppCard>

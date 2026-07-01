@@ -1,0 +1,33 @@
+{
+  "settings": {
+    "namePlaceholder": "Tu nombre",
+    "myAccount": "Mi cuenta",
+    "changePhoto": "Cambiar foto",
+    "removePhoto": "Quitar foto",
+    "changePassword": "Cambiar contraseña",
+    "passwordLastTime": "Última vez: nunca",
+    "logout": "Cerrar sesión",
+    "logoutHint": "En este dispositivo",
+    "loggingOut": "Saliendo…",
+    "subtitle": "Personaliza tu experiencia en Hibi",
+    "appearanceRegion": "Apariencia y región",
+    "themeHint": "Claro u oscuro",
+    "language": "Idioma",
+    "timezone": "Zona horaria",
+    "timezoneHint": "Detectada automáticamente",
+    "chatCloud": "Nube de chat",
+    "chatCloudVisible": "Visible",
+    "chatCloudHidden": "Oculta",
+    "fabYes": "Sí",
+    "fabNo": "No",
+    "notifications": "Notificaciones",
+    "notifTitle": "Qué quieres recibir",
+    "notifSubtitle": "Toca una tarjeta para activarla o silenciarla",
+    "notifDesktopLabel": "Avisos del escritorio",
+    "notifDesktopHint": "Notificaciones nativas del sistema",
+    "notifSummaryLabel": "Resumen diario",
+    "notifSummaryHint": "Resumen cada mañana",
+    "notifRemindersLabel": "Recordatorios",
+    "notifRemindersHint": "Avisos de tareas y eventos"
+  }
+}

@@ -25,17 +25,24 @@ const widgets = computed<Widget[]>(() => [
 ])
 
 // Valor + subtítulo de cada widget a partir del resumen del día.
-const MOOD_LABELS = ['—', 'Muy mal', 'Mal', 'Normal', 'Bien', 'Genial']
+const MOOD_LABELS = computed(() => [
+  t('inicio.moods.none'),
+  t('inicio.moods.veryBad'),
+  t('inicio.moods.bad'),
+  t('inicio.moods.normal'),
+  t('inicio.moods.good'),
+  t('inicio.moods.great'),
+])
 function widgetDisplay(key: string): { value: string; sub: string } {
   const s = summary.value
   if (!s) return { value: '·', sub: '' }
   switch (key) {
-    case 'todayEvents': return { value: String(s.todayEvents), sub: s.todayEvents === 1 ? 'evento hoy' : 'eventos hoy' }
-    case 'todayTasks': return { value: String(s.todayTasks), sub: `de ${s.pendingTasks} pendientes` }
-    case 'reminders': return { value: String(s.reminders), sub: 'para hoy' }
-    case 'habits': return { value: s.habitsTotal ? `${s.habitsDone}/${s.habitsTotal}` : '0', sub: s.habitsTotal ? `${Math.round((s.habitsDone / s.habitsTotal) * 100)}% hoy` : 'sin hábitos' }
-    case 'mood': return { value: s.mood ? MOOD_LABELS[s.mood]! : '—', sub: s.mood ? 'hoy' : 'sin diario' }
-    case 'streak': return { value: String(s.streak), sub: s.streak === 1 ? 'día' : 'días' }
+    case 'todayEvents': return { value: String(s.todayEvents), sub: s.todayEvents === 1 ? t('inicio.eventSub') : t('inicio.eventsSub') }
+    case 'todayTasks': return { value: String(s.todayTasks), sub: t('inicio.tasksSub', { n: s.pendingTasks }) }
+    case 'reminders': return { value: String(s.reminders), sub: t('inicio.remindersSub') }
+    case 'habits': return { value: s.habitsTotal ? `${s.habitsDone}/${s.habitsTotal}` : '0', sub: s.habitsTotal ? t('inicio.habitsPct', { pct: Math.round((s.habitsDone / s.habitsTotal) * 100) }) : t('inicio.habitsNone') }
+    case 'mood': return { value: s.mood ? MOOD_LABELS.value[s.mood]! : t('inicio.moods.none'), sub: s.mood ? t('inicio.moodToday') : t('inicio.moodNone') }
+    case 'streak': return { value: String(s.streak), sub: s.streak === 1 ? t('inicio.streakDay') : t('inicio.streakDays') }
     default: return { value: '·', sub: '' }
   }
 }

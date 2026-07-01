@@ -8,7 +8,7 @@ import {
 const { t, locale, setLocale } = useI18n()
 const { load: loadSettings, save: saveSettings } = useSettings()
 const { dismissed: fabDismissed, setDismissed: setFabDismissed } = useFab()
-const fabOptions = [{ value: 'on', label: 'Sí' }, { value: 'off', label: 'No' }]
+const fabOptions = computed(() => [{ value: 'on', label: t('settings.fabYes') }, { value: 'off', label: t('settings.fabNo') }])
 const langOptions = [
   { value: 'es', label: 'Español' },
   { value: 'en', label: 'English' },
@@ -59,11 +59,11 @@ const timezone = computed(() => {
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone } catch { return 'UTC' }
 })
 
-const NOTIF_ITEMS = [
-  { key: 'desktop',   label: 'Avisos del escritorio', hint: 'Notificaciones nativas del sistema', icon: Monitor,    tone: 'bg-sky-soft text-sky-deep',  activeBg: 'bg-sky-soft', activeText: 'text-sky-deep',    activeHint: 'text-sky-deep/80',   pipColor: 'bg-sky-deep' },
-  { key: 'summary',   label: 'Resumen diario',        hint: 'Resumen cada mañana',                icon: Sun,        tone: 'bg-cream text-[#bf8f2e]',    activeBg: 'bg-cream',    activeText: 'text-[#bf8f2e]',   activeHint: 'text-[#bf8f2e]/80',  pipColor: 'bg-[#bf8f2e]' },
-  { key: 'reminders', label: 'Recordatorios',         hint: 'Avisos de tareas y eventos',         icon: AlarmClock, tone: 'bg-mint text-[#34936a]',     activeBg: 'bg-mint',     activeText: 'text-[#34936a]',   activeHint: 'text-[#34936a]/80',  pipColor: 'bg-[#34936a]' },
-] as const
+const NOTIF_ITEMS = computed(() => [
+  { key: 'desktop',   label: t('settings.notifDesktopLabel'),   hint: t('settings.notifDesktopHint'),   icon: Monitor,    tone: 'bg-sky-soft text-sky-deep',  activeBg: 'bg-sky-soft', activeText: 'text-sky-deep',    activeHint: 'text-sky-deep/80',   pipColor: 'bg-sky-deep' },
+  { key: 'summary',   label: t('settings.notifSummaryLabel'),   hint: t('settings.notifSummaryHint'),   icon: Sun,        tone: 'bg-cream text-[#bf8f2e]',    activeBg: 'bg-cream',    activeText: 'text-[#bf8f2e]',   activeHint: 'text-[#bf8f2e]/80',  pipColor: 'bg-[#bf8f2e]' },
+  { key: 'reminders', label: t('settings.notifRemindersLabel'), hint: t('settings.notifRemindersHint'), icon: AlarmClock, tone: 'bg-mint text-[#34936a]',     activeBg: 'bg-mint',     activeText: 'text-[#34936a]',   activeHint: 'text-[#34936a]/80',  pipColor: 'bg-[#34936a]' },
+])
 </script>
 
 <template>
@@ -92,21 +92,21 @@ const NOTIF_ITEMS = [
           <button type="button"
             class="absolute bottom-3 right-3 grid place-items-center size-14 rounded-full bg-card text-sky-deep hover:bg-sky-soft transition-[background-color,transform] hover:scale-110 outline-none focus-visible:ring-2 focus-visible:ring-sky-deep"
             style="box-shadow: inset 0 0 0 3px var(--bg-base);"
-            aria-label="Cambiar foto" @click="pickAvatar">
+            :aria-label="t('settings.changePhoto')" @click="pickAvatar">
             <ImagePlus class="size-[22px]" :stroke-width="2" />
           </button>
           <!-- Botón quitar foto (× en esquina opuesta), solo si hay foto subida -->
           <button v-if="avatarSrc" type="button"
             class="absolute top-2 right-2 grid place-items-center size-9 rounded-full bg-card text-pink-deep hover:bg-pink-soft transition-[background-color,transform] hover:scale-110 outline-none focus-visible:ring-2 focus-visible:ring-pink-deep"
             style="box-shadow: inset 0 0 0 2.5px var(--bg-base);"
-            aria-label="Quitar foto" @click="removeAvatar">
+            :aria-label="t('settings.removePhoto')" @click="removeAvatar">
             <Trash2 class="size-[14px]" :stroke-width="2.2" />
           </button>
           <input ref="avatarFileRef" type="file" accept="image/*" class="hidden" @change="onAvatarChange" />
         </div>
-        <input v-model="profileName" type="text" placeholder="Tu nombre"
+        <input v-model="profileName" type="text" :placeholder="t('settings.namePlaceholder')"
           class="mt-4 text-[22px] font-extrabold text-fg leading-tight bg-transparent outline-none w-full text-center px-2 py-1 rounded-[10px]" />
-        <p class="text-[11.5px] font-bold text-fg-muted uppercase tracking-[0.16em] mt-0.5">Mi cuenta</p>
+        <p class="text-[11.5px] font-bold text-fg-muted uppercase tracking-[0.16em] mt-0.5">{{ t('settings.myAccount') }}</p>
       </div>
 
       <!-- Espaciador flexible -->
@@ -117,16 +117,16 @@ const NOTIF_ITEMS = [
         <button type="button" class="w-full flex items-center gap-4 px-4 py-4 rounded-[16px] bg-cream hover:bg-yellow transition-[background-color] outline-none focus-visible:ring-2 focus-visible:ring-[#bf8f2e] text-left">
           <HibiCloudIcon :size="68" :icon="KeyRound" :icon-size="24" cloud-color="text-cream" icon-color="text-[#bf8f2e]" :icon-stroke="1.9" class="shrink-0" />
           <div class="flex-1 min-w-0">
-            <p class="text-[15px] font-extrabold text-[#bf8f2e] leading-tight">Cambiar contraseña</p>
-            <p class="text-[12px] font-bold text-[#bf8f2e]/80 mt-0.5">Última vez: nunca</p>
+            <p class="text-[15px] font-extrabold text-[#bf8f2e] leading-tight">{{ t('settings.changePassword') }}</p>
+            <p class="text-[12px] font-bold text-[#bf8f2e]/80 mt-0.5">{{ t('settings.passwordLastTime') }}</p>
           </div>
         </button>
 
         <button type="button" :disabled="loggingOut" class="w-full flex items-center gap-4 px-4 py-4 rounded-[16px] bg-pink-soft hover:bg-pink transition-[background-color] outline-none focus-visible:ring-2 focus-visible:ring-pink-deep text-left disabled:opacity-60" @click="onLogout">
           <HibiCloudIcon :size="68" :icon="LogOut" :icon-size="24" cloud-color="text-pink-soft" icon-color="text-pink-deep" :icon-stroke="1.9" class="shrink-0" />
           <div class="flex-1 min-w-0">
-            <p class="text-[15px] font-extrabold text-pink-deep leading-tight">Cerrar sesión</p>
-            <p class="text-[12px] font-bold text-pink-deep/80 mt-0.5">{{ loggingOut ? 'Saliendo…' : 'En este dispositivo' }}</p>
+            <p class="text-[15px] font-extrabold text-pink-deep leading-tight">{{ t('settings.logout') }}</p>
+            <p class="text-[12px] font-bold text-pink-deep/80 mt-0.5">{{ loggingOut ? t('settings.loggingOut') : t('settings.logoutHint') }}</p>
           </div>
         </button>
       </div>
@@ -140,7 +140,7 @@ const NOTIF_ITEMS = [
       <header class="shrink-0 flex items-end justify-between">
         <div>
           <h1 class="text-[26px] font-extrabold text-fg leading-tight">{{ t('nav.settings') }}</h1>
-          <p class="text-[13px] text-fg-muted mt-0.5">Personaliza tu experiencia en Hibi</p>
+          <p class="text-[13px] text-fg-muted mt-0.5">{{ t('settings.subtitle') }}</p>
         </div>
       </header>
 
@@ -148,7 +148,7 @@ const NOTIF_ITEMS = [
       <section class="shrink-0">
         <div class="flex items-center gap-2 mb-3 px-1">
           <span class="h-2 w-2 rounded-full bg-sky-deep" />
-          <h2 class="text-[12.5px] font-extrabold text-fg-muted uppercase tracking-[0.12em]">Apariencia y región</h2>
+          <h2 class="text-[12.5px] font-extrabold text-fg-muted uppercase tracking-[0.12em]">{{ t('settings.appearanceRegion') }}</h2>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <AppCard class="!p-5 flex items-center justify-between gap-4">
@@ -156,7 +156,7 @@ const NOTIF_ITEMS = [
               <HibiCloudIcon :size="60" :icon="Palette" :icon-size="22" cloud-color="text-sky-soft" icon-color="text-sky-deep" :icon-stroke="1.8" class="shrink-0" />
               <div class="min-w-0">
                 <h3 class="text-[14.5px] font-extrabold text-fg leading-tight">{{ t('theme.label') }}</h3>
-                <p class="text-[12px] text-fg-muted truncate">Claro u oscuro</p>
+                <p class="text-[12px] text-fg-muted truncate">{{ t('settings.themeHint') }}</p>
               </div>
             </div>
             <ThemeToggle />
@@ -166,8 +166,8 @@ const NOTIF_ITEMS = [
             <div class="flex items-center gap-3 min-w-0">
               <HibiCloudIcon :size="60" :icon="MessageCircle" :icon-size="22" cloud-color="text-lavender" icon-color="text-[#7a63c0]" :icon-stroke="1.8" class="shrink-0" />
               <div class="min-w-0">
-                <h3 class="text-[14.5px] font-extrabold text-fg leading-tight">Nube de chat</h3>
-                <p class="text-[12px] text-fg-muted truncate">{{ fabDismissed ? 'Oculta' : 'Visible' }}</p>
+                <h3 class="text-[14.5px] font-extrabold text-fg leading-tight">{{ t('settings.chatCloud') }}</h3>
+                <p class="text-[12px] text-fg-muted truncate">{{ fabDismissed ? t('settings.chatCloudHidden') : t('settings.chatCloudVisible') }}</p>
               </div>
             </div>
             <AppSegmented :model-value="fabDismissed ? 'off' : 'on'" :options="fabOptions" toggle @update:model-value="(v) => setFabDismissed(String(v) === 'off')" />
@@ -177,7 +177,7 @@ const NOTIF_ITEMS = [
             <div class="flex items-center gap-3 min-w-0">
               <HibiCloudIcon :size="60" :icon="Languages" :icon-size="22" cloud-color="text-pink-soft" icon-color="text-pink-deep" :icon-stroke="1.8" class="shrink-0" />
               <div class="min-w-0">
-                <h3 class="text-[14.5px] font-extrabold text-fg leading-tight">Idioma</h3>
+                <h3 class="text-[14.5px] font-extrabold text-fg leading-tight">{{ t('settings.language') }}</h3>
                 <p class="text-[12px] text-fg-muted truncate">{{ langOptions.find(o => o.value === locale)?.label }}</p>
               </div>
             </div>
@@ -187,9 +187,9 @@ const NOTIF_ITEMS = [
           <AppCard class="!p-5 flex items-center gap-3">
             <HibiCloudIcon :size="60" :icon="Globe" :icon-size="22" cloud-color="text-mint" icon-color="text-[#34936a]" :icon-stroke="1.8" class="shrink-0" />
             <div class="flex-1 min-w-0">
-              <h3 class="text-[14.5px] font-extrabold text-fg leading-tight">Zona horaria</h3>
+              <h3 class="text-[14.5px] font-extrabold text-fg leading-tight">{{ t('settings.timezone') }}</h3>
               <p class="text-[12px] text-fg-muted truncate" :title="timezone">{{ timezone }}</p>
-              <p class="text-[10.5px] text-fg-subtle">Detectada automáticamente</p>
+              <p class="text-[10.5px] text-fg-subtle">{{ t('settings.timezoneHint') }}</p>
             </div>
           </AppCard>
         </div>
@@ -199,14 +199,14 @@ const NOTIF_ITEMS = [
       <section class="shrink-0 md:flex-1 md:min-h-0 flex flex-col">
         <div class="flex items-center gap-2 mb-3 px-1 shrink-0">
           <span class="h-2 w-2 rounded-full bg-peach" />
-          <h2 class="text-[12.5px] font-extrabold text-fg-muted uppercase tracking-[0.12em]">Notificaciones</h2>
+          <h2 class="text-[12.5px] font-extrabold text-fg-muted uppercase tracking-[0.12em]">{{ t('settings.notifications') }}</h2>
         </div>
         <AppCard class="md:flex-1 md:min-h-0 !p-5 flex flex-col">
           <header class="flex items-center gap-3 mb-4 shrink-0">
             <HibiCloudIcon :size="60" :icon="Bell" :icon-size="22" cloud-color="text-peach" icon-color="text-[#c5733f]" :icon-stroke="1.9" class="shrink-0" />
             <div>
-              <h3 class="text-[16px] font-extrabold text-fg leading-tight">Qué quieres recibir</h3>
-              <p class="text-[12.5px] text-fg-muted">Toca una tarjeta para activarla o silenciarla</p>
+              <h3 class="text-[16px] font-extrabold text-fg leading-tight">{{ t('settings.notifTitle') }}</h3>
+              <p class="text-[12.5px] text-fg-muted">{{ t('settings.notifSubtitle') }}</p>
             </div>
           </header>
           <div class="md:flex-1 md:min-h-0 grid grid-cols-1 md:grid-cols-3 gap-3">

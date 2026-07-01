@@ -4,10 +4,12 @@ import {
   isSameMonth, isToday, addMonths, subMonths, addWeeks, subWeeks, addHours, isAfter,
   parseISO,
 } from 'date-fns'
-import { es } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Plus, Calendar as Cal, Clock, Palette, FileText, Clock4, CalendarDays, CalendarRange, List, Trash2 } from '@lucide/vue'
 
-useHead({ title: 'Hibi — Calendario' })
+const { t } = useI18n()
+const dateLocale = useDateLocale()
+
+useHead({ title: t('calendar.head.title') })
 
 const cursor = ref(new Date())
 type View = 'day' | 'week' | 'month' | 'agenda' | 'create'
@@ -49,13 +51,13 @@ function pickDay(d: Date) {
 watch(() => view.value, () => { mobileDayDetail.value = false })
 
 const headerLabel = computed(() => {
-  if (view.value === 'day') return format(cursor.value, "EEEE d 'de' MMMM yyyy", { locale: es })
+  if (view.value === 'day') return format(cursor.value, t('calendar.format.day'), { locale: dateLocale.value })
   if (view.value === 'week') {
     const s = startOfWeek(cursor.value, { weekStartsOn: 1 })
     const e = endOfWeek(cursor.value, { weekStartsOn: 1 })
-    return `${format(s, "d 'de' MMM", { locale: es })} a ${format(e, "d 'de' MMM yyyy", { locale: es })}`
+    return `${format(s, t('calendar.format.weekRangeStart'), { locale: dateLocale.value })} ${t('calendar.weekRangeSep')} ${format(e, t('calendar.format.weekRangeEnd'), { locale: dateLocale.value })}`
   }
-  return format(cursor.value, "MMMM yyyy", { locale: es })
+  return format(cursor.value, t('calendar.format.monthYear'), { locale: dateLocale.value })
 })
 function prev() {
   if (view.value === 'day') cursor.value = addDays(cursor.value, -1)
@@ -68,7 +70,10 @@ function next() {
   else cursor.value = addMonths(cursor.value, 1)
 }
 
-const weekDays = ['L','M','X','J','V','S','D']
+const weekDays = computed(() => {
+  const s = startOfWeek(new Date(), { weekStartsOn: 1 })
+  return Array.from({ length: 7 }, (_, j) => format(addDays(s, j), 'EEEEE', { locale: dateLocale.value }).toUpperCase())
+})
 const monthDays = computed(() => {
   // SIEMPRE 6 semanas (42 celdas) para evitar layout shift cuando un mes ocupa
   // 5 semanas y otro 6. Rellenamos el final con los primeros días del mes siguiente.
@@ -203,50 +208,50 @@ async function deleteEvent(id: string) {
   await removeEvent(id)
 }
 
-const VIEW_OPTS = [
-  { value: 'day',    label: 'Día',    icon: Clock4,         ariaLabel: 'Día' },
-  { value: 'week',   label: 'Semana', icon: CalendarRange,  ariaLabel: 'Semana' },
-  { value: 'month',  label: 'Mes',    icon: CalendarDays,   ariaLabel: 'Mes' },
-  { value: 'agenda', label: 'Agenda', icon: List,           ariaLabel: 'Agenda' },
-]
+const VIEW_OPTS = computed(() => [
+  { value: 'day',    label: t('calendar.views.day'),    icon: Clock4,         ariaLabel: t('calendar.views.day') },
+  { value: 'week',   label: t('calendar.views.week'),   icon: CalendarRange,  ariaLabel: t('calendar.views.week') },
+  { value: 'month',  label: t('calendar.views.month'),  icon: CalendarDays,   ariaLabel: t('calendar.views.month') },
+  { value: 'agenda', label: t('calendar.views.agenda'), icon: List,           ariaLabel: t('calendar.views.agenda') },
+])
 </script>
 
 <template>
   <!-- VISTA DE CREACIÓN / EDICIÓN -->
   <AppCreateView v-if="view === 'create'"
-    :title="editingId ? 'Editar evento' : 'Nuevo evento'"
-    :subtitle="editingId ? 'Ajusta los detalles del evento' : 'Añade un compromiso al calendario'"
+    :title="editingId ? t('calendar.create.titleEdit') : t('calendar.create.titleNew')"
+    :subtitle="editingId ? t('calendar.create.subtitleEdit') : t('calendar.create.subtitleNew')"
     :disabled="!newTitle.trim() || saving"
     @close="cancelCreate" @save="saveEvent">
     <div class="flex flex-col gap-2">
-      <label class="text-[12.5px] font-bold text-fg-muted px-1">Título</label>
-      <input v-model="newTitle" type="text" placeholder="¿Qué hay que hacer?" autofocus
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('calendar.create.titleLabel') }}</label>
+      <input v-model="newTitle" type="text" :placeholder="t('calendar.create.titlePlaceholder')" autofocus
         class="w-full h-14 rounded-[14px] bg-card px-4 text-[18px] font-semibold text-fg outline-none placeholder:text-fg-subtle" />
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
       <div class="flex flex-col gap-2">
-        <label class="text-[12.5px] font-bold text-fg-muted px-1">Fecha</label>
-        <AppDate v-model="newDate" placeholder="Fecha" />
+        <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('calendar.create.dateLabel') }}</label>
+        <AppDate v-model="newDate" :placeholder="t('calendar.create.datePlaceholder')" />
       </div>
       <div class="flex flex-col gap-2">
-        <label class="text-[12.5px] font-bold text-fg-muted px-1">Empieza</label>
+        <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('calendar.create.startsLabel') }}</label>
         <AppTime v-model="newStartTime" :disabled="newAllDay" />
       </div>
       <div class="flex flex-col gap-2">
-        <label class="text-[12.5px] font-bold text-fg-muted px-1">Termina</label>
+        <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('calendar.create.endsLabel') }}</label>
         <AppTime v-model="newEndTime" :disabled="newAllDay" />
       </div>
     </div>
 
     <div class="flex items-center gap-2.5">
-      <AppCheck v-model="newAllDay" label="Todo el día" />
-      <span class="text-[14px] font-semibold text-fg cursor-pointer" @click="newAllDay = !newAllDay">Todo el día</span>
+      <AppCheck v-model="newAllDay" :label="t('calendar.allDay')" />
+      <span class="text-[14px] font-semibold text-fg cursor-pointer" @click="newAllDay = !newAllDay">{{ t('calendar.allDay') }}</span>
     </div>
 
     <!-- COLOR PICKER FIJO -->
     <div class="flex flex-col gap-2 flex-1 min-h-0">
-      <label class="text-[12.5px] font-bold text-fg-muted px-1 shrink-0">Color del evento</label>
+      <label class="text-[12.5px] font-bold text-fg-muted px-1 shrink-0">{{ t('calendar.create.colorLabel') }}</label>
       <div class="flex-1 min-h-0">
         <AppColorPicker v-model="newColor" format="hex" />
       </div>
@@ -257,7 +262,7 @@ const VIEW_OPTS = [
       <button type="button"
         class="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[13px] font-bold text-pink-deep bg-pink-soft hover:bg-pink transition-[background-color] outline-none focus-visible:ring-2 focus-visible:ring-pink-deep"
         @click="deleteEvent(editingId!); cancelCreate()">
-        <Trash2 class="size-[15px]" :stroke-width="2.2" aria-hidden="true" />Eliminar evento
+        <Trash2 class="size-[15px]" :stroke-width="2.2" aria-hidden="true" />{{ t('calendar.create.deleteEvent') }}
       </button>
     </div>
   </AppCreateView>
@@ -270,24 +275,24 @@ const VIEW_OPTS = [
     <HibiSparkle :size="14" twinkle :duration="3" :delay="0.7" class="hidden md:block absolute top-[8%] right-[28%] text-fg-subtle opacity-25 pointer-events-none z-40" />
     <HibiHeart :size="14" beat :duration="2.6" class="hidden md:block absolute bottom-[22%] right-[6%] text-fg-subtle opacity-25 pointer-events-none z-40" />
     <div class="relative z-10">
-      <PageHero :icon="Cal" tone="sky" :title="headerLabel" :subtitle="`${eventsData.length} eventos`">
+      <PageHero :icon="Cal" tone="sky" :title="headerLabel" :subtitle="t('calendar.subtitle', { n: eventsData.length })">
         <template #actions>
           <!-- DESKTOP: barra rica con "Hoy" como boton aparte -->
           <div class="hidden md:flex items-center gap-2">
             <div class="inline-flex items-center gap-1">
-              <button class="grid place-items-center size-9 rounded-[11px] bg-card text-sky-deep hover:bg-inset transition-[background-color]" aria-label="Anterior" @click="prev"><ChevronLeft class="size-4" :stroke-width="2" /></button>
-              <button class="h-9 px-3 rounded-[11px] bg-card text-[13px] font-semibold text-sky-deep hover:bg-inset" @click="cursor = new Date()">Hoy</button>
-              <button class="grid place-items-center size-9 rounded-[11px] bg-card text-sky-deep hover:bg-inset transition-[background-color]" aria-label="Siguiente" @click="next"><ChevronRight class="size-4" :stroke-width="2" /></button>
+              <button class="grid place-items-center size-9 rounded-[11px] bg-card text-sky-deep hover:bg-inset transition-[background-color]" :aria-label="t('calendar.nav.prev')" @click="prev"><ChevronLeft class="size-4" :stroke-width="2" /></button>
+              <button class="h-9 px-3 rounded-[11px] bg-card text-[13px] font-semibold text-sky-deep hover:bg-inset" @click="cursor = new Date()">{{ t('calendar.today') }}</button>
+              <button class="grid place-items-center size-9 rounded-[11px] bg-card text-sky-deep hover:bg-inset transition-[background-color]" :aria-label="t('calendar.nav.next')" @click="next"><ChevronRight class="size-4" :stroke-width="2" /></button>
             </div>
             <AppSegmented v-model="view" :options="VIEW_OPTS" />
-            <AppButton variant="primary" size="sm" @click="openCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>Evento</AppButton>
+            <AppButton variant="primary" size="sm" @click="openCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>{{ t('calendar.eventLabel') }}</AppButton>
           </div>
 
           <!-- MOVIL: barra compacta que CABE en 343px sin scroll -->
           <div class="flex md:hidden items-center gap-1.5 w-full">
-            <button class="grid place-items-center size-9 rounded-[11px] bg-card text-sky-deep shrink-0" aria-label="Anterior" @click="prev"><ChevronLeft class="size-4" :stroke-width="2" /></button>
-            <button class="flex-1 h-9 px-2 rounded-[11px] bg-card text-[13px] font-bold text-sky-deep capitalize truncate" @click="cursor = new Date()">{{ format(cursor, 'MMM yy', { locale: es }) }}</button>
-            <button class="grid place-items-center size-9 rounded-[11px] bg-card text-sky-deep shrink-0" aria-label="Siguiente" @click="next"><ChevronRight class="size-4" :stroke-width="2" /></button>
+            <button class="grid place-items-center size-9 rounded-[11px] bg-card text-sky-deep shrink-0" :aria-label="t('calendar.nav.prev')" @click="prev"><ChevronLeft class="size-4" :stroke-width="2" /></button>
+            <button class="flex-1 h-9 px-2 rounded-[11px] bg-card text-[13px] font-bold text-sky-deep capitalize truncate" @click="cursor = new Date()">{{ format(cursor, t('calendar.format.monthShortYear'), { locale: dateLocale.value }) }}</button>
+            <button class="grid place-items-center size-9 rounded-[11px] bg-card text-sky-deep shrink-0" :aria-label="t('calendar.nav.next')" @click="next"><ChevronRight class="size-4" :stroke-width="2" /></button>
             <div class="inline-flex items-center gap-0.5 p-0.5 rounded-full bg-card shrink-0">
               <button v-for="opt in VIEW_OPTS" :key="String(opt.value)" type="button"
                 :aria-label="opt.ariaLabel"
@@ -298,7 +303,7 @@ const VIEW_OPTS = [
                 <component :is="opt.icon" class="size-[15px]" :stroke-width="2" />
               </button>
             </div>
-            <button class="grid place-items-center size-9 rounded-full bg-sky text-[#1f4661] shrink-0" aria-label="Nuevo evento" @click="openCreate"><Plus class="size-[16px]" :stroke-width="2.3" /></button>
+            <button class="grid place-items-center size-9 rounded-full bg-sky text-[#1f4661] shrink-0" :aria-label="t('calendar.nav.newEvent')" @click="openCreate"><Plus class="size-[16px]" :stroke-width="2.3" /></button>
           </div>
         </template>
       </PageHero>
@@ -308,7 +313,7 @@ const VIEW_OPTS = [
       <!-- CARGANDO (primera carga): esqueleto pulse en el estilo del resto -->
       <AppCard v-if="isLoading && !eventsData.length" class="flex-1 min-w-0 flex flex-col" :padded="false">
         <div class="grid grid-cols-7 gap-1 px-2 md:px-3 pt-2 md:pt-3 shrink-0">
-          <div v-for="d in weekDays" :key="d" class="text-center text-[11px] md:text-[11.5px] font-bold uppercase tracking-wide text-fg-subtle py-1.5">{{ d }}</div>
+          <div v-for="(d, i) in weekDays" :key="i" class="text-center text-[11px] md:text-[11.5px] font-bold uppercase tracking-wide text-fg-subtle py-1.5">{{ d }}</div>
         </div>
         <div class="grid grid-cols-7 gap-1 flex-1 min-h-0 auto-rows-fr p-2 md:p-3">
           <div v-for="n in 42" :key="n" class="rounded-[10px] bg-muted/60 animate-pulse" />
@@ -324,7 +329,7 @@ const VIEW_OPTS = [
             @click="openEdit(ev)">
             <span class="size-2.5 rounded-full shrink-0" :style="{ background: ev.color }" aria-hidden="true" />
             <p class="flex-1 min-w-0 text-[13px] font-bold break-words">{{ ev.title }}</p>
-            <span class="shrink-0 text-[11.5px] font-semibold opacity-80">Todo el día</span>
+            <span class="shrink-0 text-[11.5px] font-semibold opacity-80">{{ t('calendar.allDay') }}</span>
           </div>
         </div>
         <div ref="dayScrollRef" class="flex-1 min-h-0 overflow-y-auto scroll-area">
@@ -353,7 +358,7 @@ const VIEW_OPTS = [
              horizontal: solo vertical. -->
         <div class="md:hidden flex flex-col flex-1 min-h-0">
           <div class="grid grid-cols-7 gap-1 px-2 pt-2 shrink-0">
-            <div v-for="d in weekDays" :key="d" class="text-center text-[11px] font-bold uppercase tracking-wide text-fg-subtle py-1.5">{{ d }}</div>
+            <div v-for="(d, i) in weekDays" :key="i" class="text-center text-[11px] font-bold uppercase tracking-wide text-fg-subtle py-1.5">{{ d }}</div>
           </div>
           <div class="grid grid-cols-7 gap-1 shrink-0 p-2">
             <button v-for="(d, i) in (() => { const s = startOfWeek(cursor, { weekStartsOn: 1 }); return Array.from({length:7},(_,j)=>addDays(s,j)) })()" :key="i" type="button"
@@ -374,15 +379,15 @@ const VIEW_OPTS = [
           </div>
           <!-- Debajo del grid: lista de eventos de la semana, scroll vertical -->
           <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-3 pb-3 pt-1 border-t border-[var(--bg-muted)]">
-            <div v-if="(() => { const s = startOfWeek(cursor, { weekStartsOn: 1 }); return Array.from({length:7},(_,j)=>addDays(s,j)).flatMap(eventsOn).length })() === 0" class="text-center text-fg-subtle italic text-[13px] py-8">Sin eventos esta semana</div>
+            <div v-if="(() => { const s = startOfWeek(cursor, { weekStartsOn: 1 }); return Array.from({length:7},(_,j)=>addDays(s,j)).flatMap(eventsOn).length })() === 0" class="text-center text-fg-subtle italic text-[13px] py-8">{{ t('calendar.empty.week') }}</div>
             <ul v-else class="flex flex-col gap-4 pt-2">
               <li v-for="(d, i) in (() => { const s = startOfWeek(cursor, { weekStartsOn: 1 }); return Array.from({length:7},(_,j)=>addDays(s,j)) })().filter(d => eventsOn(d).length)" :key="i">
                 <div class="grid grid-cols-[72px_1fr] gap-3 items-center">
                   <!-- Bloque de fecha (mismo que agenda) -->
                   <div class="text-center rounded-[14px] px-2 py-3" :class="isToday(d) ? 'bg-sky-soft' : 'bg-muted'">
-                    <p class="text-[11px] uppercase font-bold tracking-wide" :class="isToday(d) ? 'text-sky-deep' : 'text-fg-muted'">{{ format(d, 'EEE', { locale: es }) }}</p>
+                    <p class="text-[11px] uppercase font-bold tracking-wide" :class="isToday(d) ? 'text-sky-deep' : 'text-fg-muted'">{{ format(d, 'EEE', { locale: dateLocale.value }) }}</p>
                     <p class="text-[26px] font-extrabold leading-none tabular-nums mt-1" :class="isToday(d) ? 'text-sky-deep' : 'text-fg'">{{ format(d, 'd') }}</p>
-                    <p class="text-[11px] font-bold capitalize mt-1" :class="isToday(d) ? 'text-sky-deep/80' : 'text-fg-muted'">{{ format(d, 'MMM', { locale: es }) }}</p>
+                    <p class="text-[11px] font-bold capitalize mt-1" :class="isToday(d) ? 'text-sky-deep/80' : 'text-fg-muted'">{{ format(d, 'MMM', { locale: dateLocale.value }) }}</p>
                   </div>
                   <ul class="flex flex-col gap-1.5 w-full min-w-0">
                     <li v-for="ev in eventsOn(d)" :key="ev.id"
@@ -391,7 +396,7 @@ const VIEW_OPTS = [
                       @click="openEdit(ev)">
                       <span class="size-2.5 rounded-full shrink-0" :style="{ background: ev.color }" aria-hidden="true" />
                       <p class="flex-1 min-w-0 text-[14px] font-bold break-words">{{ ev.title }}</p>
-                      <span class="shrink-0 text-[12px] font-semibold opacity-80 tabular-nums whitespace-nowrap">{{ ev.startTime ? ev.startTime : 'Todo el día' }}{{ ev.endTime ? ' – ' + ev.endTime : '' }}</span>
+                      <span class="shrink-0 text-[12px] font-semibold opacity-80 tabular-nums whitespace-nowrap">{{ ev.startTime ? ev.startTime : t('calendar.allDay') }}{{ ev.endTime ? ' – ' + ev.endTime : '' }}</span>
                     </li>
                   </ul>
                 </div>
@@ -411,7 +416,7 @@ const VIEW_OPTS = [
           </div>
           <!-- Franja de eventos de TODO EL DÍA -->
           <div v-if="weekAllDayCount > 0" class="grid grid-cols-[64px_repeat(7,1fr)] border-b border-[var(--bg-muted)] bg-card shrink-0">
-            <div class="flex items-center justify-end pr-3 text-[9.5px] text-fg-subtle font-bold uppercase tracking-wide">Todo el día</div>
+            <div class="flex items-center justify-end pr-3 text-[9.5px] text-fg-subtle font-bold uppercase tracking-wide">{{ t('calendar.allDay') }}</div>
             <div v-for="(d, i) in weekDaysArr" :key="i" class="px-1 py-1.5 flex flex-col gap-1 border-l border-[var(--bg-muted)] min-w-0">
               <span v-for="ev in allDayEventsOn(d)" :key="ev.id"
                 class="text-[10px] font-bold px-1.5 py-0.5 rounded truncate cursor-pointer"
@@ -443,18 +448,18 @@ const VIEW_OPTS = [
         <Transition name="hibi-drill">
           <div v-if="mobileDayDetail" class="md:hidden absolute inset-0 z-10 flex flex-col bg-card">
             <header class="shrink-0 flex items-center gap-2 px-3 pt-3 pb-2 border-b border-[var(--bg-muted)]">
-              <button type="button" class="grid place-items-center size-9 rounded-full text-fg-muted hover:bg-muted" aria-label="Volver" @click="mobileDayDetail = false"><ChevronLeft class="size-[18px]" :stroke-width="2" /></button>
+              <button type="button" class="grid place-items-center size-9 rounded-full text-fg-muted hover:bg-muted" :aria-label="t('calendar.nav.back')" @click="mobileDayDetail = false"><ChevronLeft class="size-[18px]" :stroke-width="2" /></button>
               <div class="flex-1 min-w-0">
-                <p class="text-[11px] uppercase font-bold tracking-wide text-fg-subtle">{{ format(selected, 'EEEE', { locale: es }) }}</p>
-                <h2 class="text-[16px] font-extrabold text-fg leading-tight capitalize">{{ format(selected, "d 'de' MMMM", { locale: es }) }}</h2>
+                <p class="text-[11px] uppercase font-bold tracking-wide text-fg-subtle">{{ format(selected, t('calendar.format.drillWeekday'), { locale: dateLocale.value }) }}</p>
+                <h2 class="text-[16px] font-extrabold text-fg leading-tight capitalize">{{ format(selected, t('calendar.format.drillDayMonth'), { locale: dateLocale.value }) }}</h2>
               </div>
-              <button type="button" class="grid place-items-center size-9 rounded-full bg-sky text-[#1f4661]" aria-label="Nuevo evento" @click="openCreate"><Plus class="size-[16px]" :stroke-width="2.3" /></button>
+              <button type="button" class="grid place-items-center size-9 rounded-full bg-sky text-[#1f4661]" :aria-label="t('calendar.nav.newEvent')" @click="openCreate"><Plus class="size-[16px]" :stroke-width="2.3" /></button>
             </header>
             <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-3 py-3">
               <div v-if="!selectedEvents.length" class="h-full flex flex-col items-center justify-center text-center text-fg-subtle gap-3">
                 <HibiCloud :size="80" face class="text-sky-soft opacity-70" aria-hidden="true" />
-                <p class="text-[14px] font-semibold">Sin eventos este día</p>
-                <button type="button" class="text-[13px] font-bold text-sky-deep" @click="openCreate">Crear el primero</button>
+                <p class="text-[14px] font-semibold">{{ t('calendar.empty.day') }}</p>
+                <button type="button" class="text-[13px] font-bold text-sky-deep" @click="openCreate">{{ t('calendar.empty.createFirst') }}</button>
               </div>
               <ul v-else class="flex flex-col gap-2">
                 <li v-for="e in selectedEvents" :key="e.id"
@@ -463,7 +468,7 @@ const VIEW_OPTS = [
                   @click="openEdit(e)">
                   <span class="size-2.5 rounded-full shrink-0" :style="{ background: e.color }" aria-hidden="true" />
                   <p class="flex-1 min-w-0 text-[14px] font-bold break-words">{{ e.title }}</p>
-                  <span class="shrink-0 text-[12px] font-semibold opacity-80 tabular-nums whitespace-nowrap">{{ e.startTime ? e.startTime : 'Todo el día' }}{{ e.endTime ? ' – ' + e.endTime : '' }}</span>
+                  <span class="shrink-0 text-[12px] font-semibold opacity-80 tabular-nums whitespace-nowrap">{{ e.startTime ? e.startTime : t('calendar.allDay') }}{{ e.endTime ? ' – ' + e.endTime : '' }}</span>
                 </li>
               </ul>
             </div>
@@ -476,7 +481,7 @@ const VIEW_OPTS = [
         <!-- VISTA NORMAL DEL MES (siempre renderizada — el detalle se superpone en movil) -->
         <div class="flex flex-col flex-1 min-h-0">
           <div class="grid grid-cols-7 gap-1 px-2 md:px-3 pt-2 md:pt-3 shrink-0">
-            <div v-for="d in weekDays" :key="d" class="text-center text-[11px] md:text-[11.5px] font-bold uppercase tracking-wide text-fg-subtle py-1.5">{{ d }}</div>
+            <div v-for="(d, i) in weekDays" :key="i" class="text-center text-[11px] md:text-[11.5px] font-bold uppercase tracking-wide text-fg-subtle py-1.5">{{ d }}</div>
           </div>
           <div class="grid grid-cols-7 gap-1 flex-1 min-h-0 auto-rows-fr p-2 md:p-3">
             <button v-for="d in monthDays" :key="d.toISOString()" type="button"
@@ -504,7 +509,7 @@ const VIEW_OPTS = [
                   <span class="flex-1 min-w-0 truncate">{{ e.title }}</span>
                   <span v-if="e.startTime" class="shrink-0 tabular-nums opacity-80">{{ e.startTime }}</span>
                 </span>
-                <span v-if="eventsOn(d).length > 2" class="text-[10px] text-fg-subtle font-semibold pl-1">+ {{ eventsOn(d).length - 2 }} más</span>
+                <span v-if="eventsOn(d).length > 2" class="text-[10px] text-fg-subtle font-semibold pl-1">{{ t('calendar.more', { n: eventsOn(d).length - 2 }) }}</span>
               </div>
             </button>
           </div>
@@ -514,18 +519,18 @@ const VIEW_OPTS = [
         <Transition name="hibi-drill">
           <div v-if="mobileDayDetail" class="md:hidden absolute inset-0 z-10 flex flex-col bg-card">
             <header class="shrink-0 flex items-center gap-2 px-3 pt-3 pb-2 border-b border-[var(--bg-muted)]">
-              <button type="button" class="grid place-items-center size-9 rounded-full text-fg-muted hover:bg-muted" aria-label="Volver al mes" @click="mobileDayDetail = false"><ChevronLeft class="size-[18px]" :stroke-width="2" /></button>
+              <button type="button" class="grid place-items-center size-9 rounded-full text-fg-muted hover:bg-muted" :aria-label="t('calendar.nav.backToMonth')" @click="mobileDayDetail = false"><ChevronLeft class="size-[18px]" :stroke-width="2" /></button>
               <div class="flex-1 min-w-0">
-                <p class="text-[11px] uppercase font-bold tracking-wide text-fg-subtle">{{ format(selected, 'EEEE', { locale: es }) }}</p>
-                <h2 class="text-[16px] font-extrabold text-fg leading-tight capitalize">{{ format(selected, "d 'de' MMMM", { locale: es }) }}</h2>
+                <p class="text-[11px] uppercase font-bold tracking-wide text-fg-subtle">{{ format(selected, t('calendar.format.drillWeekday'), { locale: dateLocale.value }) }}</p>
+                <h2 class="text-[16px] font-extrabold text-fg leading-tight capitalize">{{ format(selected, t('calendar.format.drillDayMonth'), { locale: dateLocale.value }) }}</h2>
               </div>
-              <button type="button" class="grid place-items-center size-9 rounded-full bg-sky text-[#1f4661]" aria-label="Nuevo evento" @click="openCreate"><Plus class="size-[16px]" :stroke-width="2.3" /></button>
+              <button type="button" class="grid place-items-center size-9 rounded-full bg-sky text-[#1f4661]" :aria-label="t('calendar.nav.newEvent')" @click="openCreate"><Plus class="size-[16px]" :stroke-width="2.3" /></button>
             </header>
             <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-3 py-3">
               <div v-if="!selectedEvents.length" class="h-full flex flex-col items-center justify-center text-center text-fg-subtle gap-3">
                 <HibiCloud :size="80" face class="text-sky-soft opacity-70" aria-hidden="true" />
-                <p class="text-[14px] font-semibold">Sin eventos este día</p>
-                <button type="button" class="text-[13px] font-bold text-sky-deep" @click="openCreate">Crear el primero</button>
+                <p class="text-[14px] font-semibold">{{ t('calendar.empty.day') }}</p>
+                <button type="button" class="text-[13px] font-bold text-sky-deep" @click="openCreate">{{ t('calendar.empty.createFirst') }}</button>
               </div>
               <ul v-else class="flex flex-col gap-2">
                 <li v-for="e in selectedEvents" :key="e.id"
@@ -534,7 +539,7 @@ const VIEW_OPTS = [
                   @click="openEdit(e)">
                   <span class="size-2.5 rounded-full shrink-0" :style="{ background: e.color }" aria-hidden="true" />
                   <p class="flex-1 min-w-0 text-[14px] font-bold break-words">{{ e.title }}</p>
-                  <span class="shrink-0 text-[12px] font-semibold opacity-80 tabular-nums whitespace-nowrap">{{ e.startTime ? e.startTime : 'Todo el día' }}{{ e.endTime ? ' – ' + e.endTime : '' }}</span>
+                  <span class="shrink-0 text-[12px] font-semibold opacity-80 tabular-nums whitespace-nowrap">{{ e.startTime ? e.startTime : t('calendar.allDay') }}{{ e.endTime ? ' – ' + e.endTime : '' }}</span>
                 </li>
               </ul>
             </div>
@@ -546,15 +551,15 @@ const VIEW_OPTS = [
            una linea (titulo izq / hora der). Ancho completo. -->
       <AppCard v-else class="flex-1 min-w-0 flex flex-col" :padded="false">
         <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-4 md:px-8 py-4 md:py-5">
-          <div v-if="!agendaDays.length" class="text-center text-fg-muted py-12">Nada por aquí.</div>
+          <div v-if="!agendaDays.length" class="text-center text-fg-muted py-12">{{ t('calendar.empty.agenda') }}</div>
           <ul v-else class="flex flex-col gap-5 md:gap-6 w-full">
             <li v-for="g in agendaDays" :key="g.date.toISOString()">
               <div class="grid grid-cols-[72px_1fr] md:grid-cols-[88px_1fr] gap-3 md:gap-4 items-center">
                 <!-- Día grande -->
                 <div class="text-center bg-muted rounded-[14px] px-2 py-3">
-                  <p class="text-[11px] uppercase font-bold tracking-wide text-fg-muted">{{ format(g.date, 'EEE', { locale: es }) }}</p>
+                  <p class="text-[11px] uppercase font-bold tracking-wide text-fg-muted">{{ format(g.date, 'EEE', { locale: dateLocale.value }) }}</p>
                   <p class="text-[26px] md:text-[28px] font-extrabold text-fg leading-none tabular-nums mt-1">{{ format(g.date, 'd') }}</p>
-                  <p class="text-[11px] font-bold text-fg-muted capitalize mt-1">{{ format(g.date, 'MMM', { locale: es }) }}</p>
+                  <p class="text-[11px] font-bold text-fg-muted capitalize mt-1">{{ format(g.date, 'MMM', { locale: dateLocale.value }) }}</p>
                 </div>
                 <!-- Eventos: una linea, titulo izq + hora der, centrados verticalmente -->
                 <ul class="flex flex-col gap-2 w-full min-w-0">
@@ -564,7 +569,7 @@ const VIEW_OPTS = [
                     @click="openEdit(ev)">
                     <span class="size-2.5 md:size-3 rounded-full shrink-0" :style="{ background: ev.color }" aria-hidden="true" />
                     <p class="flex-1 min-w-0 text-[14px] md:text-[15px] font-bold break-words">{{ ev.title }}</p>
-                    <span class="shrink-0 text-[12px] md:text-[12.5px] font-semibold opacity-80 tabular-nums whitespace-nowrap">{{ ev.startTime ? ev.startTime : 'Todo el día' }}{{ ev.endTime ? ' – ' + ev.endTime : '' }}</span>
+                    <span class="shrink-0 text-[12px] md:text-[12.5px] font-semibold opacity-80 tabular-nums whitespace-nowrap">{{ ev.startTime ? ev.startTime : t('calendar.allDay') }}{{ ev.endTime ? ' – ' + ev.endTime : '' }}</span>
                   </li>
                 </ul>
               </div>
@@ -576,12 +581,12 @@ const VIEW_OPTS = [
       <!-- Sidebar del día (solo en MES) -->
       <AppCard v-if="view === 'month'" class="hidden lg:flex flex-col w-[300px] shrink-0 overflow-hidden" :padded="false">
         <header class="px-5 pt-5 pb-3 shrink-0">
-          <p class="text-[12.5px] text-fg-muted font-semibold capitalize">{{ format(selected, "EEEE", { locale: es }) }}</p>
-          <h3 class="text-[26px] font-extrabold text-fg leading-none mt-0.5">{{ format(selected, 'd') }} <span class="text-[15px] font-bold text-fg-muted">{{ format(selected, 'MMM', { locale: es }) }}</span></h3>
+          <p class="text-[12.5px] text-fg-muted font-semibold capitalize">{{ format(selected, t('calendar.format.drillWeekday'), { locale: dateLocale.value }) }}</p>
+          <h3 class="text-[26px] font-extrabold text-fg leading-none mt-0.5">{{ format(selected, 'd') }} <span class="text-[15px] font-bold text-fg-muted">{{ format(selected, 'MMM', { locale: dateLocale.value }) }}</span></h3>
         </header>
         <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-5 pb-5">
           <div v-if="selectedEvents.length === 0" class="text-center py-8 text-[13px] text-fg-muted">
-            Sin eventos este día
+            {{ t('calendar.empty.day') }}
           </div>
           <ul v-else class="flex flex-col gap-2">
             <li v-for="e in selectedEvents" :key="e.id" class="flex items-center gap-3 p-3 rounded-[12px] bg-muted min-w-0 cursor-pointer hover:bg-inset transition-[background-color]"
@@ -591,7 +596,7 @@ const VIEW_OPTS = [
                 <Clock class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" :style="{ width: '16px', height: '16px', color: e.color || '#5aa6d2' }" :stroke-width="2" />
               </span>
               <p class="flex-1 min-w-0 text-[14px] font-semibold text-fg break-words">{{ e.title }}</p>
-              <span class="shrink-0 text-[12px] text-fg-muted tabular-nums whitespace-nowrap">{{ e.startTime || 'Todo el día' }}{{ e.endTime ? ' – ' + e.endTime : '' }}</span>
+              <span class="shrink-0 text-[12px] text-fg-muted tabular-nums whitespace-nowrap">{{ e.startTime || t('calendar.allDay') }}{{ e.endTime ? ' – ' + e.endTime : '' }}</span>
             </li>
           </ul>
         </div>

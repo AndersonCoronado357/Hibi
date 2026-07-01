@@ -3,7 +3,9 @@ import { Plus, ListChecks, ShoppingCart, Film, BookOpen, MapPin, Check, Star, X,
 import type { Component } from 'vue'
 import { useLists, type ListRecord, type ListItem } from '~/composables/useLists'
 
-useHead({ title: 'Hibi — Listas' })
+const { t } = useI18n()
+
+useHead({ title: t('lists.head.title') })
 
 const {
   lists, items, listsLoading, itemsLoading,
@@ -15,12 +17,13 @@ const {
 const ICONS: Record<string, Component> = { ListChecks, ShoppingCart, Film, BookOpen, MapPin }
 const iconOf = (name: string): Component => ICONS[name] ?? ListChecks
 
-const TYPE_META: Record<string, { tone: string; icon: Component; iconName: string; label: string }> = {
-  shopping: { tone: 'bg-mint text-[#34936a]', icon: ShoppingCart, iconName: 'ShoppingCart', label: 'Compra' },
-  movies: { tone: 'bg-lavender text-[#7a63c0]', icon: Film, iconName: 'Film', label: 'Pelis / series' },
-  books: { tone: 'bg-pink-soft text-pink-deep', icon: BookOpen, iconName: 'BookOpen', label: 'Libros' },
-  places: { tone: 'bg-peach text-[#c5733f]', icon: MapPin, iconName: 'MapPin', label: 'Sitios' },
-}
+// tone/icon/iconName son valores lógicos; label es display → reactivo con t().
+const TYPE_META = computed<Record<string, { tone: string; icon: Component; iconName: string; label: string }>>(() => ({
+  shopping: { tone: 'bg-mint text-[#34936a]', icon: ShoppingCart, iconName: 'ShoppingCart', label: t('lists.types.shopping') },
+  movies: { tone: 'bg-lavender text-[#7a63c0]', icon: Film, iconName: 'Film', label: t('lists.types.movies') },
+  books: { tone: 'bg-pink-soft text-pink-deep', icon: BookOpen, iconName: 'BookOpen', label: t('lists.types.books') },
+  places: { tone: 'bg-peach text-[#c5733f]', icon: MapPin, iconName: 'MapPin', label: t('lists.types.places') },
+}))
 
 // Listas para la UI: resuelve el icono (nombre → componente) y añade sus ítems.
 const listsData = computed(() =>
@@ -54,14 +57,14 @@ function openCreate() {
 }
 function cancelCreate() { view.value = 'list' }
 function addInitial() {
-  const t = newInitialTitle.value.trim(); if (!t) return
-  newInitialItems.value.push(t)
+  const title = newInitialTitle.value.trim(); if (!title) return
+  newInitialItems.value.push(title)
   newInitialTitle.value = ''
 }
 function removeInitial(i: number) { newInitialItems.value.splice(i, 1) }
 async function saveList() {
   const n = newName.value.trim(); if (!n) return
-  const meta = TYPE_META[newType.value]!
+  const meta = TYPE_META.value[newType.value]!
   const initial = [...newInitialItems.value]
   const created = await createList({ name: n, type: newType.value, tone: meta.tone, icon: meta.iconName })
   selectedId.value = created.id
@@ -74,11 +77,11 @@ async function saveList() {
 const newItemTitle = ref('')
 const itemsListRef = ref<HTMLElement | null>(null)
 async function addItem() {
-  const t = newItemTitle.value.trim(); if (!t || !selected.value) return
+  const title = newItemTitle.value.trim(); if (!title || !selected.value) return
   const listId = selected.value.id
   const position = selectedItems.value.length
   newItemTitle.value = ''
-  await createItem({ listId, title: t, position })
+  await createItem({ listId, title, position })
   nextTick(() => {
     if (itemsListRef.value) itemsListRef.value.scrollTop = itemsListRef.value.scrollHeight
   })
@@ -106,16 +109,16 @@ function onRemoveList(id: string) {
 <template>
   <!-- VISTA DE CREACIÓN -->
   <AppCreateView v-if="view === 'create'"
-    title="Nueva lista" subtitle="Para no dejarte nada"
+    :title="t('lists.create.title')" :subtitle="t('lists.create.subtitle')"
     :disabled="!newName.trim()"
     @close="cancelCreate" @save="saveList">
     <div class="flex flex-col gap-2">
-      <label class="text-[12.5px] font-bold text-fg-muted px-1">Nombre</label>
-      <input v-model="newName" type="text" placeholder="Compra semanal, viaje a Japón…" autofocus
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('lists.create.nameLabel') }}</label>
+      <input v-model="newName" type="text" :placeholder="t('lists.create.namePlaceholder')" autofocus
         class="w-full h-14 rounded-[14px] bg-card px-4 text-[18px] font-semibold text-fg outline-none" />
     </div>
     <div class="flex flex-col gap-2">
-      <label class="text-[12.5px] font-bold text-fg-muted px-1">Tipo</label>
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('lists.create.typeLabel') }}</label>
       <div class="flex items-center gap-2 flex-wrap">
         <button v-for="(meta, key) in TYPE_META" :key="key" type="button"
           class="hibi-chip" :class="[meta.tone, newType === key ? 'is-active' : '']"
@@ -127,23 +130,23 @@ function onRemoveList(id: string) {
     </div>
 
     <div class="flex flex-col gap-2">
-      <label class="text-[12.5px] font-bold text-fg-muted px-1">Ítems iniciales</label>
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('lists.create.initialLabel') }}</label>
       <!-- INPUT ARRIBA: añadir nuevo ítem -->
       <div class="flex items-center gap-2">
-        <input v-model="newInitialTitle" type="text" placeholder="Pan, leche, manzanas…"
+        <input v-model="newInitialTitle" type="text" :placeholder="t('lists.create.initialPlaceholder')"
           class="flex-1 h-12 rounded-[12px] bg-card px-3 text-[14.5px] text-fg outline-none"
           @keydown.enter.prevent="addInitial" />
         <button type="button" class="inline-flex items-center gap-1 h-12 px-4 rounded-[12px] bg-sky text-[#1f4661] hover:bg-sky-deep hover:text-white font-bold text-[13.5px] transition-[background-color,color]" @click="addInitial">
-          <Plus class="size-[15px]" :stroke-width="2.3" />Añadir
+          <Plus class="size-[15px]" :stroke-width="2.3" />{{ t('common.add') }}
         </button>
       </div>
       <!-- LISTA DEBAJO: ítems agregados -->
       <ul v-if="newInitialItems.length" class="flex flex-col gap-1.5 mt-1">
-        <li v-for="(t, i) in newInitialItems" :key="i"
+        <li v-for="(title, i) in newInitialItems" :key="i"
           class="flex items-center gap-3 bg-card rounded-[12px] px-3 py-2.5">
           <span class="grid place-items-center size-7 rounded-full bg-muted text-fg-muted text-[12px] font-bold tabular-nums">{{ i + 1 }}</span>
-          <p class="flex-1 text-[14px] font-semibold text-fg">{{ t }}</p>
-          <button type="button" class="grid place-items-center size-8 rounded-[10px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft" aria-label="Eliminar" @click="removeInitial(i)"><X class="size-[15px]" :stroke-width="2" /></button>
+          <p class="flex-1 text-[14px] font-semibold text-fg">{{ title }}</p>
+          <button type="button" class="grid place-items-center size-8 rounded-[10px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft" :aria-label="t('lists.aria.removeInitial')" @click="removeInitial(i)"><X class="size-[15px]" :stroke-width="2" /></button>
         </li>
       </ul>
     </div>
@@ -158,9 +161,9 @@ function onRemoveList(id: string) {
     <HibiHeart :size="16" beat :duration="2.6" class="hidden md:block absolute bottom-[20%] right-[8%] text-fg-subtle opacity-25 pointer-events-none z-40" />
 
     <div class="relative z-10">
-      <PageHero :icon="ListChecks" tone="sky" title="Listas" :subtitle="`${listsData.length} listas activas`">
+      <PageHero :icon="ListChecks" tone="sky" :title="t('lists.title')" :subtitle="t('lists.subtitle', { count: listsData.length })">
         <template #actions>
-          <AppButton variant="primary" size="sm" class="w-full md:w-auto" @click="openCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>Nueva</AppButton>
+          <AppButton variant="primary" size="sm" class="w-full md:w-auto" @click="openCreate"><template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>{{ t('lists.new') }}</AppButton>
         </template>
       </PageHero>
     </div>
@@ -183,8 +186,8 @@ function onRemoveList(id: string) {
           <div v-else-if="!listsData.length" class="flex-1 grid place-items-center text-center px-6">
             <div class="flex flex-col items-center gap-3">
               <HibiCloudIcon :size="72" :icon="ListChecks" :icon-size="26" cloud-color="bg-sky-soft" icon-color="text-sky-deep" :icon-stroke="1.9" />
-              <p class="text-[15px] font-bold text-fg">Aún no tienes listas</p>
-              <p class="text-[13px] text-fg-muted -mt-1">Crea tu primera lista para empezar</p>
+              <p class="text-[15px] font-bold text-fg">{{ t('lists.empty.mobileTitle') }}</p>
+              <p class="text-[13px] text-fg-muted -mt-1">{{ t('lists.empty.mobileSubtitle') }}</p>
             </div>
           </div>
           <button v-else v-for="l in listsData" :key="l.id" type="button"
@@ -193,7 +196,7 @@ function onRemoveList(id: string) {
             <HibiCloudIcon :size="52" :icon="l.iconComp" :icon-size="18" :cloud-color="l.tone.split(' ')[0]" :icon-color="l.tone.split(' ')[1]" :icon-stroke="1.9" class="shrink-0" />
             <div class="flex-1 min-w-0">
               <p class="text-[15px] font-bold text-fg break-words">{{ l.name }}</p>
-              <p class="text-[12.5px] text-fg-muted">{{ l.items.filter(x => x.done).length }} de {{ l.items.length }} marcados</p>
+              <p class="text-[12.5px] text-fg-muted">{{ t('lists.mobile.markedCount', { done: l.items.filter(x => x.done).length, total: l.items.length }) }}</p>
             </div>
             <ChevronRight class="size-[18px] text-fg-subtle shrink-0" :stroke-width="2" aria-hidden="true" />
           </button>
@@ -202,7 +205,7 @@ function onRemoveList(id: string) {
 
       <!-- DESKTOP: sidebar de listas -->
       <AppCard class="hidden md:flex md:w-[260px] shrink-0 flex-col" :padded="false">
-        <h2 class="px-4 pt-4 pb-2 text-[13px] font-bold text-fg-muted">Tus listas</h2>
+        <h2 class="px-4 pt-4 pb-2 text-[13px] font-bold text-fg-muted">{{ t('lists.sidebar.heading') }}</h2>
         <div class="hibi-anim-slide-right flex-1 min-h-0 overflow-y-auto scroll-area px-2 pb-3 flex flex-col gap-1">
           <!-- Cargando (pulse) -->
           <template v-if="listsLoading && !listsData.length">
@@ -218,8 +221,8 @@ function onRemoveList(id: string) {
           <div v-else-if="!listsData.length" class="flex-1 grid place-items-center text-center px-4 py-6">
             <div class="flex flex-col items-center gap-2.5">
               <HibiCloudIcon :size="60" :icon="ListChecks" :icon-size="22" cloud-color="bg-sky-soft" icon-color="text-sky-deep" :icon-stroke="1.9" />
-              <p class="text-[13.5px] font-bold text-fg">Sin listas todavía</p>
-              <p class="text-[12px] text-fg-muted -mt-1">Pulsa «Nueva» para crear una</p>
+              <p class="text-[13.5px] font-bold text-fg">{{ t('lists.empty.sidebarTitle') }}</p>
+              <p class="text-[12px] text-fg-muted -mt-1">{{ t('lists.empty.sidebarSubtitle') }}</p>
             </div>
           </div>
           <button v-else v-for="l in listsData" :key="l.id" type="button"
@@ -230,7 +233,7 @@ function onRemoveList(id: string) {
             <HibiCloudIcon :size="52" :icon="l.iconComp" :icon-size="18" :cloud-color="l.tone.split(' ')[0]" :icon-color="l.tone.split(' ')[1]" :icon-stroke="1.9" class="shrink-0" />
             <div class="flex-1 min-w-0">
               <p class="text-[14px] font-bold text-fg truncate">{{ l.name }}</p>
-              <p class="text-[12px] text-fg-muted">{{ l.items.length }} ítems</p>
+              <p class="text-[12px] text-fg-muted">{{ t('lists.sidebar.itemsCount', { count: l.items.length }) }}</p>
             </div>
           </button>
         </div>
@@ -240,18 +243,18 @@ function onRemoveList(id: string) {
         :class="mobileListOpen ? '!absolute inset-0 z-20 flex' : 'hidden md:flex'">
         <header class="px-4 md:px-5 pt-4 md:pt-5 pb-3 flex flex-col gap-3 shrink-0">
           <div class="flex items-center gap-2">
-            <button type="button" class="md:hidden grid place-items-center size-9 rounded-full text-fg-muted hover:bg-muted shrink-0" aria-label="Volver a listas" @click="mobileListOpen = false"><ChevronLeft class="size-[18px]" :stroke-width="2" /></button>
+            <button type="button" class="md:hidden grid place-items-center size-9 rounded-full text-fg-muted hover:bg-muted shrink-0" :aria-label="t('lists.aria.backToLists')" @click="mobileListOpen = false"><ChevronLeft class="size-[18px]" :stroke-width="2" /></button>
             <div class="flex-1 min-w-0">
               <h2 class="text-[19px] md:text-[20px] font-extrabold text-fg truncate">{{ selected.name }}</h2>
-              <p class="text-[12.5px] text-fg-muted">{{ done }} de {{ total }} marcados</p>
+              <p class="text-[12.5px] text-fg-muted">{{ t('lists.detail.markedCount', { done, total }) }}</p>
             </div>
-            <button type="button" class="grid place-items-center size-9 rounded-full text-fg-subtle hover:text-pink-deep hover:bg-pink-soft transition-[background-color,color] shrink-0" aria-label="Eliminar lista" @click="onRemoveList(selected.id)"><Trash2 class="size-[16px]" :stroke-width="2" /></button>
+            <button type="button" class="grid place-items-center size-9 rounded-full text-fg-subtle hover:text-pink-deep hover:bg-pink-soft transition-[background-color,color] shrink-0" :aria-label="t('lists.aria.removeList')" @click="onRemoveList(selected.id)"><Trash2 class="size-[16px]" :stroke-width="2" /></button>
           </div>
           <form class="flex items-center gap-2" @submit.prevent="addItem">
-            <label for="new-list-item" class="sr-only">Nuevo ítem</label>
-            <input id="new-list-item" v-model="newItemTitle" type="text" placeholder="Añadir ítem…"
+            <label for="new-list-item" class="sr-only">{{ t('lists.detail.newItemLabel') }}</label>
+            <input id="new-list-item" v-model="newItemTitle" type="text" :placeholder="t('lists.detail.addItemPlaceholder')"
               class="flex-1 min-w-0 h-11 rounded-[12px] bg-muted px-3.5 text-[14.5px] text-fg outline-none" />
-            <button type="submit" :disabled="!newItemTitle.trim()" class="shrink-0 grid place-items-center size-11 rounded-[12px] bg-sky text-[#1f4661] disabled:opacity-40 hover:brightness-[0.96] transition-[filter]" aria-label="Añadir"><Plus class="size-[17px]" :stroke-width="2.3" /></button>
+            <button type="submit" :disabled="!newItemTitle.trim()" class="shrink-0 grid place-items-center size-11 rounded-[12px] bg-sky text-[#1f4661] disabled:opacity-40 hover:brightness-[0.96] transition-[filter]" :aria-label="t('lists.aria.addItem')"><Plus class="size-[17px]" :stroke-width="2.3" /></button>
           </form>
         </header>
         <div ref="itemsListRef" class="flex-1 min-h-0 overflow-y-auto scroll-area px-3 pb-3">
@@ -266,8 +269,8 @@ function onRemoveList(id: string) {
           <div v-else-if="!selectedItems.length" class="grid place-items-center text-center px-6 py-10">
             <div class="flex flex-col items-center gap-2.5">
               <HibiCloudIcon :size="60" :icon="ListPlus" :icon-size="22" cloud-color="bg-mint" icon-color="text-[#34936a]" :icon-stroke="1.9" />
-              <p class="text-[13.5px] font-bold text-fg">Lista vacía</p>
-              <p class="text-[12px] text-fg-muted -mt-1">Añade tu primer ítem arriba</p>
+              <p class="text-[13.5px] font-bold text-fg">{{ t('lists.empty.itemsTitle') }}</p>
+              <p class="text-[12px] text-fg-muted -mt-1">{{ t('lists.empty.itemsSubtitle') }}</p>
             </div>
           </div>
           <ul v-else class="hibi-anim-fade-up flex flex-col gap-1">
@@ -292,7 +295,7 @@ function onRemoveList(id: string) {
               <span v-if="ratingOf(i)" class="shrink-0 inline-flex items-center gap-0.5 text-[#bf8f2e]">
                 <Star v-for="n in ratingOf(i)" :key="n" class="size-3 fill-current" :stroke-width="0" aria-hidden="true" />
               </span>
-              <button type="button" class="shrink-0 grid place-items-center size-7 rounded-full text-fg-subtle md:opacity-0 md:group-hover/item:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" aria-label="Eliminar ítem" @click.stop="onRemoveItem(i.id)"><Trash2 class="size-[14px]" :stroke-width="2" /></button>
+              <button type="button" class="shrink-0 grid place-items-center size-7 rounded-full text-fg-subtle md:opacity-0 md:group-hover/item:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" :aria-label="t('lists.aria.removeItem')" @click.stop="onRemoveItem(i.id)"><Trash2 class="size-[14px]" :stroke-width="2" /></button>
             </li>
           </ul>
         </div>
