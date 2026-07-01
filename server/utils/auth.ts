@@ -27,7 +27,7 @@ export async function getUser(event: H3Event) {
 }
 export async function requireUserId(event: H3Event): Promise<number> {
   const id = getUserId(event)
-  if (!id) throw createError({ statusCode: 401, message: 'No autenticado' })
+  if (!id) throw createError({ statusCode: 401, message: tServer(event, 'notAuthenticated') })
   return id
 }
 

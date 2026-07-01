@@ -2,19 +2,19 @@
 import { z } from 'zod'
 
 const schema = z.object({
-  name: z.string().trim().min(1, 'Escribe tu nombre').max(80).optional(),
-  email: z.string().trim().toLowerCase().email('Correo no válido'),
-  password: z.string().min(6, 'La contraseña necesita al menos 6 caracteres').max(200),
+  name: z.string().trim().min(1, 'nameRequired').max(80).optional(),
+  email: z.string().trim().toLowerCase().email('emailInvalid'),
+  password: z.string().min(6, 'passwordTooShort').max(200),
 })
 
 export default defineEventHandler(async (event) => {
   rateLimit(event, { key: 'register', limit: 6, windowMs: 60_000 })
   const parsed = schema.safeParse(await readBody(event))
-  if (!parsed.success) throw createError({ statusCode: 400, message: parsed.error.issues[0]?.message || 'Datos inválidos' })
+  if (!parsed.success) throw createError({ statusCode: 400, message: tServer(event, parsed.error.issues[0]?.message || 'invalidData') })
   const { name, email, password } = parsed.data
 
   const existing = await findUserByEmail(email)
-  if (existing?.passwordHash) throw createError({ statusCode: 409, message: 'Ese correo ya tiene una cuenta. Inicia sesión.' })
+  if (existing?.passwordHash) throw createError({ statusCode: 409, message: tServer(event, 'emailTaken') })
 
   let user
   if (existing) {

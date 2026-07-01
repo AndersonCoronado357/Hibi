@@ -4,7 +4,7 @@ import { z, type ZodSchema } from 'zod'
 
 export async function readValid<T>(event: H3Event, schema: ZodSchema<T>): Promise<T> {
   const parsed = schema.safeParse(await readBody(event))
-  if (!parsed.success) throw createError({ statusCode: 400, message: parsed.error.issues[0]?.message || 'Datos inválidos' })
+  if (!parsed.success) throw createError({ statusCode: 400, message: tServer(event, parsed.error.issues[0]?.message || 'invalidData') })
   return parsed.data
 }
 
