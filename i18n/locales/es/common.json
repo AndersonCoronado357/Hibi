@@ -69,6 +69,14 @@
     "talkToHibi": "Habla con Hibi",
     "openChatAria": "Abrir chat con Hibi (arrastra para mover o descartar)",
     "more": "Más",
-    "moreOptions": "Más opciones"
+    "moreOptions": "Más opciones",
+    "closeMore": "Cerrar más opciones",
+    "editor": {
+      "bold": "Negrita", "italic": "Cursiva", "strike": "Tachado",
+      "h1": "Título grande", "h2": "Título medio", "quote": "Cita", "code": "Código",
+      "ul": "Lista", "ol": "Lista numerada", "link": "Enlace", "undo": "Deshacer", "redo": "Rehacer",
+      "textColor": "Color del texto", "highlight": "Resaltador", "size": "Tamaño", "format": "Formato",
+      "linkPrompt": "URL del enlace", "placeholder": "Empieza a escribir…"
+    }
   }
 }
