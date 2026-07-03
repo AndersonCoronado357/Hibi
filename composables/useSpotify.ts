@@ -2,14 +2,25 @@
 // Web Playback SDK (requiere Premium). El token lo entrega el servidor.
 export interface SpotifyStatus { connected: boolean; displayName?: string | null; premium?: boolean }
 export interface SpotifyPlaylist { id: string; name: string; tracks: number; image: string | null; uri: string }
-export interface SpotifyTrack { name: string; artists: string; image: string | null; uri: string }
+export interface SpotifyTrack { name: string; artists: string; image: string | null; uri: string; durationMs: number }
 
 let player: any = null
 let posTimer: ReturnType<typeof setInterval> | undefined
 
+function mapTrack(tr: any): SpotifyTrack {
+  return {
+    name: tr?.name || '',
+    artists: (tr?.artists || []).map((a: any) => a.name).join(', '),
+    image: tr?.album?.images?.[0]?.url || null,
+    uri: tr?.uri || '',
+    durationMs: tr?.duration_ms || 0,
+  }
+}
+
 export function useSpotify() {
   const status = useState<SpotifyStatus>('spotify.status', () => ({ connected: false }))
   const playlists = useState<SpotifyPlaylist[]>('spotify.playlists', () => [])
+  const queue = useState<SpotifyTrack[]>('spotify.queue', () => [])
   const ready = useState<boolean>('spotify.ready', () => false)
   const deviceId = useState<string>('spotify.device', () => '')
   const current = useState<SpotifyTrack | null>('spotify.current', () => null)
@@ -28,7 +39,7 @@ export function useSpotify() {
   async function disconnect() {
     try { await $fetch('/api/spotify/disconnect', { method: 'POST' }) } catch { /* ignore */ }
     try { player?.disconnect?.() } catch { /* ignore */ }
-    player = null; ready.value = false; deviceId.value = ''; current.value = null; playlists.value = []
+    player = null; ready.value = false; deviceId.value = ''; current.value = null; queue.value = []; playlists.value = []
     status.value = { connected: false }
   }
 
@@ -66,8 +77,8 @@ export function useSpotify() {
       paused.value = !!st.paused
       position.value = st.position || 0
       duration.value = st.duration || 0
-      const tr = st.track_window?.current_track
-      current.value = tr ? { name: tr.name, artists: (tr.artists || []).map((a: any) => a.name).join(', '), image: tr.album?.images?.[0]?.url || null, uri: tr.uri } : null
+      current.value = st.track_window?.current_track ? mapTrack(st.track_window.current_track) : null
+      queue.value = (st.track_window?.next_tracks || []).map(mapTrack)
     })
     startPosTimer()
     try { await player.connect() } catch { /* ignore */ }
@@ -80,10 +91,15 @@ export function useSpotify() {
     if (!ok || !deviceId.value) return false
     try { await $fetch('/api/spotify/play', { method: 'PUT', body: { deviceId: deviceId.value, contextUri: uri } }); return true } catch { return false }
   }
+  async function playUris(uris: string[]): Promise<boolean> {
+    const ok = await ensurePlayer()
+    if (!ok || !deviceId.value || !uris.length) return false
+    try { await $fetch('/api/spotify/play', { method: 'PUT', body: { deviceId: deviceId.value, uris } }); return true } catch { return false }
+  }
   async function togglePlay() { try { await player?.togglePlay() } catch { /* ignore */ } }
   async function next() { try { await player?.nextTrack() } catch { /* ignore */ } }
   async function prev() { try { await player?.previousTrack() } catch { /* ignore */ } }
   async function seek(ms: number) { try { await player?.seek(ms); position.value = ms } catch { /* ignore */ } }
 
-  return { status, playlists, ready, deviceId, current, paused, position, duration, fetchStatus, fetchPlaylists, connect, disconnect, ensurePlayer, playContext, togglePlay, next, prev, seek }
+  return { status, playlists, queue, ready, deviceId, current, paused, position, duration, fetchStatus, fetchPlaylists, connect, disconnect, ensurePlayer, playContext, playUris, togglePlay, next, prev, seek }
 }
