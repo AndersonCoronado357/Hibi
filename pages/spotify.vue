@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { Music, Play, Pause, Heart, Headphones, Plug, SkipBack, SkipForward, Shuffle, Repeat, Search, Disc3, ChevronDown, ListMusic, Volume2 } from '@lucide/vue'
+import { Music, Play, Pause, Heart, Headphones, Plug, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Search, Disc3, ChevronDown, ChevronLeft, ListMusic, Volume2, VolumeX } from '@lucide/vue'
 
 const { t } = useI18n()
 useHead({ title: t('spotify.head.title') })
 
 const route = useRoute()
 const sp = useSpotify()
-const { status, playlists: rawPlaylists, queue: sdkNext, current: sdkCurrent, paused, position, duration, volume } = sp
+const { status, playlists: rawPlaylists, queue: sdkNext, current: sdkCurrent, paused, position, duration, volume, shuffle, repeatMode } = sp
 
 const loading = ref(true)
 const liked = ref(false)
@@ -19,6 +19,7 @@ onMounted(async () => {
   await sp.fetchStatus()
   if (status.value.connected) {
     await sp.fetchPlaylists()
+    sp.fetchQueue()
     if (status.value.premium) sp.ensurePlayer()
   }
   loading.value = false
@@ -33,18 +34,19 @@ const TONES = [
 ]
 const playlists = computed(() => (rawPlaylists.value || [])
   .filter((p) => !search.value || p.name.toLowerCase().includes(search.value.toLowerCase()))
-  .map((p, i) => ({ id: p.id, name: p.name, count: p.tracks, uri: p.uri, tone: TONES[i % TONES.length]![0], iconTone: TONES[i % TONES.length]![1] })))
+  .map((p, i) => ({ id: p.id, name: p.name, count: p.tracks, uri: p.uri, image: p.image, tone: TONES[i % TONES.length]![0], iconTone: TONES[i % TONES.length]![1] })))
 
 // Cola real: pista actual + siguientes del reproductor.
 const queue = computed(() => {
   const list = [...(sdkCurrent.value ? [sdkCurrent.value] : []), ...(sdkNext.value || [])]
-  return list.map((tr, i) => ({ id: tr.uri || String(i), title: tr.name, artist: tr.artists, uri: tr.uri, tone: TONES[i % TONES.length]!.join(' '), mins: (tr.durationMs || 0) / 60000 }))
+  return list.map((tr, i) => ({ id: tr.uri || String(i), title: tr.name, artist: tr.artists, uri: tr.uri, image: tr.image, tone: TONES[i % TONES.length]!.join(' '), mins: (tr.durationMs || 0) / 60000 }))
 })
 const currentIdx = computed(() => (sdkCurrent.value ? 0 : -1))
 const hasNowPlaying = computed(() => !!sdkCurrent.value)
 const current = computed(() => ({
   title: sdkCurrent.value?.name || '',
   artist: sdkCurrent.value?.artists || '',
+  image: sdkCurrent.value?.image || null,
   tone: 'bg-sky-soft text-sky-deep',
   mins: (duration.value || 0) / 60000,
 }))
@@ -66,10 +68,30 @@ function openInSpotify(uri: string) {
   if (id && type && import.meta.client) window.open(`https://open.spotify.com/${type}/${id}`, '_blank')
 }
 async function onPlayPlaylist(p: { uri: string }) {
-  if (status.value.premium) { const ok = await sp.playContext(p.uri); if (!ok) openInSpotify(p.uri) }
-  else openInSpotify(p.uri)
+  if (status.value.premium) {
+    const ok = await sp.playContext(p.uri)
+    if (ok) subtab.value = 'queue' // en móvil, muestra las canciones (la cola) de la playlist
+    else openInSpotify(p.uri)
+  } else openInSpotify(p.uri)
 }
 function disconnect() { sp.disconnect() }
+
+// Abrir una playlist: carga TODAS sus canciones (paginado). Si Spotify las
+// bloquea (403), reproduce la playlist y muestra la cola como alternativa.
+const openPl = ref<{ id: string; name: string; uri: string } | null>(null)
+const plLoading = ref(false)
+const plTracksRaw = ref<{ name: string; artists: string; image: string | null; uri: string; durationMs: number }[]>([])
+const plTracks = computed(() => plTracksRaw.value.map((tr, i) => ({ id: tr.uri || String(i), title: tr.name, artist: tr.artists, image: tr.image, uri: tr.uri, tone: TONES[i % TONES.length]!.join(' '), mins: (tr.durationMs || 0) / 60000 })))
+
+async function openPlaylist(p: { id: string; name: string; uri: string }) {
+  plLoading.value = true
+  const tracks = await sp.fetchPlaylistTracks(p.id)
+  plLoading.value = false
+  if (tracks.length) { openPl.value = p; plTracksRaw.value = tracks }
+  else onPlayPlaylist(p) // Spotify no entrega las canciones → reproduce + cola
+}
+function closePlaylist() { openPl.value = null; plTracksRaw.value = [] }
+function playPlTrack(uri: string) { if (openPl.value) sp.playPlaylistAt(openPl.value.uri, uri) }
 </script>
 
 <template>
@@ -144,13 +166,13 @@ function disconnect() { sp.disconnect() }
             <li v-for="p in playlists" :key="p.id">
               <div role="button" tabindex="0"
                 class="flex items-center gap-3 p-3 rounded-[14px] bg-card cursor-pointer active:bg-muted outline-none focus-visible:ring-2 focus-visible:ring-sky-deep"
-                @click="onPlayPlaylist(p)" @keydown.enter.prevent="onPlayPlaylist(p)" @keydown.space.prevent="onPlayPlaylist(p)">
-                <HibiCloudIcon :size="56" :icon="Disc3" :icon-size="19" :cloud-color="p.tone" :icon-color="p.iconTone" :icon-stroke="1.9" class="shrink-0" />
+                @click="openPlaylist(p)" @keydown.enter.prevent="openPlaylist(p)" @keydown.space.prevent="openPlaylist(p)">
+                <HibiCloudImage :src="p.image" :size="56" :tone="p.tone.replace('bg-', 'text-')" />
                 <div class="flex-1 min-w-0">
                   <p class="text-[15px] font-bold text-fg truncate">{{ p.name }}</p>
                   <p v-if="p.count" class="text-[12.5px] text-fg-muted">{{ t('spotify.songs', { count: p.count }) }}</p>
                 </div>
-                <span class="grid place-items-center size-9 rounded-full bg-sky-soft text-sky-deep shrink-0"><Play class="size-4 fill-current" :stroke-width="0" /></span>
+                <button type="button" class="grid place-items-center size-9 rounded-full bg-sky-soft text-sky-deep shrink-0" :aria-label="t('spotify.controls.play')" @click.stop="onPlayPlaylist(p)"><Play class="size-4 fill-current" :stroke-width="0" /></button>
               </div>
             </li>
           </ul>
@@ -162,7 +184,7 @@ function disconnect() { sp.disconnect() }
                 class="w-full flex items-center gap-3 p-3 rounded-[14px] transition-[background-color] text-left"
                 :class="i === currentIdx && hasNowPlaying ? 'bg-sky-soft' : 'bg-card active:bg-muted'"
                 @click="play(i)">
-                <HibiCloudIcon :size="52" :icon="Headphones" :icon-size="17" :cloud-color="tr.tone.split(' ')[0]" :icon-color="tr.tone.split(' ')[1] || 'text-fg'" :icon-stroke="1.9" class="shrink-0" />
+                <HibiCloudImage :src="tr.image" :size="52" :tone="tr.tone.split(' ')[0].replace('bg-', 'text-')" />
                 <div class="flex-1 min-w-0">
                   <p class="text-[14.5px] font-semibold text-fg truncate">{{ tr.title }}</p>
                   <p class="text-[12.5px] text-fg-muted truncate">{{ tr.artist }}</p>
@@ -176,7 +198,7 @@ function disconnect() { sp.disconnect() }
         <div v-if="hasNowPlaying" role="button" tabindex="0"
           class="shrink-0 w-full flex items-center gap-3 p-2.5 rounded-[16px] bg-sky-soft cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sky-deep"
           @click="detailOpen = true" @keydown.enter.prevent="detailOpen = true">
-          <span class="grid place-items-center size-12 rounded-[12px] shrink-0" :class="current.tone"><Headphones class="size-6" :stroke-width="1.7" /></span>
+          <HibiCloudImage :src="current.image" :size="48" tone="text-sky" class="shrink-0" />
           <div class="flex-1 min-w-0">
             <p class="text-[14px] font-bold text-fg truncate">{{ current.title }}</p>
             <p class="text-[12px] text-sky-deep/80 truncate">{{ current.artist }}</p>
@@ -194,8 +216,14 @@ function disconnect() { sp.disconnect() }
           <!-- Reproductor: solo cuando hay algo sonando -->
           <AppCard v-if="hasNowPlaying" class="!p-6 flex flex-row items-center gap-6 shrink-0 relative overflow-hidden">
             <HibiCloud :size="80" class="absolute top-2 right-2 text-card opacity-15 pointer-events-none z-40" aria-hidden="true" />
-            <div class="grid relative shrink-0 place-items-center w-[180px] h-[180px] rounded-[22px]" :class="current.tone">
-              <Headphones class="size-12" :stroke-width="1.6" />
+            <div class="shrink-0 flex flex-col items-center gap-2.5">
+              <HibiCloudImage :src="current.image" :size="180" tone="text-sky-soft" />
+              <div class="flex items-center gap-2 w-[180px]">
+                <button type="button" class="grid place-items-center size-7 rounded-full text-fg-muted shrink-0 hover:text-sky-deep transition-colors" :aria-label="volume > 0 ? t('spotify.controls.mute') : t('spotify.controls.unmute')" @click="sp.toggleMute()">
+                  <component :is="volume > 0 ? Volume2 : VolumeX" class="size-[16px]" :stroke-width="2" />
+                </button>
+                <input type="range" min="0" max="1" step="0.02" :value="volume" class="hibi-range flex-1" :style="{ background: 'linear-gradient(to right, var(--color-sky-deep) ' + Math.round(volume * 100) + '%, var(--bg-muted) ' + Math.round(volume * 100) + '%)' }" :aria-label="t('spotify.controls.volume')" @input="(e) => sp.setVolume(+(e.target as HTMLInputElement).value)" />
+              </div>
             </div>
             <div class="flex-1 min-w-0 flex flex-col gap-3">
               <div class="flex items-start gap-3">
@@ -214,22 +242,18 @@ function disconnect() { sp.disconnect() }
                 <span class="text-[11.5px] text-fg-muted tabular-nums w-10 text-right">{{ fmt(elapsedSec) }}</span>
                 <div class="flex-1 h-2 rounded-full bg-muted overflow-hidden cursor-pointer"
                   @click="(e) => { const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); progress = Math.round(((e.clientX - r.left) / r.width) * 100) }">
-                  <div class="h-full rounded-full bg-sky-deep transition-[width] duration-150" :style="{ width: progress + '%' }"></div>
+                  <div class="h-full rounded-full bg-sky-deep" :style="{ width: progress + '%', transition: 'width 0.25s linear' }"></div>
                 </div>
                 <span class="text-[11.5px] text-fg-muted tabular-nums w-10">{{ fmt(totalSec) }}</span>
               </div>
               <div class="flex items-center justify-center gap-2">
-                <button class="grid place-items-center size-10 rounded-full text-fg-muted" :aria-label="t('spotify.controls.shuffle')"><Shuffle class="size-[17px]" :stroke-width="2" /></button>
+                <button class="grid place-items-center size-10 rounded-full transition-colors" :class="shuffle ? 'text-sky-deep' : 'text-fg-muted'" :aria-label="t('spotify.controls.shuffle')" @click="sp.toggleShuffle()"><Shuffle class="size-[17px]" :stroke-width="2" /></button>
                 <button class="grid place-items-center size-11 rounded-full text-fg-muted" :aria-label="t('spotify.controls.prev')" @click="prevTrack"><SkipBack class="size-5" :stroke-width="2" /></button>
                 <button class="grid place-items-center size-14 rounded-full bg-sky text-[#1f4661]" @click="playing = !playing" :aria-label="playing ? t('spotify.controls.pause') : t('spotify.controls.play')">
                   <component :is="playing ? Pause : Play" class="size-6" :stroke-width="playing ? 2 : 0" :class="playing ? '' : 'fill-current'" />
                 </button>
                 <button class="grid place-items-center size-11 rounded-full text-fg-muted" :aria-label="t('spotify.controls.next')" @click="nextTrack"><SkipForward class="size-5" :stroke-width="2" /></button>
-                <button class="grid place-items-center size-10 rounded-full text-fg-muted" :aria-label="t('spotify.controls.repeat')"><Repeat class="size-[17px]" :stroke-width="2" /></button>
-              </div>
-              <div class="flex items-center justify-center gap-2.5 mt-1">
-                <Volume2 class="size-[15px] text-fg-muted shrink-0" :stroke-width="2" aria-hidden="true" />
-                <input type="range" min="0" max="1" step="0.02" :value="volume" class="w-40 cursor-pointer" style="accent-color: var(--color-sky-deep)" :aria-label="t('spotify.controls.volume')" @input="(e) => sp.setVolume(+(e.target as HTMLInputElement).value)" />
+                <button class="grid place-items-center size-10 rounded-full transition-colors" :class="repeatMode > 0 ? 'text-sky-deep' : 'text-fg-muted'" :aria-label="t('spotify.controls.repeat')" @click="sp.cycleRepeat()"><component :is="repeatMode === 2 ? Repeat1 : Repeat" class="size-[17px]" :stroke-width="2" /></button>
               </div>
             </div>
           </AppCard>
@@ -243,8 +267,8 @@ function disconnect() { sp.disconnect() }
             <ul class="hibi-anim-rotate flex-1 min-h-0 overflow-y-auto scroll-area flex flex-col gap-2 pr-1">
               <li v-for="p in playlists" :key="p.id"
                 class="flex items-center gap-3 p-3 rounded-[12px] bg-muted cursor-pointer"
-                @click="onPlayPlaylist(p)">
-                <HibiCloudIcon :size="58" :icon="Disc3" :icon-size="19" :cloud-color="p.tone" :icon-color="p.iconTone" :icon-stroke="1.9" class="shrink-0" />
+                @click="openPlaylist(p)">
+                <HibiCloudImage :src="p.image" :size="58" :tone="p.tone.replace('bg-', 'text-')" />
                 <div class="flex-1 min-w-0">
                   <p class="text-[14px] font-bold text-fg truncate">{{ p.name }}</p>
                   <p v-if="p.count" class="text-[12px] text-fg-muted">{{ t('spotify.songs', { count: p.count }) }}</p>
@@ -270,7 +294,7 @@ function disconnect() { sp.disconnect() }
                 class="w-full flex items-center gap-3 p-2.5 rounded-[12px] transition-[background-color] text-left"
                 :class="i === currentIdx && hasNowPlaying ? 'bg-sky-soft' : ''"
                 @click="play(i)">
-                <HibiCloudIcon :size="54" :icon="Headphones" :icon-size="17" :cloud-color="tr.tone.split(' ')[0]" :icon-color="tr.tone.split(' ')[1] || 'text-fg'" :icon-stroke="1.9" class="shrink-0" />
+                <HibiCloudImage :src="tr.image" :size="54" :tone="tr.tone.split(' ')[0].replace('bg-', 'text-')" />
                 <div class="flex-1 min-w-0">
                   <p class="text-[14px] font-semibold text-fg truncate">{{ tr.title }}</p>
                   <p class="text-[12px] text-fg-muted truncate">{{ tr.artist }}</p>
@@ -287,16 +311,14 @@ function disconnect() { sp.disconnect() }
     <ClientOnly>
       <Teleport to="body">
         <Transition name="sheet-up">
-          <div v-if="detailOpen && connected" class="fixed inset-0 z-[60] bg-base flex flex-col px-5 pb-8" style="padding-top: max(1rem, env(safe-area-inset-top))">
+          <div v-if="detailOpen && connected" class="fixed inset-0 z-[64] bg-base flex flex-col px-5 pb-8" style="padding-top: max(1rem, env(safe-area-inset-top))">
             <header class="shrink-0 flex items-center justify-between">
               <button type="button" class="grid place-items-center size-10 rounded-full bg-muted text-fg-muted" :aria-label="t('spotify.controls.minimize')" @click="detailOpen = false; detailQueueOpen = false"><ChevronDown class="size-[20px]" :stroke-width="2.2" /></button>
               <p class="text-[12px] font-bold text-fg-muted uppercase tracking-wide">{{ t('spotify.nowPlayingShort') }}</p>
               <button type="button" class="grid place-items-center size-10 rounded-full transition-[background-color,color]" :class="liked ? 'bg-pink-soft text-pink-deep' : 'bg-muted text-fg-muted'" :aria-label="liked ? t('spotify.controls.unlike') : t('spotify.controls.like')" @click="liked = !liked"><Heart class="size-[18px]" :class="liked ? 'fill-current' : ''" :stroke-width="liked ? 0 : 2" /></button>
             </header>
             <div class="flex-1 min-h-0 grid place-items-center py-4">
-              <div class="grid place-items-center w-full max-w-[300px] aspect-square rounded-[28px]" :class="current.tone">
-                <Headphones class="size-20" :stroke-width="1.4" />
-              </div>
+              <HibiCloudImage :src="current.image" :size="270" tone="text-sky-soft" />
             </div>
             <div class="shrink-0 text-center">
               <h2 class="text-[24px] font-extrabold text-fg leading-tight truncate">{{ current.title }}</h2>
@@ -306,20 +328,22 @@ function disconnect() { sp.disconnect() }
               <span class="text-[11.5px] text-fg-muted tabular-nums w-10 text-right">{{ fmt(elapsedSec) }}</span>
               <div class="flex-1 h-2 rounded-full bg-muted overflow-hidden cursor-pointer"
                 @click="(e) => { const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); progress = Math.round(((e.clientX - r.left) / r.width) * 100) }">
-                <div class="h-full rounded-full bg-sky-deep" :style="{ width: progress + '%' }"></div>
+                <div class="h-full rounded-full bg-sky-deep" :style="{ width: progress + '%', transition: 'width 0.25s linear' }"></div>
               </div>
               <span class="text-[11.5px] text-fg-muted tabular-nums w-10">{{ fmt(totalSec) }}</span>
             </div>
             <div class="shrink-0 flex items-center justify-center gap-3 mt-5">
-              <button class="grid place-items-center size-11 rounded-full text-fg-muted" :aria-label="t('spotify.controls.shuffle')"><Shuffle class="size-[18px]" :stroke-width="2" /></button>
+              <button class="grid place-items-center size-11 rounded-full transition-colors" :class="shuffle ? 'text-sky-deep' : 'text-fg-muted'" :aria-label="t('spotify.controls.shuffle')" @click="sp.toggleShuffle()"><Shuffle class="size-[18px]" :stroke-width="2" /></button>
               <button class="grid place-items-center size-12 rounded-full text-fg-muted" :aria-label="t('spotify.controls.prev')" @click="prevTrack"><SkipBack class="size-6" :stroke-width="2" /></button>
               <button class="grid place-items-center size-16 rounded-full bg-sky text-[#1f4661]" :aria-label="playing ? t('spotify.controls.pause') : t('spotify.controls.play')" @click="playing = !playing"><component :is="playing ? Pause : Play" class="size-7" :stroke-width="playing ? 2 : 0" :class="playing ? '' : 'fill-current'" /></button>
               <button class="grid place-items-center size-12 rounded-full text-fg-muted" :aria-label="t('spotify.controls.next')" @click="nextTrack"><SkipForward class="size-6" :stroke-width="2" /></button>
-              <button class="grid place-items-center size-11 rounded-full text-fg-muted" :aria-label="t('spotify.controls.repeat')"><Repeat class="size-[18px]" :stroke-width="2" /></button>
+              <button class="grid place-items-center size-11 rounded-full transition-colors" :class="repeatMode > 0 ? 'text-sky-deep' : 'text-fg-muted'" :aria-label="t('spotify.controls.repeat')" @click="sp.cycleRepeat()"><component :is="repeatMode === 2 ? Repeat1 : Repeat" class="size-[18px]" :stroke-width="2" /></button>
             </div>
-            <div class="shrink-0 flex items-center justify-center gap-2.5 mt-5 px-6">
-              <Volume2 class="size-[16px] text-fg-muted shrink-0" :stroke-width="2" aria-hidden="true" />
-              <input type="range" min="0" max="1" step="0.02" :value="volume" class="w-full max-w-[220px] cursor-pointer" style="accent-color: var(--color-sky-deep)" :aria-label="t('spotify.controls.volume')" @input="(e) => sp.setVolume(+(e.target as HTMLInputElement).value)" />
+            <div class="shrink-0 flex items-center gap-2.5 mt-5 px-6">
+              <button type="button" class="grid place-items-center size-8 rounded-full text-fg-muted shrink-0" :aria-label="volume > 0 ? t('spotify.controls.mute') : t('spotify.controls.unmute')" @click="sp.toggleMute()">
+                <component :is="volume > 0 ? Volume2 : VolumeX" class="size-[18px]" :stroke-width="2" />
+              </button>
+              <input type="range" min="0" max="1" step="0.02" :value="volume" class="hibi-range flex-1" :style="{ background: 'linear-gradient(to right, var(--color-sky-deep) ' + Math.round(volume * 100) + '%, var(--bg-muted) ' + Math.round(volume * 100) + '%)' }" :aria-label="t('spotify.controls.volume')" @input="(e) => sp.setVolume(+(e.target as HTMLInputElement).value)" />
             </div>
             <button type="button" class="shrink-0 mt-5 mx-auto inline-flex items-center gap-2 h-10 px-5 rounded-full bg-muted text-fg-muted text-[13px] font-bold" @click="detailQueueOpen = true">
               <ListMusic class="size-[16px]" :stroke-width="2" /> {{ t('spotify.queue.view', { count: queue.length }) }}
@@ -340,7 +364,7 @@ function disconnect() { sp.disconnect() }
                         class="w-full flex items-center gap-3 p-2.5 rounded-[12px] transition-[background-color] text-left"
                         :class="i === currentIdx ? 'bg-sky-soft' : 'active:bg-muted'"
                         @click="play(i); detailQueueOpen = false">
-                        <HibiCloudIcon :size="48" :icon="Headphones" :icon-size="16" :cloud-color="tr.tone.split(' ')[0]" :icon-color="tr.tone.split(' ')[1] || 'text-fg'" :icon-stroke="1.9" class="shrink-0" />
+                        <HibiCloudImage :src="tr.image" :size="48" :tone="tr.tone.split(' ')[0].replace('bg-', 'text-')" />
                         <div class="flex-1 min-w-0">
                           <p class="text-[14px] font-semibold text-fg truncate">{{ tr.title }}</p>
                           <p class="text-[12px] text-fg-muted truncate">{{ tr.artist }}</p>
@@ -356,10 +380,73 @@ function disconnect() { sp.disconnect() }
         </Transition>
       </Teleport>
     </ClientOnly>
+
+    <!-- CANCIONES DE UNA PLAYLIST (paginadas). Tocar una reproduce la playlist desde ahí. -->
+    <ClientOnly>
+      <Teleport to="body">
+        <Transition name="sheet-up">
+          <div v-if="openPl" class="fixed inset-0 z-[62] bg-base flex flex-col px-4 md:px-8 pb-6" style="padding-top: max(1rem, env(safe-area-inset-top))">
+            <header class="shrink-0 flex items-center gap-3 pb-3">
+              <button type="button" class="grid place-items-center size-10 rounded-full bg-muted text-fg-muted hover:text-fg" :aria-label="t('common.close')" @click="closePlaylist"><ChevronLeft class="size-[20px]" :stroke-width="2.2" /></button>
+              <div class="min-w-0 flex-1">
+                <p class="text-[17px] font-extrabold text-fg truncate">{{ openPl.name }}</p>
+                <p class="text-[12px] text-fg-muted">{{ t('spotify.songs', { count: plTracks.length }) }}</p>
+              </div>
+              <button type="button" class="grid place-items-center size-11 rounded-full bg-sky text-[#1f4661] shrink-0" :aria-label="t('spotify.controls.play')" @click="onPlayPlaylist(openPl)"><Play class="size-5 fill-current" :stroke-width="0" /></button>
+            </header>
+            <ul class="flex-1 min-h-0 overflow-y-auto scroll-area flex flex-col gap-1 max-w-2xl w-full mx-auto">
+              <li v-for="tr in plTracks" :key="tr.id">
+                <button type="button"
+                  class="w-full flex items-center gap-3 p-2.5 rounded-[12px] text-left transition-[background-color]"
+                  :class="sdkCurrent && tr.uri === sdkCurrent.uri ? 'bg-sky-soft' : 'active:bg-muted hover:bg-muted'"
+                  @click="playPlTrack(tr.uri)">
+                  <HibiCloudImage :src="tr.image" :size="46" :tone="tr.tone.split(' ')[0].replace('bg-', 'text-')" />
+                  <div class="flex-1 min-w-0">
+                    <p class="text-[14px] font-semibold text-fg truncate" :class="sdkCurrent && tr.uri === sdkCurrent.uri ? 'text-sky-deep' : ''">{{ tr.title }}</p>
+                    <p class="text-[12px] text-fg-muted truncate">{{ tr.artist }}</p>
+                  </div>
+                  <span class="text-[11.5px] font-bold tabular-nums text-fg-subtle shrink-0">{{ tr.mins.toFixed(1) }} min</span>
+                </button>
+              </li>
+            </ul>
+
+            <!-- Mini-reproductor: sigue visible mientras navegas la playlist -->
+            <div v-if="hasNowPlaying" role="button" tabindex="0"
+              class="shrink-0 mt-2 w-full max-w-2xl mx-auto flex items-center gap-3 p-2.5 rounded-[16px] bg-sky-soft cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sky-deep"
+              @click="detailOpen = true" @keydown.enter.prevent="detailOpen = true">
+              <HibiCloudImage :src="current.image" :size="46" tone="text-sky" class="shrink-0" />
+              <div class="flex-1 min-w-0">
+                <p class="text-[13.5px] font-bold text-fg truncate">{{ current.title }}</p>
+                <p class="text-[11.5px] text-sky-deep/80 truncate">{{ current.artist }}</p>
+              </div>
+              <button type="button" class="grid place-items-center size-11 rounded-full bg-sky text-[#1f4661] shrink-0" :aria-label="playing ? t('spotify.controls.pause') : t('spotify.controls.play')" @click.stop="playing = !playing">
+                <component :is="playing ? Pause : Play" class="size-5" :stroke-width="playing ? 2 : 0" :class="playing ? '' : 'fill-current'" />
+              </button>
+              <button type="button" class="grid place-items-center size-10 rounded-full text-sky-deep shrink-0" :aria-label="t('spotify.controls.next')" @click.stop="nextTrack"><SkipForward class="size-5" :stroke-width="2" /></button>
+            </div>
+          </div>
+        </Transition>
+      </Teleport>
+    </ClientOnly>
+
+    <!-- Cargando canciones de la playlist -->
+    <ClientOnly>
+      <Teleport to="body">
+        <div v-if="plLoading" class="fixed inset-0 z-[63] grid place-items-center bg-base/70">
+          <HibiCloud :size="110" face class="text-mint hibi-anim-pop" aria-hidden="true" />
+        </div>
+      </Teleport>
+    </ClientOnly>
   </div>
 </template>
 
 <style scoped>
+/* Slider de volumen sin bordes, con la estética de Hibi. */
+.hibi-range { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 9999px; background: var(--bg-muted); cursor: pointer; outline: none; }
+.hibi-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--color-sky-deep); border: none; cursor: pointer; }
+.hibi-range::-moz-range-thumb { width: 13px; height: 13px; border-radius: 50%; background: var(--color-sky-deep); border: none; cursor: pointer; }
+.hibi-range::-moz-range-track { height: 4px; border-radius: 9999px; background: var(--bg-muted); }
+
 .sheet-up-enter-active, .sheet-up-leave-active { transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease; }
 .sheet-up-enter-from, .sheet-up-leave-to { transform: translateY(100%); opacity: 0.6; }
 @media (prefers-reduced-motion: reduce) {

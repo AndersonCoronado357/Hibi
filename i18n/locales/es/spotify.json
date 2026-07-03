@@ -38,7 +38,9 @@
       "like": "Añadir a favoritos",
       "unlike": "Quitar de favoritos",
       "minimize": "Minimizar",
-      "volume": "Volumen"
+      "volume": "Volumen",
+      "mute": "Silenciar",
+      "unmute": "Activar sonido"
     },
     "playlists": {
       "title": "Tus playlists",
