@@ -12,7 +12,8 @@ const router = useRouter()
 
 // Las que ya están en la bottom-nav (no repetir).
 const PRIMARY_KEYS = new Set(['calendar', 'tasks', 'notes', 'habits'])
-const rest = computed(() => items.filter((i) => !PRIMARY_KEYS.has(i.key)))
+// Chat es exclusivo de PC: no aparece en el menú "más" del celular.
+const rest = computed(() => items.filter((i) => !PRIMARY_KEYS.has(i.key) && i.key !== 'chat'))
 
 function close() {
   open.value = false
