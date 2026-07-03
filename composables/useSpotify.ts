@@ -1,7 +1,7 @@
 // Cliente de Spotify: estado de conexión, playlists reales y reproductor con el
 // Web Playback SDK (requiere Premium). El token lo entrega el servidor.
 export interface SpotifyStatus { connected: boolean; displayName?: string | null; premium?: boolean }
-export interface SpotifyPlaylist { id: string; name: string; tracks: number; image: string | null; uri: string }
+export interface SpotifyPlaylist { id: string; name: string; tracks: number | null; image: string | null; uri: string }
 export interface SpotifyTrack { name: string; artists: string; image: string | null; uri: string; durationMs: number }
 
 let player: any = null
@@ -27,6 +27,7 @@ export function useSpotify() {
   const paused = useState<boolean>('spotify.paused', () => true)
   const position = useState<number>('spotify.position', () => 0)
   const duration = useState<number>('spotify.duration', () => 0)
+  const volume = useState<number>('spotify.volume', () => 0.7)
 
   async function fetchStatus() {
     try { status.value = await $fetch<SpotifyStatus>('/api/spotify/status') } catch { status.value = { connected: false } }
@@ -70,7 +71,11 @@ export function useSpotify() {
       getOAuthToken: (cb: (t: string) => void) => { $fetch<{ accessToken: string }>('/api/spotify/token').then((r) => cb(r.accessToken)).catch(() => { /* ignore */ }) },
       volume: 0.8,
     })
-    player.addListener('ready', ({ device_id }: any) => { deviceId.value = device_id; ready.value = true })
+    player.addListener('ready', ({ device_id }: any) => {
+      deviceId.value = device_id; ready.value = true
+      try { player.setVolume(volume.value) } catch { /* ignore */ }
+      try { player.getVolume().then((v: number) => { if (typeof v === 'number') volume.value = v }) } catch { /* ignore */ }
+    })
     player.addListener('not_ready', () => { ready.value = false })
     player.addListener('player_state_changed', (st: any) => {
       if (!st) return
@@ -100,6 +105,7 @@ export function useSpotify() {
   async function next() { try { await player?.nextTrack() } catch { /* ignore */ } }
   async function prev() { try { await player?.previousTrack() } catch { /* ignore */ } }
   async function seek(ms: number) { try { await player?.seek(ms); position.value = ms } catch { /* ignore */ } }
+  async function setVolume(v: number) { volume.value = Math.max(0, Math.min(1, v)); try { await player?.setVolume(volume.value) } catch { /* ignore */ } }
 
-  return { status, playlists, queue, ready, deviceId, current, paused, position, duration, fetchStatus, fetchPlaylists, connect, disconnect, ensurePlayer, playContext, playUris, togglePlay, next, prev, seek }
+  return { status, playlists, queue, ready, deviceId, current, paused, position, duration, volume, fetchStatus, fetchPlaylists, connect, disconnect, ensurePlayer, playContext, playUris, togglePlay, next, prev, seek, setVolume }
 }

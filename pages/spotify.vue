@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { Music, Play, Pause, Heart, Headphones, Plug, SkipBack, SkipForward, Shuffle, Repeat, Search, Disc3, ChevronDown, ListMusic } from '@lucide/vue'
+import { Music, Play, Pause, Heart, Headphones, Plug, SkipBack, SkipForward, Shuffle, Repeat, Search, Disc3, ChevronDown, ListMusic, Volume2 } from '@lucide/vue'
 
 const { t } = useI18n()
 useHead({ title: t('spotify.head.title') })
 
 const route = useRoute()
 const sp = useSpotify()
-const { status, playlists: rawPlaylists, queue: sdkNext, current: sdkCurrent, paused, position, duration } = sp
+const { status, playlists: rawPlaylists, queue: sdkNext, current: sdkCurrent, paused, position, duration, volume } = sp
 
 const loading = ref(true)
 const liked = ref(false)
@@ -148,7 +148,7 @@ function disconnect() { sp.disconnect() }
                 <HibiCloudIcon :size="56" :icon="Disc3" :icon-size="19" :cloud-color="p.tone" :icon-color="p.iconTone" :icon-stroke="1.9" class="shrink-0" />
                 <div class="flex-1 min-w-0">
                   <p class="text-[15px] font-bold text-fg truncate">{{ p.name }}</p>
-                  <p class="text-[12.5px] text-fg-muted">{{ t('spotify.songs', { count: p.count }) }}</p>
+                  <p v-if="p.count" class="text-[12.5px] text-fg-muted">{{ t('spotify.songs', { count: p.count }) }}</p>
                 </div>
                 <span class="grid place-items-center size-9 rounded-full bg-sky-soft text-sky-deep shrink-0"><Play class="size-4 fill-current" :stroke-width="0" /></span>
               </div>
@@ -227,6 +227,10 @@ function disconnect() { sp.disconnect() }
                 <button class="grid place-items-center size-11 rounded-full text-fg-muted" :aria-label="t('spotify.controls.next')" @click="nextTrack"><SkipForward class="size-5" :stroke-width="2" /></button>
                 <button class="grid place-items-center size-10 rounded-full text-fg-muted" :aria-label="t('spotify.controls.repeat')"><Repeat class="size-[17px]" :stroke-width="2" /></button>
               </div>
+              <div class="flex items-center justify-center gap-2.5 mt-1">
+                <Volume2 class="size-[15px] text-fg-muted shrink-0" :stroke-width="2" aria-hidden="true" />
+                <input type="range" min="0" max="1" step="0.02" :value="volume" class="w-40 cursor-pointer" style="accent-color: var(--color-sky-deep)" :aria-label="t('spotify.controls.volume')" @input="(e) => sp.setVolume(+(e.target as HTMLInputElement).value)" />
+              </div>
             </div>
           </AppCard>
 
@@ -243,7 +247,7 @@ function disconnect() { sp.disconnect() }
                 <HibiCloudIcon :size="58" :icon="Disc3" :icon-size="19" :cloud-color="p.tone" :icon-color="p.iconTone" :icon-stroke="1.9" class="shrink-0" />
                 <div class="flex-1 min-w-0">
                   <p class="text-[14px] font-bold text-fg truncate">{{ p.name }}</p>
-                  <p class="text-[12px] text-fg-muted">{{ t('spotify.songs', { count: p.count }) }}</p>
+                  <p v-if="p.count" class="text-[12px] text-fg-muted">{{ t('spotify.songs', { count: p.count }) }}</p>
                 </div>
                 <button class="grid place-items-center size-9 rounded-full bg-card text-sky-deep shrink-0" :aria-label="t('spotify.controls.play')" @click.stop="onPlayPlaylist(p)">
                   <Play class="size-4 fill-current" :stroke-width="0" />
@@ -312,6 +316,10 @@ function disconnect() { sp.disconnect() }
               <button class="grid place-items-center size-16 rounded-full bg-sky text-[#1f4661]" :aria-label="playing ? t('spotify.controls.pause') : t('spotify.controls.play')" @click="playing = !playing"><component :is="playing ? Pause : Play" class="size-7" :stroke-width="playing ? 2 : 0" :class="playing ? '' : 'fill-current'" /></button>
               <button class="grid place-items-center size-12 rounded-full text-fg-muted" :aria-label="t('spotify.controls.next')" @click="nextTrack"><SkipForward class="size-6" :stroke-width="2" /></button>
               <button class="grid place-items-center size-11 rounded-full text-fg-muted" :aria-label="t('spotify.controls.repeat')"><Repeat class="size-[18px]" :stroke-width="2" /></button>
+            </div>
+            <div class="shrink-0 flex items-center justify-center gap-2.5 mt-5 px-6">
+              <Volume2 class="size-[16px] text-fg-muted shrink-0" :stroke-width="2" aria-hidden="true" />
+              <input type="range" min="0" max="1" step="0.02" :value="volume" class="w-full max-w-[220px] cursor-pointer" style="accent-color: var(--color-sky-deep)" :aria-label="t('spotify.controls.volume')" @input="(e) => sp.setVolume(+(e.target as HTMLInputElement).value)" />
             </div>
             <button type="button" class="shrink-0 mt-5 mx-auto inline-flex items-center gap-2 h-10 px-5 rounded-full bg-muted text-fg-muted text-[13px] font-bold" @click="detailQueueOpen = true">
               <ListMusic class="size-[16px]" :stroke-width="2" /> {{ t('spotify.queue.view', { count: queue.length }) }}

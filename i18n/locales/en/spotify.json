@@ -37,7 +37,8 @@
       "repeat": "Repeat",
       "like": "Add to favorites",
       "unlike": "Remove from favorites",
-      "minimize": "Minimize"
+      "minimize": "Minimize",
+      "volume": "Volume"
     },
     "playlists": {
       "title": "Your playlists",
