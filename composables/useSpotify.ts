@@ -58,7 +58,8 @@ export function useSpotify() {
 
   function startPosTimer() {
     if (posTimer) return
-    posTimer = setInterval(() => { if (!paused.value && duration.value) position.value = Math.min(position.value + 1000, duration.value) }, 1000)
+    // Paso corto (250ms) para que la barra de avance se vea fluida, no a saltos.
+    posTimer = setInterval(() => { if (!paused.value && duration.value) position.value = Math.min(position.value + 250, duration.value) }, 250)
   }
 
   // Crea (una vez) el reproductor del SDK y espera a que quede "ready". Solo Premium.
@@ -106,6 +107,11 @@ export function useSpotify() {
   async function prev() { try { await player?.previousTrack() } catch { /* ignore */ } }
   async function seek(ms: number) { try { await player?.seek(ms); position.value = ms } catch { /* ignore */ } }
   async function setVolume(v: number) { volume.value = Math.max(0, Math.min(1, v)); try { await player?.setVolume(volume.value) } catch { /* ignore */ } }
+  const preMute = useState<number>('spotify.premute', () => 0.7)
+  async function toggleMute() {
+    if (volume.value > 0.001) { preMute.value = volume.value; await setVolume(0) }
+    else await setVolume(preMute.value || 0.5)
+  }
 
-  return { status, playlists, queue, ready, deviceId, current, paused, position, duration, volume, fetchStatus, fetchPlaylists, connect, disconnect, ensurePlayer, playContext, playUris, togglePlay, next, prev, seek, setVolume }
+  return { status, playlists, queue, ready, deviceId, current, paused, position, duration, volume, fetchStatus, fetchPlaylists, connect, disconnect, ensurePlayer, playContext, playUris, togglePlay, next, prev, seek, setVolume, toggleMute }
 }
