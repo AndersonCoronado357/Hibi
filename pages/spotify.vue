@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Music, Play, Pause, Heart, Headphones, Plug, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Search, Disc3, ChevronDown, ListMusic, Volume2, VolumeX } from '@lucide/vue'
+import { Music, Play, Pause, Heart, Headphones, Plug, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Search, Disc3, ChevronDown, ChevronLeft, ListMusic, Volume2, VolumeX } from '@lucide/vue'
 
 const { t } = useI18n()
 useHead({ title: t('spotify.head.title') })
@@ -75,6 +75,23 @@ async function onPlayPlaylist(p: { uri: string }) {
   } else openInSpotify(p.uri)
 }
 function disconnect() { sp.disconnect() }
+
+// Abrir una playlist: carga TODAS sus canciones (paginado). Si Spotify las
+// bloquea (403), reproduce la playlist y muestra la cola como alternativa.
+const openPl = ref<{ id: string; name: string; uri: string } | null>(null)
+const plLoading = ref(false)
+const plTracksRaw = ref<{ name: string; artists: string; image: string | null; uri: string; durationMs: number }[]>([])
+const plTracks = computed(() => plTracksRaw.value.map((tr, i) => ({ id: tr.uri || String(i), title: tr.name, artist: tr.artists, image: tr.image, uri: tr.uri, tone: TONES[i % TONES.length]!.join(' '), mins: (tr.durationMs || 0) / 60000 })))
+
+async function openPlaylist(p: { id: string; name: string; uri: string }) {
+  plLoading.value = true
+  const tracks = await sp.fetchPlaylistTracks(p.id)
+  plLoading.value = false
+  if (tracks.length) { openPl.value = p; plTracksRaw.value = tracks }
+  else onPlayPlaylist(p) // Spotify no entrega las canciones → reproduce + cola
+}
+function closePlaylist() { openPl.value = null; plTracksRaw.value = [] }
+function playPlTrack(uri: string) { if (openPl.value) sp.playPlaylistAt(openPl.value.uri, uri) }
 </script>
 
 <template>
@@ -149,13 +166,13 @@ function disconnect() { sp.disconnect() }
             <li v-for="p in playlists" :key="p.id">
               <div role="button" tabindex="0"
                 class="flex items-center gap-3 p-3 rounded-[14px] bg-card cursor-pointer active:bg-muted outline-none focus-visible:ring-2 focus-visible:ring-sky-deep"
-                @click="onPlayPlaylist(p)" @keydown.enter.prevent="onPlayPlaylist(p)" @keydown.space.prevent="onPlayPlaylist(p)">
+                @click="openPlaylist(p)" @keydown.enter.prevent="openPlaylist(p)" @keydown.space.prevent="openPlaylist(p)">
                 <HibiCloudImage :src="p.image" :size="56" :tone="p.tone.replace('bg-', 'text-')" />
                 <div class="flex-1 min-w-0">
                   <p class="text-[15px] font-bold text-fg truncate">{{ p.name }}</p>
                   <p v-if="p.count" class="text-[12.5px] text-fg-muted">{{ t('spotify.songs', { count: p.count }) }}</p>
                 </div>
-                <span class="grid place-items-center size-9 rounded-full bg-sky-soft text-sky-deep shrink-0"><Play class="size-4 fill-current" :stroke-width="0" /></span>
+                <button type="button" class="grid place-items-center size-9 rounded-full bg-sky-soft text-sky-deep shrink-0" :aria-label="t('spotify.controls.play')" @click.stop="onPlayPlaylist(p)"><Play class="size-4 fill-current" :stroke-width="0" /></button>
               </div>
             </li>
           </ul>
@@ -250,7 +267,7 @@ function disconnect() { sp.disconnect() }
             <ul class="hibi-anim-rotate flex-1 min-h-0 overflow-y-auto scroll-area flex flex-col gap-2 pr-1">
               <li v-for="p in playlists" :key="p.id"
                 class="flex items-center gap-3 p-3 rounded-[12px] bg-muted cursor-pointer"
-                @click="onPlayPlaylist(p)">
+                @click="openPlaylist(p)">
                 <HibiCloudImage :src="p.image" :size="58" :tone="p.tone.replace('bg-', 'text-')" />
                 <div class="flex-1 min-w-0">
                   <p class="text-[14px] font-bold text-fg truncate">{{ p.name }}</p>
@@ -361,6 +378,48 @@ function disconnect() { sp.disconnect() }
             </Transition>
           </div>
         </Transition>
+      </Teleport>
+    </ClientOnly>
+
+    <!-- CANCIONES DE UNA PLAYLIST (paginadas). Tocar una reproduce la playlist desde ahí. -->
+    <ClientOnly>
+      <Teleport to="body">
+        <Transition name="sheet-up">
+          <div v-if="openPl" class="fixed inset-0 z-[62] bg-base flex flex-col px-4 md:px-8 pb-6" style="padding-top: max(1rem, env(safe-area-inset-top))">
+            <header class="shrink-0 flex items-center gap-3 pb-3">
+              <button type="button" class="grid place-items-center size-10 rounded-full bg-muted text-fg-muted hover:text-fg" :aria-label="t('common.close')" @click="closePlaylist"><ChevronLeft class="size-[20px]" :stroke-width="2.2" /></button>
+              <div class="min-w-0 flex-1">
+                <p class="text-[17px] font-extrabold text-fg truncate">{{ openPl.name }}</p>
+                <p class="text-[12px] text-fg-muted">{{ t('spotify.songs', { count: plTracks.length }) }}</p>
+              </div>
+              <button type="button" class="grid place-items-center size-11 rounded-full bg-sky text-[#1f4661] shrink-0" :aria-label="t('spotify.controls.play')" @click="onPlayPlaylist(openPl)"><Play class="size-5 fill-current" :stroke-width="0" /></button>
+            </header>
+            <ul class="flex-1 min-h-0 overflow-y-auto scroll-area flex flex-col gap-1 max-w-2xl w-full mx-auto">
+              <li v-for="tr in plTracks" :key="tr.id">
+                <button type="button"
+                  class="w-full flex items-center gap-3 p-2.5 rounded-[12px] text-left transition-[background-color]"
+                  :class="sdkCurrent && tr.uri === sdkCurrent.uri ? 'bg-sky-soft' : 'active:bg-muted hover:bg-muted'"
+                  @click="playPlTrack(tr.uri)">
+                  <HibiCloudImage :src="tr.image" :size="46" :tone="tr.tone.split(' ')[0].replace('bg-', 'text-')" />
+                  <div class="flex-1 min-w-0">
+                    <p class="text-[14px] font-semibold text-fg truncate" :class="sdkCurrent && tr.uri === sdkCurrent.uri ? 'text-sky-deep' : ''">{{ tr.title }}</p>
+                    <p class="text-[12px] text-fg-muted truncate">{{ tr.artist }}</p>
+                  </div>
+                  <span class="text-[11.5px] font-bold tabular-nums text-fg-subtle shrink-0">{{ tr.mins.toFixed(1) }} min</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+        </Transition>
+      </Teleport>
+    </ClientOnly>
+
+    <!-- Cargando canciones de la playlist -->
+    <ClientOnly>
+      <Teleport to="body">
+        <div v-if="plLoading" class="fixed inset-0 z-[63] grid place-items-center bg-base/70">
+          <HibiCloud :size="110" face class="text-mint hibi-anim-pop" aria-hidden="true" />
+        </div>
       </Teleport>
     </ClientOnly>
   </div>

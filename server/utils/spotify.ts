@@ -92,6 +92,22 @@ export async function spotifyConnect(userId: number, code: string) {
   } catch { /* el perfil es opcional */ }
 }
 
+// Trae TODAS las canciones de una playlist grande: limit=100 y sigue la
+// propiedad `next` hasta null. Delay OBLIGATORIO de 300ms entre peticiones para
+// no chocar con el 429 en modo Development. Junta todo en un único arreglo.
+export async function getAllPlaylistTracks(userId: number, playlistId: string): Promise<any[]> {
+  const all: any[] = []
+  let path: string | null = `/playlists/${playlistId}/tracks?limit=100`
+  while (path) {
+    const d: any = await spotifyApi(userId, path)
+    for (const it of (d?.items || [])) all.push(it)
+    const next: string | null = d?.next || null
+    path = next ? next.replace('https://api.spotify.com/v1', '') : null
+    if (path) await new Promise((r) => setTimeout(r, 300)) // anti-429
+  }
+  return all
+}
+
 // Llama a la Web API con el token del usuario (refresca una vez si da 401).
 export async function spotifyApi(userId: number, path: string, init: RequestInit = {}): Promise<any> {
   const token = await getValidAccessToken(userId)

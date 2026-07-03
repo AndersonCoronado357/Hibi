@@ -6,6 +6,7 @@ const Body = z.object({
   deviceId: z.string().min(1),
   contextUri: z.string().optional(),
   uris: z.array(z.string()).optional(),
+  offsetUri: z.string().optional(), // reproducir el contexto DESDE esta canción
 })
 
 export default defineEventHandler(async (event) => {
@@ -14,6 +15,7 @@ export default defineEventHandler(async (event) => {
   const body: Record<string, unknown> = {}
   if (b.contextUri) body.context_uri = b.contextUri
   if (b.uris?.length) body.uris = b.uris
+  if (b.offsetUri) body.offset = { uri: b.offsetUri }
   await spotifyApi(userId, `/me/player/play?device_id=${encodeURIComponent(b.deviceId)}`, {
     method: 'PUT',
     body: JSON.stringify(body),
