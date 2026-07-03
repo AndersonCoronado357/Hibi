@@ -20,6 +20,8 @@ export default defineNuxtConfig({
     mailFromName: process.env.MAIL_FROM_NAME || 'Hibi',
     origin: process.env.ORIGIN || '',
     acmsySubdomain: process.env.ACMSY_SUBDOMAIN || 'hibi',
+    spotifyClientId: process.env.SPOTIFY_CLIENT_ID || '',
+    spotifyClientSecret: process.env.SPOTIFY_CLIENT_SECRET || '',
     aiApiUrl: process.env.AI_API_URL || '',
     aiApiKey: process.env.AI_API_KEY || '',
     aiBasicAuth: process.env.AI_BASIC_AUTH || '', // "user:pass" para gateways con Basic auth (acmsy)

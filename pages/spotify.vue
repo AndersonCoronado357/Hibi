@@ -1,81 +1,75 @@
 <script setup lang="ts">
-import { Music, Play, Pause, Heart, Headphones, Plug, SkipBack, SkipForward, Shuffle, Repeat, Search, Disc3, Radio, Star, ChevronDown, ListMusic } from '@lucide/vue'
+import { Music, Play, Pause, Heart, Headphones, Plug, SkipBack, SkipForward, Shuffle, Repeat, Search, Disc3, ChevronDown, ListMusic, Volume2 } from '@lucide/vue'
 
 const { t } = useI18n()
-
 useHead({ title: t('spotify.head.title') })
 
-const connected = ref(false)
-const playing = ref(false)
+const route = useRoute()
+const sp = useSpotify()
+const { status, playlists: rawPlaylists, queue: sdkNext, current: sdkCurrent, paused, position, duration, volume } = sp
+
+const loading = ref(true)
 const liked = ref(false)
-const progress = ref(38)
-// El reproductor SOLO aparece cuando eliges una canción o playlist (como Spotify).
-const hasNowPlaying = ref(false)
-// Pestaña de la biblioteca (la cola ya no va debajo de las playlists).
 const subtab = ref<'playlists' | 'queue'>('playlists')
-// Vista detallada del reproductor (pantalla completa); el mini-reproductor abre esto.
 const detailOpen = ref(false)
-// Sheet de la cola dentro de la vista detallada.
 const detailQueueOpen = ref(false)
-
-interface Track { id: string; title: string; artist: string; tone: string; mins: number }
-const queue = ref<Track[]>([
-  { id: 't1', title: 'Sunset chillout', artist: 'Lofi & friends', tone: 'bg-sky-soft text-sky-deep', mins: 3.5 },
-  { id: 't2', title: 'Focus deep work', artist: 'Hibi mix', tone: 'bg-mint text-[#34936a]', mins: 4 },
-  { id: 't3', title: 'Café de domingo', artist: 'Indie folk', tone: 'bg-peach text-[#c5733f]', mins: 3.2 },
-  { id: 't4', title: 'Para correr', artist: 'Beats x10', tone: 'bg-pink-soft text-pink-deep', mins: 3.8 },
-  { id: 't5', title: 'Tarde lluviosa', artist: 'Piano relax', tone: 'bg-lavender text-[#7a63c0]', mins: 4.5 },
-  { id: 't6', title: 'Mañana de niebla', artist: 'Ambient soft', tone: 'bg-cream text-[#bf8f2e]', mins: 5.1 },
-  { id: 't7', title: 'Calles de Tokio', artist: 'City pop', tone: 'bg-sky-soft text-sky-deep', mins: 3.9 },
-  { id: 't8', title: 'Bossa en la cocina', artist: 'Bossa nova', tone: 'bg-mint text-[#34936a]', mins: 4.2 },
-  { id: 't9', title: 'Camino al mar', artist: 'Indie pop', tone: 'bg-peach text-[#c5733f]', mins: 3.4 },
-  { id: 't10', title: 'Luces de neón', artist: 'Synthwave', tone: 'bg-pink-soft text-pink-deep', mins: 4.7 },
-  { id: 't11', title: 'Lluvia y café', artist: 'Jazz suave', tone: 'bg-lavender text-[#7a63c0]', mins: 5.3 },
-  { id: 't12', title: 'Domingo lento', artist: 'Acoustic', tone: 'bg-cream text-[#bf8f2e]', mins: 3.1 },
-  { id: 't13', title: 'Vuelo nocturno', artist: 'Downtempo', tone: 'bg-sky-soft text-sky-deep', mins: 6.0 },
-  { id: 't14', title: 'Brisa de verano', artist: 'Tropical house', tone: 'bg-mint text-[#34936a]', mins: 3.6 },
-  { id: 't15', title: 'Estrellas fugaces', artist: 'Dream pop', tone: 'bg-lavender text-[#7a63c0]', mins: 4.0 },
-])
-const currentIdx = ref(0)
-const current = computed(() => queue.value[currentIdx.value]!)
-function nextTrack() { currentIdx.value = (currentIdx.value + 1) % queue.value.length; progress.value = 0 }
-function prevTrack() { currentIdx.value = (currentIdx.value - 1 + queue.value.length) % queue.value.length; progress.value = 0 }
-
-interface Mood { id: string; name: string; tone: string; iconTone: string; icon: any }
-const moods: Mood[] = [
-  { id: 'm1', name: 'Concentración', tone: 'bg-sky-soft', iconTone: 'text-sky-deep', icon: Headphones },
-  { id: 'm2', name: 'Relax', tone: 'bg-lavender', iconTone: 'text-[#7a63c0]', icon: Radio },
-  { id: 'm3', name: 'Energía', tone: 'bg-peach', iconTone: 'text-[#c5733f]', icon: Disc3 },
-  { id: 'm4', name: 'Buen rollo', tone: 'bg-mint', iconTone: 'text-[#34936a]', icon: Music },
-]
-
-interface Playlist { id: string; name: string; count: number; tone: string; iconTone: string }
-const playlists: Playlist[] = [
-  { id: 'pl1', name: 'Favoritos', count: 84, tone: 'bg-pink-soft', iconTone: 'text-pink-deep' },
-  { id: 'pl2', name: 'Lofi infinito', count: 142, tone: 'bg-sky-soft', iconTone: 'text-sky-deep' },
-  { id: 'pl3', name: 'Para correr', count: 28, tone: 'bg-peach', iconTone: 'text-[#c5733f]' },
-  { id: 'pl4', name: 'Domingo lento', count: 36, tone: 'bg-cream', iconTone: 'text-[#bf8f2e]' },
-  { id: 'pl5', name: 'Coches y carretera', count: 51, tone: 'bg-mint', iconTone: 'text-[#34936a]' },
-  { id: 'pl6', name: 'Concentración total', count: 67, tone: 'bg-lavender', iconTone: 'text-[#7a63c0]' },
-  { id: 'pl7', name: 'Cafetería', count: 45, tone: 'bg-cream', iconTone: 'text-[#bf8f2e]' },
-  { id: 'pl8', name: 'Indie del bueno', count: 92, tone: 'bg-sky-soft', iconTone: 'text-sky-deep' },
-  { id: 'pl9', name: 'Clásicos en español', count: 120, tone: 'bg-peach', iconTone: 'text-[#c5733f]' },
-  { id: 'pl10', name: 'Noche tranquila', count: 38, tone: 'bg-lavender', iconTone: 'text-[#7a63c0]' },
-  { id: 'pl11', name: 'Energía mañana', count: 54, tone: 'bg-mint', iconTone: 'text-[#34936a]' },
-  { id: 'pl12', name: 'Fiesta en casa', count: 73, tone: 'bg-pink-soft', iconTone: 'text-pink-deep' },
-  { id: 'pl13', name: 'Piano y lluvia', count: 29, tone: 'bg-sky-soft', iconTone: 'text-sky-deep' },
-  { id: 'pl14', name: 'Viaje largo', count: 88, tone: 'bg-cream', iconTone: 'text-[#bf8f2e]' },
-  { id: 'pl15', name: 'Descubrimiento semanal', count: 30, tone: 'bg-mint', iconTone: 'text-[#34936a]' },
-]
-
 const search = ref('')
-function play(idx: number) { currentIdx.value = idx; playing.value = true; hasNowPlaying.value = true; progress.value = 0 }
-function playPlaylist() { hasNowPlaying.value = true; playing.value = true; progress.value = 0 }
-function disconnect() { connected.value = false; hasNowPlaying.value = false; playing.value = false; detailOpen.value = false }
-const totalMins = computed(() => current.value.mins)
-const elapsedSec = computed(() => Math.round(totalMins.value * 60 * progress.value / 100))
-const totalSec = computed(() => Math.round(totalMins.value * 60))
-function fmt(s: number) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}` }
+
+onMounted(async () => {
+  await sp.fetchStatus()
+  if (status.value.connected) {
+    await sp.fetchPlaylists()
+    if (status.value.premium) sp.ensurePlayer()
+  }
+  loading.value = false
+})
+
+const connected = computed(() => status.value.connected)
+
+// Playlists reales, mapeadas a la forma del diseño (con color de nube por índice).
+const TONES = [
+  ['bg-pink-soft', 'text-pink-deep'], ['bg-sky-soft', 'text-sky-deep'], ['bg-peach', 'text-[#c5733f]'],
+  ['bg-cream', 'text-[#bf8f2e]'], ['bg-mint', 'text-[#34936a]'], ['bg-lavender', 'text-[#7a63c0]'],
+]
+const playlists = computed(() => (rawPlaylists.value || [])
+  .filter((p) => !search.value || p.name.toLowerCase().includes(search.value.toLowerCase()))
+  .map((p, i) => ({ id: p.id, name: p.name, count: p.tracks, uri: p.uri, tone: TONES[i % TONES.length]![0], iconTone: TONES[i % TONES.length]![1] })))
+
+// Cola real: pista actual + siguientes del reproductor.
+const queue = computed(() => {
+  const list = [...(sdkCurrent.value ? [sdkCurrent.value] : []), ...(sdkNext.value || [])]
+  return list.map((tr, i) => ({ id: tr.uri || String(i), title: tr.name, artist: tr.artists, uri: tr.uri, tone: TONES[i % TONES.length]!.join(' '), mins: (tr.durationMs || 0) / 60000 }))
+})
+const currentIdx = computed(() => (sdkCurrent.value ? 0 : -1))
+const hasNowPlaying = computed(() => !!sdkCurrent.value)
+const current = computed(() => ({
+  title: sdkCurrent.value?.name || '',
+  artist: sdkCurrent.value?.artists || '',
+  tone: 'bg-sky-soft text-sky-deep',
+  mins: (duration.value || 0) / 60000,
+}))
+
+const playing = computed({ get: () => !paused.value, set: () => sp.togglePlay() })
+const progress = computed({
+  get: () => (duration.value ? Math.min(100, (position.value / duration.value) * 100) : 0),
+  set: (v: number) => sp.seek(Math.round((v / 100) * duration.value)),
+})
+const elapsedSec = computed(() => Math.round((position.value || 0) / 1000))
+const totalSec = computed(() => Math.round((duration.value || 0) / 1000))
+function fmt(s: number) { return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` }
+
+function nextTrack() { sp.next() }
+function prevTrack() { sp.prev() }
+function play(idx: number) { const tr = queue.value[idx]; if (tr?.uri) sp.playUris([tr.uri]) }
+function openInSpotify(uri: string) {
+  const parts = (uri || '').split(':'); const id = parts.pop(); const type = parts[1]
+  if (id && type && import.meta.client) window.open(`https://open.spotify.com/${type}/${id}`, '_blank')
+}
+async function onPlayPlaylist(p: { uri: string }) {
+  if (status.value.premium) { const ok = await sp.playContext(p.uri); if (!ok) openInSpotify(p.uri) }
+  else openInSpotify(p.uri)
+}
+function disconnect() { sp.disconnect() }
 </script>
 
 <template>
@@ -90,7 +84,7 @@ function fmt(s: number) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,
 
     <!-- Toolbar -->
     <div class="relative z-10">
-      <PageHero :icon="Music" tone="mint" title="Spotify" :subtitle="connected ? t('spotify.status.connected') : t('spotify.status.disconnected')">
+      <PageHero :icon="Music" tone="mint" title="Spotify" :subtitle="connected ? (status.displayName || t('spotify.status.connected')) : t('spotify.status.disconnected')">
         <template #actions>
           <div v-if="connected" class="relative hidden lg:block">
             <Search class="absolute left-3 top-1/2 -translate-y-1/2 size-[16px] text-fg-subtle" :stroke-width="1.9" aria-hidden="true" />
@@ -107,8 +101,13 @@ function fmt(s: number) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,
       </PageHero>
     </div>
 
+    <!-- CARGANDO -->
+    <div v-if="loading" class="flex-1 min-h-0 grid place-items-center relative z-10">
+      <HibiCloud :size="120" face class="text-mint hibi-anim-pop" aria-hidden="true" />
+    </div>
+
     <!-- NO CONECTADO: estado centrado, SIN scroll -->
-    <div v-if="!connected" class="flex-1 min-h-0 grid place-items-center relative z-10 px-4">
+    <div v-else-if="!connected" class="flex-1 min-h-0 grid place-items-center relative z-10 px-4">
       <div class="text-center flex flex-col items-center gap-5 max-w-[360px]">
         <div class="relative">
           <HibiCloud :size="140" face class="text-mint" aria-hidden="true" />
@@ -121,7 +120,7 @@ function fmt(s: number) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,
           <h2 class="text-[22px] font-extrabold text-fg">{{ t('spotify.connect.title') }}</h2>
           <p class="text-[14px] text-fg-muted mt-1.5 leading-relaxed">{{ t('spotify.connect.desc') }}</p>
         </div>
-        <button type="button" class="inline-flex items-center gap-2 h-[52px] px-8 rounded-full bg-sky text-[#1f4661] font-bold text-[16px]" @click="connected = true">
+        <button type="button" class="inline-flex items-center gap-2 h-[52px] px-8 rounded-full bg-sky text-[#1f4661] font-bold text-[16px]" @click="sp.connect()">
           <Plug class="size-[18px]" :stroke-width="2.2" /> {{ t('spotify.connect.cta') }}
         </button>
         <p class="text-[12px] text-fg-subtle">{{ t('spotify.connect.demo') }}</p>
@@ -145,11 +144,11 @@ function fmt(s: number) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,
             <li v-for="p in playlists" :key="p.id">
               <div role="button" tabindex="0"
                 class="flex items-center gap-3 p-3 rounded-[14px] bg-card cursor-pointer active:bg-muted outline-none focus-visible:ring-2 focus-visible:ring-sky-deep"
-                @click="playPlaylist" @keydown.enter.prevent="playPlaylist" @keydown.space.prevent="playPlaylist">
+                @click="onPlayPlaylist(p)" @keydown.enter.prevent="onPlayPlaylist(p)" @keydown.space.prevent="onPlayPlaylist(p)">
                 <HibiCloudIcon :size="56" :icon="Disc3" :icon-size="19" :cloud-color="p.tone" :icon-color="p.iconTone" :icon-stroke="1.9" class="shrink-0" />
                 <div class="flex-1 min-w-0">
                   <p class="text-[15px] font-bold text-fg truncate">{{ p.name }}</p>
-                  <p class="text-[12.5px] text-fg-muted">{{ t('spotify.songs', { count: p.count }) }}</p>
+                  <p v-if="p.count" class="text-[12.5px] text-fg-muted">{{ t('spotify.songs', { count: p.count }) }}</p>
                 </div>
                 <span class="grid place-items-center size-9 rounded-full bg-sky-soft text-sky-deep shrink-0"><Play class="size-4 fill-current" :stroke-width="0" /></span>
               </div>
@@ -157,6 +156,7 @@ function fmt(s: number) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,
           </ul>
           <!-- COLA -->
           <ul v-else class="hibi-anim-slide-left flex flex-col gap-1.5">
+            <li v-if="!queue.length" class="text-center text-fg-muted text-[13.5px] py-6">{{ t('spotify.pickPlaylist') }}</li>
             <li v-for="(tr, i) in queue" :key="tr.id">
               <button type="button"
                 class="w-full flex items-center gap-3 p-3 rounded-[14px] transition-[background-color] text-left"
@@ -188,7 +188,7 @@ function fmt(s: number) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,
         </div>
       </div>
 
-      <!-- ═══ DESKTOP: reproductor + playlists + cola (como estaba) ═══ -->
+      <!-- ═══ DESKTOP: reproductor + playlists + cola ═══ -->
       <div class="hidden lg:grid lg:grid-cols-[1fr_360px] lg:gap-3 flex-1 min-h-0 overflow-hidden">
         <div class="flex flex-col gap-3 min-h-0 overflow-y-auto scroll-area pr-1">
           <!-- Reproductor: solo cuando hay algo sonando -->
@@ -227,6 +227,10 @@ function fmt(s: number) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,
                 <button class="grid place-items-center size-11 rounded-full text-fg-muted" :aria-label="t('spotify.controls.next')" @click="nextTrack"><SkipForward class="size-5" :stroke-width="2" /></button>
                 <button class="grid place-items-center size-10 rounded-full text-fg-muted" :aria-label="t('spotify.controls.repeat')"><Repeat class="size-[17px]" :stroke-width="2" /></button>
               </div>
+              <div class="flex items-center justify-center gap-2.5 mt-1">
+                <Volume2 class="size-[15px] text-fg-muted shrink-0" :stroke-width="2" aria-hidden="true" />
+                <input type="range" min="0" max="1" step="0.02" :value="volume" class="w-40 cursor-pointer" style="accent-color: var(--color-sky-deep)" :aria-label="t('spotify.controls.volume')" @input="(e) => sp.setVolume(+(e.target as HTMLInputElement).value)" />
+              </div>
             </div>
           </AppCard>
 
@@ -239,13 +243,13 @@ function fmt(s: number) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,
             <ul class="hibi-anim-rotate flex-1 min-h-0 overflow-y-auto scroll-area flex flex-col gap-2 pr-1">
               <li v-for="p in playlists" :key="p.id"
                 class="flex items-center gap-3 p-3 rounded-[12px] bg-muted cursor-pointer"
-                @click="playPlaylist">
+                @click="onPlayPlaylist(p)">
                 <HibiCloudIcon :size="58" :icon="Disc3" :icon-size="19" :cloud-color="p.tone" :icon-color="p.iconTone" :icon-stroke="1.9" class="shrink-0" />
                 <div class="flex-1 min-w-0">
                   <p class="text-[14px] font-bold text-fg truncate">{{ p.name }}</p>
-                  <p class="text-[12px] text-fg-muted">{{ t('spotify.songs', { count: p.count }) }}</p>
+                  <p v-if="p.count" class="text-[12px] text-fg-muted">{{ t('spotify.songs', { count: p.count }) }}</p>
                 </div>
-                <button class="grid place-items-center size-9 rounded-full bg-card text-sky-deep shrink-0" :aria-label="t('spotify.controls.play')" @click.stop="playPlaylist">
+                <button class="grid place-items-center size-9 rounded-full bg-card text-sky-deep shrink-0" :aria-label="t('spotify.controls.play')" @click.stop="onPlayPlaylist(p)">
                   <Play class="size-4 fill-current" :stroke-width="0" />
                 </button>
               </li>
@@ -260,6 +264,7 @@ function fmt(s: number) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,
             <span class="text-[11.5px] text-fg-muted font-semibold">{{ t('spotify.songs', { count: queue.length }) }}</span>
           </header>
           <ul class="hibi-anim-slide-left flex-1 min-h-0 overflow-y-auto scroll-area px-2 pb-4 flex flex-col gap-1">
+            <li v-if="!queue.length" class="text-center text-fg-muted text-[13px] py-8 px-4">{{ t('spotify.pickPlaylist') }}</li>
             <li v-for="(tr, i) in queue" :key="tr.id">
               <button type="button"
                 class="w-full flex items-center gap-3 p-2.5 rounded-[12px] transition-[background-color] text-left"
@@ -288,18 +293,15 @@ function fmt(s: number) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,
               <p class="text-[12px] font-bold text-fg-muted uppercase tracking-wide">{{ t('spotify.nowPlayingShort') }}</p>
               <button type="button" class="grid place-items-center size-10 rounded-full transition-[background-color,color]" :class="liked ? 'bg-pink-soft text-pink-deep' : 'bg-muted text-fg-muted'" :aria-label="liked ? t('spotify.controls.unlike') : t('spotify.controls.like')" @click="liked = !liked"><Heart class="size-[18px]" :class="liked ? 'fill-current' : ''" :stroke-width="liked ? 0 : 2" /></button>
             </header>
-            <!-- Portada grande -->
             <div class="flex-1 min-h-0 grid place-items-center py-4">
               <div class="grid place-items-center w-full max-w-[300px] aspect-square rounded-[28px]" :class="current.tone">
                 <Headphones class="size-20" :stroke-width="1.4" />
               </div>
             </div>
-            <!-- Info -->
             <div class="shrink-0 text-center">
               <h2 class="text-[24px] font-extrabold text-fg leading-tight truncate">{{ current.title }}</h2>
               <p class="text-[14px] text-fg-muted mt-1">{{ current.artist }}</p>
             </div>
-            <!-- Progreso -->
             <div class="shrink-0 flex items-center gap-3 mt-5">
               <span class="text-[11.5px] text-fg-muted tabular-nums w-10 text-right">{{ fmt(elapsedSec) }}</span>
               <div class="flex-1 h-2 rounded-full bg-muted overflow-hidden cursor-pointer"
@@ -308,7 +310,6 @@ function fmt(s: number) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,
               </div>
               <span class="text-[11.5px] text-fg-muted tabular-nums w-10">{{ fmt(totalSec) }}</span>
             </div>
-            <!-- Controles -->
             <div class="shrink-0 flex items-center justify-center gap-3 mt-5">
               <button class="grid place-items-center size-11 rounded-full text-fg-muted" :aria-label="t('spotify.controls.shuffle')"><Shuffle class="size-[18px]" :stroke-width="2" /></button>
               <button class="grid place-items-center size-12 rounded-full text-fg-muted" :aria-label="t('spotify.controls.prev')" @click="prevTrack"><SkipBack class="size-6" :stroke-width="2" /></button>
@@ -316,12 +317,14 @@ function fmt(s: number) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,
               <button class="grid place-items-center size-12 rounded-full text-fg-muted" :aria-label="t('spotify.controls.next')" @click="nextTrack"><SkipForward class="size-6" :stroke-width="2" /></button>
               <button class="grid place-items-center size-11 rounded-full text-fg-muted" :aria-label="t('spotify.controls.repeat')"><Repeat class="size-[18px]" :stroke-width="2" /></button>
             </div>
-            <!-- Ver cola desde el reproductor -->
+            <div class="shrink-0 flex items-center justify-center gap-2.5 mt-5 px-6">
+              <Volume2 class="size-[16px] text-fg-muted shrink-0" :stroke-width="2" aria-hidden="true" />
+              <input type="range" min="0" max="1" step="0.02" :value="volume" class="w-full max-w-[220px] cursor-pointer" style="accent-color: var(--color-sky-deep)" :aria-label="t('spotify.controls.volume')" @input="(e) => sp.setVolume(+(e.target as HTMLInputElement).value)" />
+            </div>
             <button type="button" class="shrink-0 mt-5 mx-auto inline-flex items-center gap-2 h-10 px-5 rounded-full bg-muted text-fg-muted text-[13px] font-bold" @click="detailQueueOpen = true">
               <ListMusic class="size-[16px]" :stroke-width="2" /> {{ t('spotify.queue.view', { count: queue.length }) }}
             </button>
 
-            <!-- Sheet de la cola (dentro del reproductor) -->
             <Transition name="sheet-up">
               <div v-if="detailQueueOpen" class="absolute inset-0 z-10 flex flex-col justify-end">
                 <button type="button" class="absolute inset-0 bg-fg/20" :aria-label="t('spotify.queue.close')" @click="detailQueueOpen = false" />

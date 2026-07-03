@@ -1,6 +1,7 @@
-// Notificaciones simples del navegador para los recordatorios de HOY, mientras
-// la app está abierta (sin service worker ni push). Todo client-side y a prueba
-// de fallos: si no hay soporte o permiso, no hace nada.
+// Notificaciones del navegador (client-side, sin push). Modelo:
+//  · MAESTRO  = "Avisos del escritorio" (permiso + on/off global) → isEnabled/setEnabled.
+//  · TIPOS    = "Recordatorios" y "Resumen diario" → typeOn/setType.
+// Un tipo solo se dispara si el maestro está activo y hay permiso concedido.
 interface NotiReminder { id: string; title: string; remindDate: string; time: string | null; done: boolean }
 
 function localDay(): string {
@@ -17,6 +18,18 @@ export function useNotifications() {
     try { return await Notification.requestPermission() } catch { return 'denied' }
   }
 
+  // Interruptor MAESTRO (toggle "Avisos del escritorio").
+  const ENABLED_KEY = 'hibi.notif.on'
+  function isEnabled(): boolean { try { return localStorage.getItem(ENABLED_KEY) !== 'false' } catch { return true } }
+  function setEnabled(on: boolean) { try { localStorage.setItem(ENABLED_KEY, on ? 'true' : 'false') } catch { /* ignore */ } ; if (!on) clearTimers() }
+
+  // TIPOS activos (toggles "Recordatorios" / "Resumen diario"). Default: on.
+  const TYPE_KEY = (t: string) => 'hibi.notif.type.' + t
+  function typeOn(t: string): boolean { try { return localStorage.getItem(TYPE_KEY(t)) !== 'false' } catch { return true } }
+  function setType(t: string, on: boolean) { try { localStorage.setItem(TYPE_KEY(t), on ? 'true' : 'false') } catch { /* ignore */ } }
+
+  const canNotify = () => supported() && Notification.permission === 'granted' && isEnabled()
+
   const NOTIFIED_KEY = () => 'hibi.notified.' + localDay()
   function notifiedIds(): string[] {
     try { return JSON.parse(localStorage.getItem(NOTIFIED_KEY()) || '[]') as string[] } catch { return [] }
@@ -29,15 +42,13 @@ export function useNotifications() {
   }
 
   let timers: ReturnType<typeof setTimeout>[] = []
-  function clearTimers() { timers.forEach((t) => clearTimeout(t)); timers = [] }
-
-  // Interruptor global de las notificaciones (lo maneja el toggle "Recordatorios").
-  const ENABLED_KEY = 'hibi.notif.on'
-  function isEnabled(): boolean { try { return localStorage.getItem(ENABLED_KEY) !== 'false' } catch { return true } }
-  function setEnabled(on: boolean) { try { localStorage.setItem(ENABLED_KEY, on ? 'true' : 'false') } catch { /* ignore */ } ; if (!on) clearTimers() }
+  let summaryTimer: ReturnType<typeof setTimeout> | undefined
+  function clearReminderTimers() { timers.forEach((t) => clearTimeout(t)); timers = [] }
+  function clearSummaryTimer() { if (summaryTimer) { clearTimeout(summaryTimer); summaryTimer = undefined } }
+  function clearTimers() { clearReminderTimers(); clearSummaryTimer() }
 
   function fire(r: NotiReminder) {
-    if (!supported() || Notification.permission !== 'granted' || !isEnabled()) return
+    if (!canNotify() || !typeOn('reminders')) return
     if (notifiedIds().includes(r.id)) return
     try { new Notification('Hibi', { body: r.title }); markNotified(r.id) } catch { /* ignore */ }
   }
@@ -48,11 +59,10 @@ export function useNotifications() {
     try { new Notification(title, body ? { body } : undefined); return true } catch { return false }
   }
 
-  // Reprograma desde cero los recordatorios de HOY con hora futura. Los ya
-  // vencidos no se disparan retroactivamente (solo cuentan como notificados).
+  // Tipo "Recordatorios": reprograma los recordatorios de HOY con hora futura.
   function scheduleToday(reminders: NotiReminder[]) {
-    if (!supported() || Notification.permission !== 'granted' || !isEnabled()) return
-    clearTimers()
+    clearReminderTimers()
+    if (!canNotify() || !typeOn('reminders')) return
     const today = localDay()
     const now = Date.now()
     for (const r of reminders || []) {
@@ -67,5 +77,19 @@ export function useNotifications() {
     }
   }
 
-  return { supported, permission, requestPermission, scheduleToday, clearTimers, notify, isEnabled, setEnabled }
+  // Tipo "Resumen diario": una notificación con el resumen del día, a las 8:00
+  // (o al abrir si ya pasó). Una sola vez por día.
+  function scheduleDailySummary(text: string) {
+    clearSummaryTimer()
+    if (!canNotify() || !typeOn('summary') || !text) return
+    const key = 'hibi.summary.' + localDay()
+    try { if (localStorage.getItem(key)) return } catch { /* ignore */ }
+    const at = new Date(); at.setHours(8, 0, 0, 0)
+    const delay = at.getTime() - Date.now()
+    const fireIt = () => { try { new Notification('Hibi', { body: text }); localStorage.setItem(key, '1') } catch { /* ignore */ } }
+    if (delay <= 0) fireIt()
+    else summaryTimer = setTimeout(fireIt, Math.min(delay, 2_147_483_000))
+  }
+
+  return { supported, permission, requestPermission, isEnabled, setEnabled, typeOn, setType, scheduleToday, scheduleDailySummary, clearTimers, notify }
 }

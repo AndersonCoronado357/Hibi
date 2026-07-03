@@ -41,6 +41,7 @@
     "notifGranted": "Activadas",
     "notifBlocked": "Bloqueadas",
     "notifTestBody": "¡Listo! Así se verán tus recordatorios.",
+    "notifSummaryBody": "Hoy tienes {tasks} tareas, {events} eventos y {reminders} recordatorios.",
     "notifDesktopLabel": "Avisos del escritorio",
     "notifDesktopHint": "Notificaciones nativas del sistema",
     "notifSummaryLabel": "Resumen diario",

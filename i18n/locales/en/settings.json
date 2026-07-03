@@ -41,6 +41,7 @@
     "notifGranted": "On",
     "notifBlocked": "Blocked",
     "notifTestBody": "Done! This is how your reminders will look.",
+    "notifSummaryBody": "Today you have {tasks} tasks, {events} events and {reminders} reminders.",
     "notifDesktopLabel": "Desktop alerts",
     "notifDesktopHint": "Native system notifications",
     "notifSummaryLabel": "Daily summary",
