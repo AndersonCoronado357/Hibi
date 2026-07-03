@@ -100,10 +100,12 @@ const googleBtn =
           <p class="mt-1 text-[#14202b] font-extrabold tracking-[0.32em] text-sm">日々</p>
           <p class="mt-5 text-[#1c4258] max-w-[18rem] leading-relaxed font-semibold">{{ t('login.brand.loginTagline') }}</p>
         </aside>
-        <main class="relative flex-1 flex flex-col items-center justify-start pt-[3vh] md:place-items-center md:pt-0 scroll-area p-5 md:px-10 md:flex md:flex-col md:justify-center">
-          <div class="w-full max-w-[380px] mx-auto px-1">
-            <div class="md:hidden flex flex-col items-center mb-2 mt-2"><MascotCloud :size="142" class="text-white" /></div>
-            <p class="md:hidden text-center text-[#14202b] font-extrabold tracking-[0.32em] text-sm mb-6">日々</p>
+        <main class="relative flex-1 flex flex-col md:justify-center scroll-area overflow-y-auto p-5 md:px-10">
+          <div class="md:hidden shrink-0 flex flex-col items-center pt-[2vh] pb-3">
+            <MascotCloud :size="138" class="text-white" />
+            <p class="text-center text-[#14202b] font-extrabold tracking-[0.32em] text-sm mt-3">日々</p>
+          </div>
+          <div class="w-full max-w-[380px] mx-auto px-1 flex-1 min-h-0 flex flex-col [justify-content:safe_center] md:flex-none md:block">
             <h2 class="text-[26px] font-extrabold text-fg tracking-tight">{{ t('login.signIn.heading') }}</h2>
             <p class="mt-1.5 text-fg-muted">{{ t('login.signIn.subtitle') }}</p>
             <form class="flex flex-col gap-3.5 mt-5" @submit.prevent="submit">
@@ -135,9 +137,11 @@ const googleBtn =
           <p class="mt-1 text-[#14202b] font-extrabold tracking-[0.32em] text-sm">日々</p>
           <p class="mt-5 text-[#1c4258] max-w-[18rem] leading-relaxed font-semibold">{{ t('login.brand.registerTagline') }}</p>
         </aside>
-        <main class="relative flex-1 flex flex-col items-center justify-start pt-[3vh] md:pt-0 md:flex md:flex-col md:justify-center scroll-area p-5 md:px-10">
-          <div class="w-full max-w-[380px] mx-auto px-1">
-            <div class="md:hidden flex flex-col items-center mb-6 mt-2"><MascotCloud :size="142" class="text-white" /></div>
+        <main class="relative flex-1 flex flex-col md:justify-center scroll-area overflow-y-auto p-5 md:px-10">
+          <div class="md:hidden shrink-0 flex flex-col items-center pt-[2vh] pb-3">
+            <MascotCloud :size="138" class="text-white" />
+          </div>
+          <div class="w-full max-w-[380px] mx-auto px-1 flex-1 min-h-0 flex flex-col [justify-content:safe_center] md:flex-none md:block">
             <h2 class="text-[26px] font-extrabold text-fg tracking-tight">{{ t('login.register.heading') }}</h2>
             <p class="mt-1.5 text-fg-muted">{{ t('login.register.subtitle') }}</p>
             <form class="flex flex-col gap-3.5 mt-5" @submit.prevent="submit">
@@ -164,8 +168,8 @@ const googleBtn =
       </div>
 
       <!-- ╭─ RECUPERAR · nube + degradado arriba · barra de progreso · correo al centro ─╮ -->
-      <div v-else key="forgot" class="relative z-10 flex flex-col items-center w-full h-full scroll-area px-6">
-        <div class="shrink-0 pt-[14vh] pb-6 flex flex-col items-center text-center">
+      <div v-else key="forgot" class="relative z-10 flex flex-col items-center w-full h-full scroll-area overflow-y-auto px-6">
+        <div class="shrink-0 pt-[12vh] pb-6 flex flex-col items-center text-center">
           <MascotCloud :size="140" class="text-white" />
           <h2 class="mt-4 text-[28px] font-extrabold text-[#1c4258] tracking-tight">{{ t('login.forgot.heading') }}</h2>
           <p class="mt-1.5 text-[#2c6189] font-medium max-w-[26rem]">{{ t('login.forgot.subtitle') }}</p>
