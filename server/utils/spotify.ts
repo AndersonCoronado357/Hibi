@@ -92,12 +92,13 @@ export async function spotifyConnect(userId: number, code: string) {
   } catch { /* el perfil es opcional */ }
 }
 
-// Trae TODAS las canciones de una playlist grande: limit=100 y sigue la
+// Trae TODAS las canciones de una playlist grande. OJO: el endpoint correcto es
+// /playlists/{id}/ITEMS (el viejo /tracks devuelve 403). limit=100 y sigue la
 // propiedad `next` hasta null. Delay OBLIGATORIO de 300ms entre peticiones para
-// no chocar con el 429 en modo Development. Junta todo en un único arreglo.
+// no chocar con el 429. Junta todo en un único arreglo (cada item en `it.item`).
 export async function getAllPlaylistTracks(userId: number, playlistId: string): Promise<any[]> {
   const all: any[] = []
-  let path: string | null = `/playlists/${playlistId}/tracks?limit=100`
+  let path: string | null = `/playlists/${playlistId}/items?limit=100`
   while (path) {
     const d: any = await spotifyApi(userId, path)
     for (const it of (d?.items || [])) all.push(it)
@@ -106,6 +107,11 @@ export async function getAllPlaylistTracks(userId: number, playlistId: string): 
     if (path) await new Promise((r) => setTimeout(r, 300)) // anti-429
   }
   return all
+}
+
+// Nº de canciones de una playlist (barato: /items?limit=1 → total).
+export async function getPlaylistCount(userId: number, playlistId: string): Promise<number | null> {
+  try { const d: any = await spotifyApi(userId, `/playlists/${playlistId}/items?limit=1`); return typeof d?.total === 'number' ? d.total : null } catch { return null }
 }
 
 // Llama a la Web API con el token del usuario (refresca una vez si da 401).

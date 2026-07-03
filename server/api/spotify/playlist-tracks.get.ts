@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   let raw: any[] = []
   try { raw = await getAllPlaylistTracks(userId, id) } catch { raw = [] } // 403/limitación → vacío
   const items = raw
-    .map((it: any) => it?.track)
+    .map((it: any) => it?.item || it?.track) // el endpoint /items usa it.item
     .filter((tr: any) => tr && tr.uri && tr.type !== 'episode')
     .map((tr: any) => ({
       name: tr.name || '',
