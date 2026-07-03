@@ -1,5 +1,15 @@
 {
   "inicio": {
+    "quickAddedTask": "Added to Tasks",
+    "quickAddedReminder": "Added to Reminders",
+    "quickAddedNote": "Added to Notes",
+    "quickAddedEvent": "Added to Calendar",
+    "quickAddedMany": "Added",
+    "quickWorking": "Creating…",
+    "cmdTask": "Task",
+    "cmdEvent": "Event",
+    "cmdReminder": "Reminder",
+    "cmdNote": "Note",
     "eventsSub": "events today",
     "eventSub": "event today",
     "tasksSub": "of {n} pending",

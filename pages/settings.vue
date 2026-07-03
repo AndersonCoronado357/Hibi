@@ -31,14 +31,46 @@ async function onLogout() {
   loggingOut.value = true
   try { await logout() } finally { loggingOut.value = false }
 }
+
+// ── Cambio de contraseña (form inline, SIN modal) ──
+const pwOpen = ref(false)
+const pwCurrent = ref(''); const pwNext = ref(''); const pwConfirm = ref('')
+const pwSaving = ref(false); const pwError = ref(''); const pwOk = ref(false)
+function togglePw() {
+  pwOpen.value = !pwOpen.value
+  pwError.value = ''; pwOk.value = false
+  if (!pwOpen.value) { pwCurrent.value = ''; pwNext.value = ''; pwConfirm.value = '' }
+}
+async function changePassword() {
+  if (pwSaving.value) return
+  pwError.value = ''; pwOk.value = false
+  if (pwNext.value.length < 8) { pwError.value = t('settings.pwTooShort'); return }
+  if (pwNext.value !== pwConfirm.value) { pwError.value = t('settings.pwMismatch'); return }
+  pwSaving.value = true
+  try {
+    await $fetch('/api/auth/change-password', { method: 'POST', body: { current: pwCurrent.value, next: pwNext.value } })
+    pwOk.value = true
+    pwCurrent.value = ''; pwNext.value = ''; pwConfirm.value = ''
+  } catch (e: any) {
+    pwError.value = e?.data?.message || e?.data?.statusMessage || t('settings.pwError')
+  } finally {
+    pwSaving.value = false
+  }
+}
 const avatarFileRef = ref<HTMLInputElement | null>(null)
 function pickAvatar() { avatarFileRef.value?.click() }
+// Al elegir archivo abrimos el recortador (visor circular); guardamos al confirmar.
+const cropFile = ref<File | null>(null)
 function onAvatarChange(e: Event) {
-  const f = (e.target as HTMLInputElement).files?.[0]
-  if (!f) return
-  const reader = new FileReader()
-  reader.onload = () => { avatarSrc.value = String(reader.result ?? ''); saveSettings({ avatar: avatarSrc.value }) }
-  reader.readAsDataURL(f)
+  const input = e.target as HTMLInputElement
+  const f = input.files?.[0]
+  input.value = '' // permite volver a elegir el mismo archivo
+  if (f) cropFile.value = f
+}
+function onCropDone(dataUrl: string) {
+  avatarSrc.value = dataUrl
+  saveSettings({ avatar: dataUrl })
+  cropFile.value = null
 }
 function removeAvatar() { avatarSrc.value = null; if (avatarFileRef.value) avatarFileRef.value.value = ''; saveSettings({ avatar: null }) }
 
@@ -54,6 +86,22 @@ onMounted(async () => {
 })
 watch(profileName, (v) => saveSettings({ displayName: v }))
 watch(notifications, (v) => saveSettings({ notifications: { ...v } }), { deep: true })
+
+// El toggle "Recordatorios" activa/desactiva las notificaciones del navegador:
+// al encenderlo pide permiso y agenda los avisos de hoy; al apagarlo, deja de notificar.
+const { requestPermission: reqNotifPerm, scheduleToday: scheduleNotifs, notify: notifyNow, setEnabled: setNotifEnabled } = useNotifications()
+const { reminders: allReminders } = useReminders()
+watch(() => notifications.value.reminders, async (on, prev) => {
+  if (on === prev) return
+  setNotifEnabled(on)
+  if (on) {
+    const p = await reqNotifPerm()
+    if (p === 'granted') {
+      try { scheduleNotifs(allReminders.value as any) } catch { /* ignore */ }
+      notifyNow('Hibi', t('settings.notifTestBody')) // aviso de prueba: se ve en tu PC
+    }
+  }
+})
 
 const timezone = computed(() => {
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone } catch { return 'UTC' }
@@ -103,6 +151,8 @@ const NOTIF_ITEMS = computed(() => [
             <Trash2 class="size-[14px]" :stroke-width="2.2" />
           </button>
           <input ref="avatarFileRef" type="file" accept="image/*" class="hidden" @change="onAvatarChange" />
+          <!-- Recortador circular al cambiar la foto -->
+          <AppPhotoCrop v-if="cropFile" :file="cropFile" @done="onCropDone" @close="cropFile = null" />
         </div>
         <input v-model="profileName" type="text" :placeholder="t('settings.namePlaceholder')"
           class="mt-4 text-[22px] font-extrabold text-fg leading-tight bg-transparent outline-none w-full text-center px-2 py-1 rounded-[10px]" />
@@ -114,13 +164,31 @@ const NOTIF_ITEMS = computed(() => [
 
       <!-- ACCIONES GRANDES abajo: Contraseña + Cerrar sesión, UNA ENCIMA DE LA OTRA -->
       <div class="shrink-0 p-4 flex flex-col gap-3">
-        <button type="button" class="w-full flex items-center gap-4 px-4 py-4 rounded-[16px] bg-cream hover:bg-yellow transition-[background-color] outline-none focus-visible:ring-2 focus-visible:ring-[#bf8f2e] text-left">
+        <button type="button" :aria-expanded="pwOpen" class="w-full flex items-center gap-4 px-4 py-4 rounded-[16px] bg-cream hover:bg-yellow transition-[background-color] outline-none focus-visible:ring-2 focus-visible:ring-[#bf8f2e] text-left" @click="togglePw">
           <HibiCloudIcon :size="68" :icon="KeyRound" :icon-size="24" cloud-color="text-cream" icon-color="text-[#bf8f2e]" :icon-stroke="1.9" class="shrink-0" />
           <div class="flex-1 min-w-0">
             <p class="text-[15px] font-extrabold text-[#bf8f2e] leading-tight">{{ t('settings.changePassword') }}</p>
             <p class="text-[12px] font-bold text-[#bf8f2e]/80 mt-0.5">{{ t('settings.passwordLastTime') }}</p>
           </div>
         </button>
+
+        <!-- Form inline de cambio de contraseña (SIN modal) -->
+        <div v-if="pwOpen" class="flex flex-col gap-2.5 rounded-[16px] bg-muted/60 p-3">
+          <input v-model="pwCurrent" type="password" autocomplete="current-password" :placeholder="t('settings.pwCurrentPlaceholder')"
+            class="w-full h-12 rounded-[12px] bg-card px-4 text-[14px] text-fg outline-none placeholder:text-fg-subtle" />
+          <input v-model="pwNext" type="password" autocomplete="new-password" :placeholder="t('settings.pwNewPlaceholder')"
+            class="w-full h-12 rounded-[12px] bg-card px-4 text-[14px] text-fg outline-none placeholder:text-fg-subtle" />
+          <input v-model="pwConfirm" type="password" autocomplete="new-password" :placeholder="t('settings.pwConfirmPlaceholder')"
+            class="w-full h-12 rounded-[12px] bg-card px-4 text-[14px] text-fg outline-none placeholder:text-fg-subtle"
+            @keydown.enter.prevent="changePassword" />
+          <p v-if="pwError" class="text-[12.5px] font-semibold text-pink-deep px-1">{{ pwError }}</p>
+          <p v-else-if="pwOk" class="text-[12.5px] font-semibold text-[#34936a] px-1">{{ t('settings.pwOk') }}</p>
+          <div class="flex gap-2">
+            <button type="button" class="flex-1 h-11 rounded-[12px] bg-muted text-fg font-bold text-[14px] hover:bg-inset transition-[background-color]" @click="togglePw">{{ t('common.cancel') }}</button>
+            <button type="button" :disabled="pwSaving || !pwCurrent || !pwNext || !pwConfirm"
+              class="flex-1 h-11 rounded-[12px] bg-sky-deep text-white font-bold text-[14px] disabled:opacity-40 transition-opacity" @click="changePassword">{{ pwSaving ? t('settings.pwSaving') : t('common.save') }}</button>
+          </div>
+        </div>
 
         <button type="button" :disabled="loggingOut" class="w-full flex items-center gap-4 px-4 py-4 rounded-[16px] bg-pink-soft hover:bg-pink transition-[background-color] outline-none focus-visible:ring-2 focus-visible:ring-pink-deep text-left disabled:opacity-60" @click="onLogout">
           <HibiCloudIcon :size="68" :icon="LogOut" :icon-size="24" cloud-color="text-pink-soft" icon-color="text-pink-deep" :icon-stroke="1.9" class="shrink-0" />

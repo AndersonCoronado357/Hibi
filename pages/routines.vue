@@ -193,7 +193,14 @@ function onSubDrop(stepIdx: number, subIdx: number) {
   arr.splice(subIdx, 0, item)
   dragSub.value = null
 }
-function toggleStep(s: Step) { s.done = !s.done }
+function toggleStep(s: Step) { s.done = !s.done; (s.substeps || []).forEach(ss => ss.done = s.done) }
+// Al tocar un subpaso: si queda alguno sin marcar, el paso deja de estar completo;
+// si todos quedan marcados, el paso se marca completo.
+function toggleSub(step: Step, ss: Substep) {
+  ss.done = !ss.done
+  const subs = step.substeps || []
+  step.done = subs.length > 0 && subs.every(x => x.done)
+}
 function removeStepAt(i: number) {
   selected.value.steps.splice(i, 1)
   selected.value.minutes = selected.value.steps.reduce((a, s) => a + s.mins, 0)
@@ -431,7 +438,7 @@ function removeRoutine(id: string) {
             <li v-for="(sub, si) in s.substeps || []" :key="i+'-'+si"
               class="group/sub relative grid grid-cols-[56px_1fr_auto] gap-3 items-center py-1.5 pl-12 pr-1 cursor-pointer hover:bg-muted/50 rounded-[10px] transition-[background-color,opacity]"
               :class="dragSub && dragSub.step === i && dragSub.sub === si ? 'opacity-40' : ''"
-              @click.stop="sub.done = !sub.done"
+              @click.stop="toggleSub(s, sub)"
               @dragover="onStepDragOver"
               @drop.stop="onSubDrop(i, si)">
               <span class="relative z-10 mx-auto inline-block" :style="{ width: '32px', height: '22px' }">

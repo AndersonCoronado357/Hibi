@@ -10,6 +10,7 @@ const Body = z.object({
   diversion: stat.optional(),
   coins: z.number().int().min(0).optional(),
   streak: z.number().int().min(0).optional(),
+  sleeping: z.boolean().optional(),
   room: z.string().max(40).optional(),
   inventory: z.record(z.number().int()).optional(),
   lastCareDay: z.string().max(20).optional(),
@@ -20,7 +21,7 @@ export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
   const b = await readValid(event, Body)
   const patch: Record<string, unknown> = { updatedAt: new Date() }
-  for (const k of ['energia', 'pancita', 'carino', 'diversion', 'coins', 'streak', 'room', 'inventory', 'lastCareDay'] as const) {
+  for (const k of ['energia', 'pancita', 'carino', 'diversion', 'coins', 'streak', 'sleeping', 'room', 'inventory', 'lastCareDay'] as const) {
     if (b[k] !== undefined) patch[k] = b[k]
   }
   if (b.lastTick !== undefined) patch.lastTick = new Date(b.lastTick)

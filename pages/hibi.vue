@@ -14,17 +14,23 @@ const careOpen = ref(false) // móvil: false = selector, true = mundo. Desktop l
 // ── Estado de la mascota (persistido) ───────────────────────────────
 interface Pet {
   energia: number; pancita: number; carino: number; diversion: number
-  streak: number; lastCareDay: string; lastTick: number; coins: number; room: string
+  streak: number; lastCareDay: string; lastTick: number; coins: number; room: string; sleeping: boolean
   inventory: Record<string, number>
 }
 const STORE = 'hibi.pet.v1'
 const STARTER_INV = { galleta: 3, manzana: 2, sandwich: 1 }
-const pet = reactive<Pet>({ energia: 80, pancita: 82, carino: 86, diversion: 80, streak: 1, lastCareDay: '', lastTick: 0, coins: 40, room: 'casa', inventory: { ...STARTER_INV } })
+const pet = reactive<Pet>({ energia: 80, pancita: 82, carino: 86, diversion: 80, streak: 1, lastCareDay: '', lastTick: 0, coins: 40, room: 'casa', sleeping: false, inventory: { ...STARTER_INV } })
+// No mostramos los stats hasta reconciliar cache + servidor + decay, para que
+// al entrar se vea UN solo valor final y no un parpadeo (defaults → cache → decay).
+const ready = ref(false)
 const { fetchPet, savePet } = usePet()
 function onRoom(k: string) { pet.room = k; save() }
 
 const dayKey = (d = new Date()) => d.toISOString().slice(0, 10)
-const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)))
+// Sin redondear: los stats se guardan como float para que el decaimiento por
+// tiempo real acumule fracciones (si redondeáramos, cada tick pequeño se perdería).
+// Se redondean solo al MOSTRAR (HibiWorld) y al GUARDAR en el servidor (usePet).
+const clamp = (n: number) => Math.max(0, Math.min(100, n))
 
 // Lee la caché local (sin decadencia ni reset todavía).
 function loadLocalOnly() {
@@ -35,16 +41,37 @@ function loadLocalOnly() {
   if (typeof pet.room !== 'string') pet.room = 'casa'
   if (!pet.inventory || typeof pet.inventory !== 'object') pet.inventory = { ...STARTER_INV }
 }
-// Aplica decadencia por horas ausente + corta la racha si faltó un día.
+// Ritmos por hora ausente.
+const SLEEP_ENERGY_PER_HR = 20 // dormida: la energía sube ~20/h (0→100 en ~5h)
+// Pasada de sueño: al llegar a 100 de energía, los demás bajan/h. Duplicado
+// respecto a antes → tardan la MITAD en caer (100→0 en ~16h/25h/16h).
+const OVERSLEEP = { pancita: 6, carino: 4, diversion: 6 }
+
+// Reconciliación por el tiempo ausente + corta la racha si faltó un día.
+// Dormida → la energía sube con el tiempo; al tocar 100 sigue dormida y los
+// otros stats empiezan a decaer. Despierta → decadencia normal.
 function applyDecay() {
-  if (pet.lastTick) {
-    const hrs = Math.floor((Date.now() - pet.lastTick) / 3_600_000)
-    if (hrs > 0) {
+  const elapsedMs = pet.lastTick ? Date.now() - pet.lastTick : 0
+  if (elapsedMs > 0) {
+    const hrs = elapsedMs / 3_600_000
+    if (pet.sleeping) {
+      const hrsToFull = Math.max(0, (100 - pet.energia) / SLEEP_ENERGY_PER_HR)
+      pet.energia = clamp(pet.energia + hrs * SLEEP_ENERGY_PER_HR)
+      const over = hrs - hrsToFull // horas de sueño DESPUÉS de llegar a 100
+      if (over > 0) {
+        pet.pancita = clamp(pet.pancita - over * OVERSLEEP.pancita)
+        pet.carino = clamp(pet.carino - over * OVERSLEEP.carino)
+        pet.diversion = clamp(pet.diversion - over * OVERSLEEP.diversion)
+      }
+    } else {
+      // Despierta: decaimiento continuo (proporcional al tiempo REAL, sin perder
+      // fracciones de hora — importante ahora que reconciliamos a menudo).
       pet.pancita = clamp(pet.pancita - hrs * 4)
       pet.energia = clamp(pet.energia - hrs * 3)
       pet.carino = clamp(pet.carino - hrs * 2)
       pet.diversion = clamp(pet.diversion - hrs * 3) // se va aburriendo
     }
+    pet.lastTick = Date.now() // consume el tiempo ya aplicado (no re-contar)
   }
   const yest = dayKey(new Date(Date.now() - 86_400_000))
   if (pet.lastCareDay && pet.lastCareDay !== dayKey() && pet.lastCareDay !== yest) pet.streak = 0
@@ -73,8 +100,16 @@ onMounted(async () => {
   if (server && (server.lastTick || 0) > localTick) Object.assign(pet, server)
   applyDecay()
   pet.lastTick = Date.now()
+  ready.value = true // recién ahora los valores son finales → se revelan
   save()
+  if (pet.sleeping) startSleepLoop() // seguía dormida → reanuda el sueño en vivo
+  // Al volver a la pestaña (el móvil pudo pausar el timer del todo), reconcilia
+  // el tiempo transcurrido de una vez.
+  if (import.meta.client) document.addEventListener('visibilitychange', reconcileOnVisible)
 })
+function reconcileOnVisible() {
+  if (typeof document !== 'undefined' && document.visibilityState === 'visible') { applyDecay(); save() }
+}
 
 // ── Estado derivado (la CARA de la mascota) ─────────────────────────
 const mood = computed(() => Math.round((pet.energia + pet.pancita + pet.carino + pet.diversion) / 4))
@@ -108,27 +143,24 @@ function onAffection() {
   commit()
 }
 
-// Dormir: el cuarto enciende/apaga la luz; aquí recargamos la energía sola.
+// Dormir: el cuarto apaga la luz. La energía sube mientras duerme; al llegar a
+// 100 NO se despierta sola: sigue dormida y empiezan a decaer los otros stats
+// (dormir de más también pasa factura). Solo se despierta al encender la luz.
 let sleepInt: ReturnType<typeof setInterval> | undefined
-function stopSleep() { if (sleepInt) { clearInterval(sleepInt); sleepInt = undefined } commit() }
+function startSleepLoop() {
+  if (sleepInt) return
+  // Decaimiento por tiempo REAL: aunque el navegador congele el timer en segundo
+  // plano, cada tick aplica lo transcurrido desde lastTick (no un -1 fijo que
+  // perdería las horas de fondo). applyDecay sube la energía y, tras el 100,
+  // baja los otros stats, y actualiza lastTick.
+  sleepInt = setInterval(() => { applyDecay(); save() }, 6000)
+}
+function stopSleepLoop() { if (sleepInt) { clearInterval(sleepInt); sleepInt = undefined } }
 function onSleep(active: boolean) {
-  if (active) {
-    if (sleepInt) clearInterval(sleepInt)
-    let t = 0
-    // Energía sube despacio: ~+1 cada 6 s → llenar de 0 a 100 tarda ~10 min.
-    sleepInt = setInterval(() => {
-      pet.energia = clamp(pet.energia + 1)
-      if (++t % 5 === 0) { // cada ~30 s baja un poco lo demás
-        pet.pancita = clamp(pet.pancita - 1)
-        pet.carino = clamp(pet.carino - 1)
-        pet.diversion = clamp(pet.diversion - 1)
-      }
-      save()
-      if (pet.energia >= 100) stopSleep()
-    }, 6000)
-  } else {
-    stopSleep()
-  }
+  pet.sleeping = active
+  if (active) startSleepLoop()
+  else stopSleepLoop()
+  commit() // persiste sleeping + pone lastTick = ahora
 }
 
 // ── Mini-juego (esquivar) ───────────────────────────────────────────
@@ -145,7 +177,10 @@ function onGameEnd(coins: number) {
   lastGameCoins.value = coins
 }
 
-onBeforeUnmount(() => { if (sleepInt) clearInterval(sleepInt) })
+onBeforeUnmount(() => {
+  if (sleepInt) clearInterval(sleepInt)
+  if (import.meta.client) document.removeEventListener('visibilitychange', reconcileOnVisible)
+})
 </script>
 
 <template>
@@ -183,11 +218,17 @@ onBeforeUnmount(() => { if (sleepInt) clearInterval(sleepInt) })
     <div :class="careOpen ? 'block' : 'hidden md:block'" class="h-full w-full md:p-5">
       <div class="h-full w-full overflow-hidden md:rounded-[24px] bg-base">
         <HibiWorld
+          v-if="ready"
           :energia="pet.energia" :pancita="pet.pancita" :carino="pet.carino" :diversion="pet.diversion"
           :coins="pet.coins" :streak="pet.streak" :state="state" :room="pet.room" :inventory="pet.inventory"
+          :sleeping="pet.sleeping"
           :last-game-coins="lastGameCoins"
           @feed="onFeed" @buy="onBuy" @affection="onAffection" @sleep="onSleep"
           @play-game="onPlayGame" @update:room="onRoom" @chat="router.push('/chat')" />
+        <!-- Mientras reconcilia (cache+servidor+decay): nube pulsante, sin números aún -->
+        <div v-else class="h-full w-full grid place-items-center">
+          <HibiCloud :size="96" class="text-sky-soft opacity-60 animate-pulse" aria-hidden="true" />
+        </div>
       </div>
     </div>
 

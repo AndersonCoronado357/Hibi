@@ -23,7 +23,7 @@
       "title": "Nuevo recordatorio",
       "subtitle": "Para que no se te pase",
       "titleLabel": "¿Qué te recuerdo?",
-      "titlePlaceholder": "Tomar la pastilla, llamar a mamá…",
+      "titlePlaceholder": "Tomar la pastilla, llamar a mamá",
       "dateLabel": "Fecha",
       "timeLabel": "Hora",
       "alarmLabel": "Alarma sonora",
@@ -31,10 +31,10 @@
       "alarmOff": "Desactivada",
       "preLabel": "Aviso previo",
       "notesLabel": "Notas",
-      "notesPlaceholder": "Detalles, contexto…"
+      "notesPlaceholder": "Detalles, contexto"
     },
     "empty": {
-      "title": "Nada que recordar… por ahora",
+      "title": "Nada que recordar por ahora",
       "subtitle": "Crea el primero con el botón “Nuevo”."
     },
     "row": {

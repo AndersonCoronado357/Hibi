@@ -21,6 +21,7 @@ const props = defineProps<{
   energia: number; pancita: number; carino: number; diversion: number
   coins: number; streak: number; state: string; room: string
   inventory: Record<string, number>; lastGameCoins?: number
+  sleeping?: boolean
 }>()
 const emit = defineEmits<{
   feed: [id: string, gain: number]
@@ -65,10 +66,10 @@ function prev() { goTo(idx.value - 1) }
 function next() { goTo(idx.value + 1) }
 
 const STATS = computed(() => [
-  { key: 'e', icon: SparkIcon, ink: 'text-sky-deep', fill: '#5aa6d2', label: t('hibi.stats.energia'), v: props.energia, go: 'dormir' },
-  { key: 'p', icon: Cookie, ink: 'text-[#bf8f2e]', fill: '#d8a43a', label: t('hibi.stats.pancita'), v: props.pancita, go: 'cocina' },
-  { key: 'c', icon: Heart, ink: 'text-pink-deep', fill: '#db8aa3', label: t('hibi.stats.carino'), v: props.carino, go: 'casa' },
-  { key: 'd', icon: Gamepad2, ink: 'text-[#7a63c0]', fill: '#9a7fd1', label: t('hibi.stats.diversion'), v: props.diversion, go: 'juegos' },
+  { key: 'e', icon: SparkIcon, ink: 'text-sky-deep', fill: '#5aa6d2', label: t('hibi.stats.energia'), v: Math.round(props.energia), go: 'dormir' },
+  { key: 'p', icon: Cookie, ink: 'text-[#bf8f2e]', fill: '#d8a43a', label: t('hibi.stats.pancita'), v: Math.round(props.pancita), go: 'cocina' },
+  { key: 'c', icon: Heart, ink: 'text-pink-deep', fill: '#db8aa3', label: t('hibi.stats.carino'), v: Math.round(props.carino), go: 'casa' },
+  { key: 'd', icon: Gamepad2, ink: 'text-[#7a63c0]', fill: '#9a7fd1', label: t('hibi.stats.diversion'), v: Math.round(props.diversion), go: 'juegos' },
 ])
 function tapStat(go: string) { const i = SECTIONS.findIndex(s => s.key === go); if (i >= 0) goTo(i) }
 
@@ -80,7 +81,7 @@ const sceneH = ref(560)
 function measure() { const r = sceneRef.value?.getBoundingClientRect(); if (r) { sceneW.value = r.width; sceneH.value = r.height } }
 const hibiSize = computed(() => Math.round(Math.max(160, Math.min(290, Math.min(sceneW.value * 0.32, sceneH.value * 0.46)))))
 
-const sleeping = ref(false)
+const sleeping = ref(props.sleeping ?? false) // inicia según el estado persistido
 const reacting = ref(false)
 const eating = ref(false)
 const giggle = ref(false)

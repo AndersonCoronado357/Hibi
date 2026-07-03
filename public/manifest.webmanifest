@@ -1,0 +1,16 @@
+{
+  "name": "Hibi",
+  "short_name": "Hibi",
+  "description": "Hibi — organiza tu día a día con cariño.",
+  "start_url": "/inicio",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#e9f2fb",
+  "theme_color": "#5aa6d2",
+  "lang": "es",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

@@ -19,11 +19,11 @@
       "targetLabel": "Target date",
       "targetPlaceholder": "Select date",
       "areaLabel": "Area",
-      "areaPlaceholder": "Health, Study, Finances…",
+      "areaPlaceholder": "Health, Study, Finances",
       "totalLabel": "Total goal",
       "totalPlaceholder": "100",
       "unitLabel": "Unit",
-      "unitPlaceholder": "books, km, COP, lessons…",
+      "unitPlaceholder": "books, km, COP, lessons",
       "colorLabel": "Color"
     },
     "tones": {

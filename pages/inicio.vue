@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { CalendarClock, ListTodo, BellRing, Flame, Smile, Sparkles, Plus, Cloud as CloudIcon } from '@lucide/vue'
+import { useQueryClient } from '@tanstack/vue-query'
 
 const { t, locale } = useI18n()
 const { greeting, now } = useGreeting()
@@ -7,6 +8,7 @@ const quick = ref('')
 
 const { summary, refetch: refetchSummary } = useInicioSummary()
 const { createTask } = useTasks()
+const qc = useQueryClient()
 
 const dateLabel = computed(() =>
   new Intl.DateTimeFormat(locale.value, {
@@ -47,16 +49,45 @@ function widgetDisplay(key: string): { value: string; sub: string } {
   }
 }
 
-// Captura rápida → crea una tarea.
+// Captura rápida → la IA interpreta la frase y crea lo correcto
+// (tarea / cita en calendario / recordatorio / nota). "/comando" fuerza el tipo.
 const adding = ref(false)
+const feedback = ref('')
+let fbTimer: ReturnType<typeof setTimeout> | undefined
+function showFeedback(msg: string) {
+  feedback.value = msg
+  if (fbTimer) clearTimeout(fbTimer)
+  fbTimer = setTimeout(() => { feedback.value = '' }, 2600)
+}
+const ADDED_KEY: Record<string, string> = { task: 'quickAddedTask', event: 'quickAddedEvent', reminder: 'quickAddedReminder', note: 'quickAddedNote' }
+function feedbackFor(created: { type: string }[]): string {
+  const types = [...new Set(created.map((c) => c.type))]
+  return types.length === 1 ? t('inicio.' + (ADDED_KEY[types[0]!] || 'quickAddedTask')) : t('inicio.quickAddedMany')
+}
 async function quickAdd() {
-  const title = quick.value.trim()
-  if (!title || adding.value) return
+  const text = quick.value.trim()
+  if (!text || adding.value) return
   adding.value = true
+  // Aviso inmediato mientras la IA trabaja (las notas tardan un poco en generarse).
+  if (fbTimer) clearTimeout(fbTimer)
+  feedback.value = t('inicio.quickWorking')
   try {
-    await createTask({ title })
+    let created: { type: string; title: string }[] = []
+    try {
+      const res = await $fetch<{ created: { type: string; title: string }[] }>('/api/ai/command', { method: 'POST', body: { text } })
+      created = res.created || []
+    } catch { /* IA no disponible → fallback abajo */ }
+    if (!created.length) {
+      // Fallback: crea una tarea para no perder lo escrito.
+      await createTask({ title: text.replace(/^\/\S+\s*/, '') || text })
+      created = [{ type: 'task', title: text }]
+    }
     quick.value = ''
+    showFeedback(feedbackFor(created))
     await refetchSummary()
+    // Si se creó un recordatorio, refresca su lista para que el layout
+    // reprograme la notificación del navegador de HOY.
+    if (created.some((c) => c.type === 'reminder')) qc.invalidateQueries({ queryKey: ['reminders'] })
   } finally {
     adding.value = false
   }
@@ -85,9 +116,9 @@ async function quickAdd() {
         <div class="relative w-full">
           <label for="quick-capture-mobile" class="sr-only">{{ t('today.quickCapture') }}</label>
           <input
-            id="quick-capture-mobile" v-model="quick"
+            id="quick-capture-mobile" v-model="quick" :disabled="adding"
             :placeholder="t('today.quickCapture')"
-            class="w-full h-12 rounded-full bg-card pl-5 pr-14 text-[15px] text-fg outline-none shadow-[0_2px_12px_rgba(0,0,0,0.04)] text-ellipsis-none"
+            class="w-full h-12 rounded-full bg-card pl-5 pr-14 text-[15px] text-fg outline-none shadow-[0_2px_12px_rgba(0,0,0,0.04)] text-ellipsis-none disabled:opacity-60 disabled:cursor-not-allowed"
             @keyup.enter="quickAdd"
           />
           <button
@@ -110,14 +141,15 @@ async function quickAdd() {
               <div class="mt-5 relative max-w-2xl hidden md:block">
                 <label for="quick-capture" class="sr-only">{{ t('today.quickCapture') }}</label>
                 <input
-                  id="quick-capture" v-model="quick"
+                  id="quick-capture" v-model="quick" :disabled="adding"
                   :placeholder="t('today.quickCapture')"
-                  class="w-full h-12 rounded-full bg-card pl-5 pr-14 text-[15px] text-fg outline-none"
+                  class="w-full h-12 rounded-full bg-card pl-5 pr-14 text-[15px] text-fg outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                   @keyup.enter="quickAdd"
                 />
                 <button
-                  type="button" :aria-label="t('common.add')"
-                  class="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex items-center justify-center size-10 rounded-full bg-sky text-[#1f4661] hover:brightness-[0.96] transition-[filter] duration-200"
+                  type="button" :aria-label="t('common.add')" :disabled="adding"
+                  class="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex items-center justify-center size-10 rounded-full bg-sky text-[#1f4661] hover:brightness-[0.96] transition-[filter] duration-200 disabled:opacity-60"
+                  @click="quickAdd"
                 ><Plus class="size-5" :stroke-width="2.4" aria-hidden="true" /></button>
               </div>
             </div>
@@ -148,5 +180,28 @@ async function quickAdd() {
         </div>
       </section>
     </div>
+
+    <!-- Confirmación flotante: aparece por encima, abajo-centro, sin mover el layout -->
+    <ClientOnly>
+      <Teleport to="body">
+        <Transition name="toastfade">
+          <div
+            v-if="feedback" role="status" aria-live="polite"
+            class="toast fixed left-1/2 bottom-24 md:bottom-8 z-[80] px-5 py-3 rounded-full bg-sky-deep text-white text-[13.5px] font-bold text-center shadow-[0_10px_30px_rgba(0,0,0,0.22)] pointer-events-none whitespace-nowrap max-w-[90vw]"
+          >{{ feedback }}</div>
+        </Transition>
+      </Teleport>
+    </ClientOnly>
   </div>
 </template>
+
+<style scoped>
+.toast { transform: translateX(-50%); will-change: transform, opacity; }
+.toastfade-enter-active { transition: opacity .22s ease, transform .28s cubic-bezier(.16, 1, .3, 1); }
+.toastfade-leave-active { transition: opacity .18s ease, transform .2s ease; }
+.toastfade-enter-from, .toastfade-leave-to { opacity: 0; transform: translate(-50%, 14px); }
+@media (prefers-reduced-motion: reduce) {
+  .toastfade-enter-active, .toastfade-leave-active { transition: opacity .15s ease; }
+  .toastfade-enter-from, .toastfade-leave-to { transform: translateX(-50%); }
+}
+</style>

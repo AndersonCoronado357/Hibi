@@ -23,7 +23,7 @@
       "title": "New reminder",
       "subtitle": "So it doesn't slip your mind",
       "titleLabel": "What should I remind you of?",
-      "titlePlaceholder": "Take the pill, call mom…",
+      "titlePlaceholder": "Take the pill, call mom",
       "dateLabel": "Date",
       "timeLabel": "Time",
       "alarmLabel": "Sound alarm",
@@ -31,10 +31,10 @@
       "alarmOff": "Off",
       "preLabel": "Advance notice",
       "notesLabel": "Notes",
-      "notesPlaceholder": "Details, context…"
+      "notesPlaceholder": "Details, context"
     },
     "empty": {
-      "title": "Nothing to remember… for now",
+      "title": "Nothing to remember for now",
       "subtitle": "Create your first one with the “New” button."
     },
     "row": {

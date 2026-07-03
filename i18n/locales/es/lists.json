@@ -16,10 +16,10 @@
       "title": "Nueva lista",
       "subtitle": "Para no dejarte nada",
       "nameLabel": "Nombre",
-      "namePlaceholder": "Compra semanal, viaje a Japón…",
+      "namePlaceholder": "Compra semanal, viaje a Japón",
       "typeLabel": "Tipo",
       "initialLabel": "Ítems iniciales",
-      "initialPlaceholder": "Pan, leche, manzanas…"
+      "initialPlaceholder": "Pan, leche, manzanas"
     },
     "sidebar": {
       "heading": "Tus listas",
@@ -31,7 +31,7 @@
     "detail": {
       "markedCount": "{done} de {total} marcados",
       "newItemLabel": "Nuevo ítem",
-      "addItemPlaceholder": "Añadir ítem…"
+      "addItemPlaceholder": "Añadir ítem"
     },
     "aria": {
       "removeInitial": "Eliminar",

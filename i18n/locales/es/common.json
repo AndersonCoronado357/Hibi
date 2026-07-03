@@ -51,7 +51,7 @@
     "save": "Guardar",
     "cancel": "Cancelar",
     "add": "Añadir",
-    "loading": "Cargando…",
+    "loading": "Cargando",
     "delete": "Eliminar",
     "edit": "Editar",
     "new": "Nuevo",
@@ -78,7 +78,7 @@
       "h1": "Título grande", "h2": "Título medio", "quote": "Cita", "code": "Código",
       "ul": "Lista", "ol": "Lista numerada", "link": "Enlace", "undo": "Deshacer", "redo": "Rehacer",
       "textColor": "Color del texto", "highlight": "Resaltador", "size": "Tamaño", "format": "Formato",
-      "linkPrompt": "URL del enlace", "placeholder": "Empieza a escribir…"
+      "linkPrompt": "URL del enlace", "placeholder": "Empieza a escribir"
     }
   }
 }

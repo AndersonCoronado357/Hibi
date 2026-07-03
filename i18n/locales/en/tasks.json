@@ -36,10 +36,13 @@
       "titleLabel": "Title",
       "titlePlaceholder": "What needs doing?",
       "priorityLabel": "Priority",
+      "repeatLabel": "Repeat",
+      "everyDay": "Every day",
+      "dateRepeatHint": "The date is handled by the repeat",
       "dateLabel": "Date",
       "datePlaceholder": "Pick a date",
       "notesLabel": "Notes",
-      "notesPlaceholder": "Details, context, links…"
+      "notesPlaceholder": "Details, context, links"
     },
     "empty": {
       "allTitle": "No tasks yet",

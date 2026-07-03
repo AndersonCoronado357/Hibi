@@ -20,7 +20,7 @@
       "show": "Show list",
       "hide": "Hide list",
       "searchLabel": "Search notes",
-      "searchPlaceholder": "Search notes…",
+      "searchPlaceholder": "Search notes",
       "count": "{n} notes",
       "new": "New",
       "deleteNote": "Delete note",
@@ -30,7 +30,7 @@
     "countMany": "{n} notes",
     "editor": {
       "titlePlaceholder": "Note title",
-      "contentPlaceholder": "Start writing…",
+      "contentPlaceholder": "Start writing",
       "noContent": "No content yet",
       "format": "Format"
     },

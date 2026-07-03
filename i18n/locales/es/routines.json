@@ -31,7 +31,7 @@
       "title": "Nueva rutina",
       "subtitle": "Una secuencia de pasos para tu día",
       "nameLabel": "Nombre",
-      "namePlaceholder": "Mañana clara, noche calmada…",
+      "namePlaceholder": "Mañana clara, noche calmada",
       "timeLabel": "Momento",
       "daysLabel": "Días",
       "stepsLabel": "Pasos",
@@ -52,7 +52,7 @@
       "noToday": "No hay rutinas para hoy",
       "seeAll": "Ver todas",
       "createFirst": "Crea tu primera rutina",
-      "loading": "Cargando rutinas…",
+      "loading": "Cargando rutinas",
       "newRoutine": "Nueva rutina"
     },
     "aria": {

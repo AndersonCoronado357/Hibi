@@ -132,7 +132,8 @@ export async function sendUserMessage(text: string) {
   const trimmed = text.trim()
   if (!trimmed) return
 
-  if (!conv.messages.some((m) => m.role === 'user')) conv.title = titleFrom(trimmed)
+  const firstUserMsg = !conv.messages.some((m) => m.role === 'user')
+  if (firstUserMsg) conv.title = titleFrom(trimmed) // provisional; el servidor pone un título por tema
   conv.messages.push({ id: uid(), role: 'user', text: trimmed, at: Date.now() })
   conv.updatedAt = Date.now()
 
@@ -158,4 +159,14 @@ export async function sendUserMessage(text: string) {
     if (!assistant.text) assistant.text = 'No pude conectar con la IA. Inténtalo de nuevo.'
   }
   conv.updatedAt = Date.now()
+
+  // Tras el primer intercambio, el servidor genera un título por TEMA.
+  // Lo traemos para reflejarlo sin recargar (sin tocar los mensajes).
+  if (firstUserMsg) {
+    try {
+      const rows = await $fetch<any[]>('/api/chat/conversations')
+      const fresh = rows.find((r) => r.id === conv.id)
+      if (fresh?.title) conv.title = fresh.title
+    } catch { /* deja el título provisional */ }
+  }
 }

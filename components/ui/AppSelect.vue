@@ -16,7 +16,7 @@ const props = withDefaults(
     /** Fondo del trigger: 'card' (blanco, por defecto) o 'muted' (azulito) */
     tone?: 'card' | 'muted'
   }>(),
-  { placeholder: 'Selecciona…', size: 'md', disabled: false, tone: 'card' },
+  { placeholder: 'Selecciona', size: 'md', disabled: false, tone: 'card' },
 )
 
 const emit = defineEmits<{ 'update:modelValue': [v: string | number] }>()

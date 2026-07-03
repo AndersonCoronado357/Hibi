@@ -15,6 +15,9 @@ const MESSAGES: Record<string, { es: string; en: string }> = {
   emailRequired: { es: 'Escribe tu correo', en: 'Enter your email' },
   passwordRequired: { es: 'Escribe tu contraseña', en: 'Enter your password' },
   passwordTooShort: { es: 'La contraseña necesita al menos 6 caracteres', en: 'Password needs at least 6 characters' },
+  currentRequired: { es: 'Escribe tu contraseña actual', en: 'Enter your current password' },
+  newPasswordTooShort: { es: 'La nueva contraseña necesita al menos 8 caracteres', en: 'New password needs at least 8 characters' },
+  wrongCurrentPassword: { es: 'La contraseña actual no es correcta', en: 'Current password is wrong' },
 }
 
 export function tServer(event: H3Event, key: string): string {

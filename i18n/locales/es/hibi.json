@@ -33,7 +33,7 @@
       "hungry": "Tiene hambre",
       "sleepy": "Con sueño",
       "sad": "Necesita mimos",
-      "sleeping": "Durmiendo…"
+      "sleeping": "Durmiendo"
     },
     "nav": {
       "prevSection": "Sección anterior",
@@ -67,7 +67,7 @@
     "bedroom": {
       "lightOn": "Encender luz",
       "lightOff": "Apagar luz",
-      "sleeping": "Durmiendo… la energía sube",
+      "sleeping": "Durmiendo la energía sube",
       "sleepHint": "Apaga la luz para que duerma"
     },
     "game": {

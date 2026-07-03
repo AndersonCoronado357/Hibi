@@ -33,7 +33,7 @@
       "hungry": "Hungry",
       "sleepy": "Sleepy",
       "sad": "Needs cuddles",
-      "sleeping": "Sleeping…"
+      "sleeping": "Sleeping"
     },
     "nav": {
       "prevSection": "Previous section",
@@ -67,7 +67,7 @@
     "bedroom": {
       "lightOn": "Turn light on",
       "lightOff": "Turn light off",
-      "sleeping": "Sleeping… energy is rising",
+      "sleeping": "Sleeping energy is rising",
       "sleepHint": "Turn off the light so it sleeps"
     },
     "game": {
