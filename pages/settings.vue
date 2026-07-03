@@ -76,6 +76,26 @@ function removeAvatar() { avatarSrc.value = null; if (avatarFileRef.value) avata
 
 const notifications = ref<Record<string, boolean>>({ desktop: true, summary: true, reminders: true })
 
+// Notificaciones del navegador. "Avisos del escritorio" es el MAESTRO (pide
+// permiso y enciende/apaga todo). "Recordatorios" y "Resumen diario" son los tipos.
+const {
+  permission: notifPerm, isEnabled: notifEnabled, requestPermission: reqNotifPerm,
+  setEnabled: setNotifEnabled, setType: setNotifType, typeOn: notifTypeOn,
+  scheduleToday: scheduleNotifs, scheduleDailySummary: scheduleSummary, notify: notifyNow,
+} = useNotifications()
+const { reminders: allReminders } = useReminders()
+const { summary: daySummary } = useInicioSummary()
+function summaryText(): string {
+  const s = daySummary.value
+  if (!s) return ''
+  return t('settings.notifSummaryBody', { tasks: s.todayTasks ?? 0, events: s.todayEvents ?? 0, reminders: s.reminders ?? 0 })
+}
+function rescheduleAll() {
+  if (notifPerm() !== 'granted' || !notifEnabled()) return
+  try { scheduleNotifs(allReminders.value as any) } catch { /* ignore */ }
+  try { scheduleSummary(summaryText()) } catch { /* ignore */ }
+}
+
 onMounted(async () => {
   const s = await loadSettings()
   if (s) {
@@ -83,24 +103,37 @@ onMounted(async () => {
     if (s.avatar) avatarSrc.value = s.avatar
     if (s.notifications && typeof s.notifications === 'object') notifications.value = { ...notifications.value, ...s.notifications }
   }
+  // Los toggles reflejan el estado REAL del navegador (no la BD): "Avisos del
+  // escritorio" = permiso concedido + maestro activo; los tipos, sus flags. Así,
+  // si no hay permiso, arrancan apagados y al encenderlos se pide.
+  notifications.value.desktop = notifPerm() === 'granted' && notifEnabled()
+  notifications.value.reminders = notifTypeOn('reminders')
+  notifications.value.summary = notifTypeOn('summary')
 })
 watch(profileName, (v) => saveSettings({ displayName: v }))
 watch(notifications, (v) => saveSettings({ notifications: { ...v } }), { deep: true })
 
-// El toggle "Recordatorios" activa/desactiva las notificaciones del navegador:
-// al encenderlo pide permiso y agenda los avisos de hoy; al apagarlo, deja de notificar.
-const { requestPermission: reqNotifPerm, scheduleToday: scheduleNotifs, notify: notifyNow, setEnabled: setNotifEnabled } = useNotifications()
-const { reminders: allReminders } = useReminders()
-watch(() => notifications.value.reminders, async (on, prev) => {
+// MAESTRO: "Avisos del escritorio" → pide permiso y enciende/apaga todo.
+watch(() => notifications.value.desktop, async (on, prev) => {
   if (on === prev) return
   setNotifEnabled(on)
   if (on) {
     const p = await reqNotifPerm()
-    if (p === 'granted') {
-      try { scheduleNotifs(allReminders.value as any) } catch { /* ignore */ }
-      notifyNow('Hibi', t('settings.notifTestBody')) // aviso de prueba: se ve en tu PC
-    }
+    if (p === 'granted') { rescheduleAll(); notifyNow('Hibi', t('settings.notifTestBody')) }
+    else notifications.value.desktop = false // permiso denegado → refleja apagado
   }
+})
+// TIPO "Recordatorios".
+watch(() => notifications.value.reminders, (on, prev) => {
+  if (on === prev) return
+  setNotifType('reminders', on)
+  if (on) { try { scheduleNotifs(allReminders.value as any) } catch { /* ignore */ } }
+})
+// TIPO "Resumen diario".
+watch(() => notifications.value.summary, (on, prev) => {
+  if (on === prev) return
+  setNotifType('summary', on)
+  if (on) { try { scheduleSummary(summaryText()) } catch { /* ignore */ } }
 })
 
 const timezone = computed(() => {

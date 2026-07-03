@@ -14,8 +14,13 @@
       "title": "Conecta tu Spotify",
       "desc": "Enlaza tu cuenta para ver tus playlists, tu cola y controlar la música desde Hibi.",
       "cta": "Conectar Spotify",
-      "demo": "Demo — no se conecta a ninguna cuenta real."
+      "demo": "Se abrirá Spotify para autorizar tu cuenta."
     },
+    "linked": "¡Spotify conectado!",
+    "linkError": "No se pudo conectar Spotify. Inténtalo de nuevo.",
+    "premiumHint": "Abriendo en Spotify…",
+    "pickPlaylist": "Elige una playlist para empezar.",
+    "connecting": "Conectando…",
     "tabs": {
       "playlists": "Playlists",
       "queue": "Cola"

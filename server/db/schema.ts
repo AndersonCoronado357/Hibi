@@ -310,3 +310,18 @@ export const chatMessages = pgTable('chat_messages', {
   text: text('text').notNull(),
   createdAt: created(),
 }, (t) => ({ byConv: index('chat_messages_conv_idx').on(t.conversationId) }))
+
+// ───────────────────────── SPOTIFY ─────────────────────────
+// Una cuenta de Spotify conectada por usuario. El refresh_token vive solo en el
+// servidor; el access_token se renueva y se entrega al cliente para el reproductor.
+export const spotifyAccounts = pgTable('spotify_accounts', {
+  userId: integer('user_id').primaryKey().references(() => authUsers.id, { onDelete: 'cascade' }),
+  accessToken: text('access_token').notNull(),
+  refreshToken: text('refresh_token').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  scope: text('scope').notNull().default(''),
+  spotifyUserId: text('spotify_user_id'),
+  displayName: text('display_name'),
+  product: text('product'), // premium | free
+  updatedAt: updated(),
+})

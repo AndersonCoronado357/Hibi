@@ -14,8 +14,13 @@
       "title": "Connect your Spotify",
       "desc": "Link your account to see your playlists, your queue and control the music from Hibi.",
       "cta": "Connect Spotify",
-      "demo": "Demo — it doesn't connect to any real account."
+      "demo": "Spotify will open to authorize your account."
     },
+    "linked": "Spotify connected!",
+    "linkError": "Couldn't connect Spotify. Try again.",
+    "premiumHint": "Opening in Spotify…",
+    "pickPlaylist": "Pick a playlist to start.",
+    "connecting": "Connecting…",
     "tabs": {
       "playlists": "Playlists",
       "queue": "Queue"
