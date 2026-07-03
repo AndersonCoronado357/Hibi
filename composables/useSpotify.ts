@@ -29,6 +29,8 @@ export function useSpotify() {
   const position = useState<number>('spotify.position', () => 0)
   const duration = useState<number>('spotify.duration', () => 0)
   const volume = useState<number>('spotify.volume', () => 0.7)
+  const shuffle = useState<boolean>('spotify.shuffle', () => false)
+  const repeatMode = useState<number>('spotify.repeat', () => 0) // 0 off, 1 context (playlist), 2 track
 
   async function fetchStatus() {
     try { status.value = await $fetch<SpotifyStatus>('/api/spotify/status') } catch { status.value = { connected: false } }
@@ -91,6 +93,8 @@ export function useSpotify() {
       duration.value = st.duration || 0
       const cur = st.track_window?.current_track ? mapTrack(st.track_window.current_track) : null
       current.value = cur
+      shuffle.value = !!st.shuffle
+      repeatMode.value = typeof st.repeat_mode === 'number' ? st.repeat_mode : 0
       // Al cambiar de pista, refresca la cola COMPLETA desde la API.
       if (cur && cur.uri !== lastUri) { lastUri = cur.uri; setTimeout(fetchQueue, 500) }
     })
@@ -120,6 +124,8 @@ export function useSpotify() {
     if (volume.value > 0.001) { preMute.value = volume.value; await setVolume(0) }
     else await setVolume(preMute.value || 0.5)
   }
+  async function toggleShuffle() { const s = !shuffle.value; shuffle.value = s; try { await $fetch('/api/spotify/shuffle', { method: 'PUT', body: { state: s } }) } catch { /* ignore */ } }
+  async function cycleRepeat() { const n = (repeatMode.value + 1) % 3; repeatMode.value = n; const map = ['off', 'context', 'track']; try { await $fetch('/api/spotify/repeat', { method: 'PUT', body: { state: map[n] } }); setTimeout(fetchQueue, 400) } catch { /* ignore */ } }
 
-  return { status, playlists, queue, ready, deviceId, current, paused, position, duration, volume, fetchStatus, fetchPlaylists, fetchQueue, connect, disconnect, ensurePlayer, playContext, playUris, togglePlay, next, prev, seek, setVolume, toggleMute }
+  return { status, playlists, queue, ready, deviceId, current, paused, position, duration, volume, shuffle, repeatMode, fetchStatus, fetchPlaylists, fetchQueue, connect, disconnect, ensurePlayer, playContext, playUris, togglePlay, next, prev, seek, setVolume, toggleMute, toggleShuffle, cycleRepeat }
 }

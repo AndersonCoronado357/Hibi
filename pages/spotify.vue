@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { Music, Play, Pause, Heart, Headphones, Plug, SkipBack, SkipForward, Shuffle, Repeat, Search, Disc3, ChevronDown, ListMusic, Volume2, VolumeX } from '@lucide/vue'
+import { Music, Play, Pause, Heart, Headphones, Plug, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Search, Disc3, ChevronDown, ListMusic, Volume2, VolumeX } from '@lucide/vue'
 
 const { t } = useI18n()
 useHead({ title: t('spotify.head.title') })
 
 const route = useRoute()
 const sp = useSpotify()
-const { status, playlists: rawPlaylists, queue: sdkNext, current: sdkCurrent, paused, position, duration, volume } = sp
+const { status, playlists: rawPlaylists, queue: sdkNext, current: sdkCurrent, paused, position, duration, volume, shuffle, repeatMode } = sp
 
 const loading = ref(true)
 const liked = ref(false)
@@ -68,8 +68,11 @@ function openInSpotify(uri: string) {
   if (id && type && import.meta.client) window.open(`https://open.spotify.com/${type}/${id}`, '_blank')
 }
 async function onPlayPlaylist(p: { uri: string }) {
-  if (status.value.premium) { const ok = await sp.playContext(p.uri); if (!ok) openInSpotify(p.uri) }
-  else openInSpotify(p.uri)
+  if (status.value.premium) {
+    const ok = await sp.playContext(p.uri)
+    if (ok) subtab.value = 'queue' // en móvil, muestra las canciones (la cola) de la playlist
+    else openInSpotify(p.uri)
+  } else openInSpotify(p.uri)
 }
 function disconnect() { sp.disconnect() }
 </script>
@@ -202,7 +205,7 @@ function disconnect() { sp.disconnect() }
                 <button type="button" class="grid place-items-center size-7 rounded-full text-fg-muted shrink-0 hover:text-sky-deep transition-colors" :aria-label="volume > 0 ? t('spotify.controls.mute') : t('spotify.controls.unmute')" @click="sp.toggleMute()">
                   <component :is="volume > 0 ? Volume2 : VolumeX" class="size-[16px]" :stroke-width="2" />
                 </button>
-                <input type="range" min="0" max="1" step="0.02" :value="volume" class="hibi-range flex-1" :aria-label="t('spotify.controls.volume')" @input="(e) => sp.setVolume(+(e.target as HTMLInputElement).value)" />
+                <input type="range" min="0" max="1" step="0.02" :value="volume" class="hibi-range flex-1" :style="{ background: 'linear-gradient(to right, var(--color-sky-deep) ' + Math.round(volume * 100) + '%, var(--bg-muted) ' + Math.round(volume * 100) + '%)' }" :aria-label="t('spotify.controls.volume')" @input="(e) => sp.setVolume(+(e.target as HTMLInputElement).value)" />
               </div>
             </div>
             <div class="flex-1 min-w-0 flex flex-col gap-3">
@@ -227,13 +230,13 @@ function disconnect() { sp.disconnect() }
                 <span class="text-[11.5px] text-fg-muted tabular-nums w-10">{{ fmt(totalSec) }}</span>
               </div>
               <div class="flex items-center justify-center gap-2">
-                <button class="grid place-items-center size-10 rounded-full text-fg-muted" :aria-label="t('spotify.controls.shuffle')"><Shuffle class="size-[17px]" :stroke-width="2" /></button>
+                <button class="grid place-items-center size-10 rounded-full transition-colors" :class="shuffle ? 'text-sky-deep' : 'text-fg-muted'" :aria-label="t('spotify.controls.shuffle')" @click="sp.toggleShuffle()"><Shuffle class="size-[17px]" :stroke-width="2" /></button>
                 <button class="grid place-items-center size-11 rounded-full text-fg-muted" :aria-label="t('spotify.controls.prev')" @click="prevTrack"><SkipBack class="size-5" :stroke-width="2" /></button>
                 <button class="grid place-items-center size-14 rounded-full bg-sky text-[#1f4661]" @click="playing = !playing" :aria-label="playing ? t('spotify.controls.pause') : t('spotify.controls.play')">
                   <component :is="playing ? Pause : Play" class="size-6" :stroke-width="playing ? 2 : 0" :class="playing ? '' : 'fill-current'" />
                 </button>
                 <button class="grid place-items-center size-11 rounded-full text-fg-muted" :aria-label="t('spotify.controls.next')" @click="nextTrack"><SkipForward class="size-5" :stroke-width="2" /></button>
-                <button class="grid place-items-center size-10 rounded-full text-fg-muted" :aria-label="t('spotify.controls.repeat')"><Repeat class="size-[17px]" :stroke-width="2" /></button>
+                <button class="grid place-items-center size-10 rounded-full transition-colors" :class="repeatMode > 0 ? 'text-sky-deep' : 'text-fg-muted'" :aria-label="t('spotify.controls.repeat')" @click="sp.cycleRepeat()"><component :is="repeatMode === 2 ? Repeat1 : Repeat" class="size-[17px]" :stroke-width="2" /></button>
               </div>
             </div>
           </AppCard>
@@ -313,17 +316,17 @@ function disconnect() { sp.disconnect() }
               <span class="text-[11.5px] text-fg-muted tabular-nums w-10">{{ fmt(totalSec) }}</span>
             </div>
             <div class="shrink-0 flex items-center justify-center gap-3 mt-5">
-              <button class="grid place-items-center size-11 rounded-full text-fg-muted" :aria-label="t('spotify.controls.shuffle')"><Shuffle class="size-[18px]" :stroke-width="2" /></button>
+              <button class="grid place-items-center size-11 rounded-full transition-colors" :class="shuffle ? 'text-sky-deep' : 'text-fg-muted'" :aria-label="t('spotify.controls.shuffle')" @click="sp.toggleShuffle()"><Shuffle class="size-[18px]" :stroke-width="2" /></button>
               <button class="grid place-items-center size-12 rounded-full text-fg-muted" :aria-label="t('spotify.controls.prev')" @click="prevTrack"><SkipBack class="size-6" :stroke-width="2" /></button>
               <button class="grid place-items-center size-16 rounded-full bg-sky text-[#1f4661]" :aria-label="playing ? t('spotify.controls.pause') : t('spotify.controls.play')" @click="playing = !playing"><component :is="playing ? Pause : Play" class="size-7" :stroke-width="playing ? 2 : 0" :class="playing ? '' : 'fill-current'" /></button>
               <button class="grid place-items-center size-12 rounded-full text-fg-muted" :aria-label="t('spotify.controls.next')" @click="nextTrack"><SkipForward class="size-6" :stroke-width="2" /></button>
-              <button class="grid place-items-center size-11 rounded-full text-fg-muted" :aria-label="t('spotify.controls.repeat')"><Repeat class="size-[18px]" :stroke-width="2" /></button>
+              <button class="grid place-items-center size-11 rounded-full transition-colors" :class="repeatMode > 0 ? 'text-sky-deep' : 'text-fg-muted'" :aria-label="t('spotify.controls.repeat')" @click="sp.cycleRepeat()"><component :is="repeatMode === 2 ? Repeat1 : Repeat" class="size-[18px]" :stroke-width="2" /></button>
             </div>
             <div class="shrink-0 flex items-center gap-2.5 mt-5 px-6">
               <button type="button" class="grid place-items-center size-8 rounded-full text-fg-muted shrink-0" :aria-label="volume > 0 ? t('spotify.controls.mute') : t('spotify.controls.unmute')" @click="sp.toggleMute()">
                 <component :is="volume > 0 ? Volume2 : VolumeX" class="size-[18px]" :stroke-width="2" />
               </button>
-              <input type="range" min="0" max="1" step="0.02" :value="volume" class="hibi-range flex-1" :aria-label="t('spotify.controls.volume')" @input="(e) => sp.setVolume(+(e.target as HTMLInputElement).value)" />
+              <input type="range" min="0" max="1" step="0.02" :value="volume" class="hibi-range flex-1" :style="{ background: 'linear-gradient(to right, var(--color-sky-deep) ' + Math.round(volume * 100) + '%, var(--bg-muted) ' + Math.round(volume * 100) + '%)' }" :aria-label="t('spotify.controls.volume')" @input="(e) => sp.setVolume(+(e.target as HTMLInputElement).value)" />
             </div>
             <button type="button" class="shrink-0 mt-5 mx-auto inline-flex items-center gap-2 h-10 px-5 rounded-full bg-muted text-fg-muted text-[13px] font-bold" @click="detailQueueOpen = true">
               <ListMusic class="size-[16px]" :stroke-width="2" /> {{ t('spotify.queue.view', { count: queue.length }) }}
