@@ -44,10 +44,23 @@ export function useSpotify() {
     try { const r = await $fetch<{ queue: SpotifyTrack[] }>('/api/spotify/queue'); queue.value = r.queue || [] } catch { /* ignore */ }
   }
   function connect() { if (import.meta.client) window.location.href = '/api/spotify/login' }
+
+  // Apaga el reproductor del navegador (pausa + quita el dispositivo del SDK) y
+  // limpia el estado de reproducción. NO desvincula la cuenta de Spotify: se usa
+  // al cerrar sesión para que no siga sonando la música.
+  async function teardown() {
+    try { await player?.pause?.() } catch { /* ignore */ }
+    try { player?.disconnect?.() } catch { /* ignore */ }
+    player = null; lastUri = ''
+    if (posTimer) { clearInterval(posTimer); posTimer = undefined }
+    ready.value = false; deviceId.value = ''; current.value = null
+    queue.value = []; paused.value = true; position.value = 0; duration.value = 0
+  }
+
   async function disconnect() {
     try { await $fetch('/api/spotify/disconnect', { method: 'POST' }) } catch { /* ignore */ }
-    try { player?.disconnect?.() } catch { /* ignore */ }
-    player = null; ready.value = false; deviceId.value = ''; current.value = null; queue.value = []; playlists.value = []
+    await teardown()
+    playlists.value = []
     status.value = { connected: false }
   }
 
@@ -134,8 +147,8 @@ export function useSpotify() {
     if (volume.value > 0.001) { preMute.value = volume.value; await setVolume(0) }
     else await setVolume(preMute.value || 0.5)
   }
-  async function toggleShuffle() { const s = !shuffle.value; shuffle.value = s; try { await $fetch('/api/spotify/shuffle', { method: 'PUT', body: { state: s } }) } catch { /* ignore */ } }
+  async function toggleShuffle() { const s = !shuffle.value; shuffle.value = s; try { await $fetch('/api/spotify/shuffle', { method: 'PUT', body: { state: s } }); setTimeout(fetchQueue, 500) } catch { /* ignore */ } }
   async function cycleRepeat() { const n = (repeatMode.value + 1) % 3; repeatMode.value = n; const map = ['off', 'context', 'track']; try { await $fetch('/api/spotify/repeat', { method: 'PUT', body: { state: map[n] } }); setTimeout(fetchQueue, 400) } catch { /* ignore */ } }
 
-  return { status, playlists, queue, ready, deviceId, current, paused, position, duration, volume, shuffle, repeatMode, fetchStatus, fetchPlaylists, fetchQueue, fetchPlaylistTracks, connect, disconnect, ensurePlayer, playContext, playUris, playPlaylistAt, togglePlay, next, prev, seek, setVolume, toggleMute, toggleShuffle, cycleRepeat }
+  return { status, playlists, queue, ready, deviceId, current, paused, position, duration, volume, shuffle, repeatMode, fetchStatus, fetchPlaylists, fetchQueue, fetchPlaylistTracks, connect, disconnect, teardown, ensurePlayer, playContext, playUris, playPlaylistAt, togglePlay, next, prev, seek, setVolume, toggleMute, toggleShuffle, cycleRepeat }
 }

@@ -41,6 +41,9 @@ export function useAuth() {
   }
 
   async function logout() {
+    // Apaga el reproductor de Spotify (si estaba sonando) para que no siga
+    // reproduciendo tras cerrar sesión. No desvincula la cuenta.
+    try { await useSpotify().teardown() } catch { /* ignore */ }
     await $fetch('/api/auth/logout', { method: 'POST' })
     user.value = null
     await navigateTo('/login')
