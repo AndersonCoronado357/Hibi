@@ -311,7 +311,7 @@ function playPlTrack(uri: string) { if (openPl.value) sp.playPlaylistAt(openPl.v
     <ClientOnly>
       <Teleport to="body">
         <Transition name="sheet-up">
-          <div v-if="detailOpen && connected" class="fixed inset-0 z-[60] bg-base flex flex-col px-5 pb-8" style="padding-top: max(1rem, env(safe-area-inset-top))">
+          <div v-if="detailOpen && connected" class="fixed inset-0 z-[64] bg-base flex flex-col px-5 pb-8" style="padding-top: max(1rem, env(safe-area-inset-top))">
             <header class="shrink-0 flex items-center justify-between">
               <button type="button" class="grid place-items-center size-10 rounded-full bg-muted text-fg-muted" :aria-label="t('spotify.controls.minimize')" @click="detailOpen = false; detailQueueOpen = false"><ChevronDown class="size-[20px]" :stroke-width="2.2" /></button>
               <p class="text-[12px] font-bold text-fg-muted uppercase tracking-wide">{{ t('spotify.nowPlayingShort') }}</p>
@@ -409,6 +409,21 @@ function playPlTrack(uri: string) { if (openPl.value) sp.playPlaylistAt(openPl.v
                 </button>
               </li>
             </ul>
+
+            <!-- Mini-reproductor: sigue visible mientras navegas la playlist -->
+            <div v-if="hasNowPlaying" role="button" tabindex="0"
+              class="shrink-0 mt-2 w-full max-w-2xl mx-auto flex items-center gap-3 p-2.5 rounded-[16px] bg-sky-soft cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sky-deep"
+              @click="detailOpen = true" @keydown.enter.prevent="detailOpen = true">
+              <HibiCloudImage :src="current.image" :size="46" tone="text-sky" class="shrink-0" />
+              <div class="flex-1 min-w-0">
+                <p class="text-[13.5px] font-bold text-fg truncate">{{ current.title }}</p>
+                <p class="text-[11.5px] text-sky-deep/80 truncate">{{ current.artist }}</p>
+              </div>
+              <button type="button" class="grid place-items-center size-11 rounded-full bg-sky text-[#1f4661] shrink-0" :aria-label="playing ? t('spotify.controls.pause') : t('spotify.controls.play')" @click.stop="playing = !playing">
+                <component :is="playing ? Pause : Play" class="size-5" :stroke-width="playing ? 2 : 0" :class="playing ? '' : 'fill-current'" />
+              </button>
+              <button type="button" class="grid place-items-center size-10 rounded-full text-sky-deep shrink-0" :aria-label="t('spotify.controls.next')" @click.stop="nextTrack"><SkipForward class="size-5" :stroke-width="2" /></button>
+            </div>
           </div>
         </Transition>
       </Teleport>
