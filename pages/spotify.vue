@@ -19,6 +19,7 @@ onMounted(async () => {
   await sp.fetchStatus()
   if (status.value.connected) {
     await sp.fetchPlaylists()
+    sp.fetchQueue()
     if (status.value.premium) sp.ensurePlayer()
   }
   loading.value = false
