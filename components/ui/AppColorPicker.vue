@@ -145,10 +145,10 @@ const hueColor = computed(() => {
 <template>
   <div class="w-full h-full flex flex-col gap-3 min-h-[260px]">
     <!-- Presets iniciales: SIEMPRE una sola fila -->
-    <div v-if="!hidePresets" class="shrink-0 grid grid-cols-8 gap-1.5">
+    <div v-if="!hidePresets" class="shrink-0 flex items-center gap-2">
       <button v-for="c in PRESETS" :key="c" type="button"
         :aria-label="'Color ' + c"
-        class="w-full aspect-square rounded-full grid place-items-center transition-[transform] hover:scale-110"
+        class="size-9 shrink-0 rounded-full grid place-items-center transition-[transform] hover:scale-110"
         :style="{ background: c }"
         @click="pickPreset(c)">
         <Check v-if="hex.toLowerCase() === c.toLowerCase()" class="size-[14px] text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]" :stroke-width="3" />

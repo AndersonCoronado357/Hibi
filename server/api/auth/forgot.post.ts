@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
     const url = `${origin}/reset?token=${token}`
     const mail = passwordResetEmail(url, RESET_MINUTES)
     try {
-      await sendEmail({ to: user.email, subject: mail.subject, html: mail.html, text: mail.text })
+      await sendEmail({ to: user.email, subject: mail.subject, html: mail.html, text: mail.text, attachments: mail.attachments })
     } catch (err) {
       // En dev (sin RESEND_API_KEY) dejamos el enlace en el log del servidor.
       console.warn('[forgot] no se pudo enviar el correo; enlace de reset:', url, String(err))

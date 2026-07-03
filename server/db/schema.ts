@@ -63,6 +63,7 @@ export const tasks = pgTable('tasks', {
   userId: integer('user_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
   dueDate: date('due_date'),
+  repeatDays: text('repeat_days'), // días de repetición LMXJVSD; vacío/null = una sola vez
   priority: integer('priority').notNull().default(0), // 0..3
   status: text('status').notNull().default('pending'), // pending | done
   notes: text('notes'),
@@ -285,6 +286,7 @@ export const petState = pgTable('pet_state', {
   diversion: integer('diversion').notNull().default(80),
   coins: integer('coins').notNull().default(40),
   streak: integer('streak').notNull().default(1),
+  sleeping: boolean('sleeping').notNull().default(false), // si se quedó dormida
   room: text('room').notNull().default('casa'),
   inventory: jsonb('inventory').$type<Record<string, number>>().notNull().default({}),
   lastCareDay: text('last_care_day').default(''),

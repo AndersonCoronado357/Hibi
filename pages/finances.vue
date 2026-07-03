@@ -94,14 +94,14 @@ const byCat = computed(() => {
 const editingCatKey = ref<string | null>(null)
 const catDraft = ref<{ name: string; color: string; iconKey: string }>({ name: '', color: '#5aa6d2', iconKey: 'ShoppingBag' })
 function startEditCat(key: string) {
-  editingCatKey.value = key
+  editingCatKey.value = key; showForm.value = false
   const c = categories.value.find(x => x.id === key)
   if (!c) return
   const iconKey = ICON_MAP[c.icon] ? (c.icon === 'HomeI' ? 'Home' : c.icon) : 'ShoppingBag'
   catDraft.value = { name: c.name, color: c.color, iconKey }
 }
 function startNewCat() {
-  editingCatKey.value = '__new__'
+  editingCatKey.value = '__new__'; showForm.value = false
   catDraft.value = { name: '', color: '#5aa6d2', iconKey: 'ShoppingBag' }
 }
 function saveCat() {
@@ -134,6 +134,7 @@ function toggleForm() { if (showForm.value) { showForm.value = false; resetForm(
 // El botón "+ Gasto/Suscripción" se mantiene SIEMPRE visible (incluso en
 // Categorías) para que la barra no se mueva; desde Categorías vuelve a la lista.
 function newEntry() {
+  editingCatKey.value = null
   if (view.value === 'categories') { view.value = 'list'; resetForm(); showForm.value = true; return }
   toggleForm()
 }
@@ -216,7 +217,72 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
 </script>
 
 <template>
-  <div class="h-full w-full flex flex-col gap-2 md:gap-3 px-3 md:px-7 py-3 md:py-5 overflow-hidden relative">
+  <!-- EDITOR DE GASTO / SUSCRIPCIÓN — pantalla completa dentro del módulo, SIN modal -->
+  <AppCreateView v-if="showForm"
+    :title="tab === 'subs' ? (editId ? t('finances.entryForm.editSub') : t('finances.entryForm.newSub')) : (editId ? t('finances.entryForm.editExpense') : t('finances.entryForm.newExpense'))"
+    :disabled="!entryValid"
+    @close="closeForm" @save="saveEntry">
+    <div class="flex flex-col gap-2">
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ tab === 'subs' ? t('finances.entryForm.serviceLabel') : t('finances.entryForm.conceptLabel') }}</label>
+      <input v-model="entryTitle" type="text" :placeholder="tab === 'subs' ? t('finances.entryForm.servicePlaceholder') : t('finances.entryForm.conceptPlaceholder')" autofocus
+        class="w-full h-14 rounded-[14px] bg-card px-4 text-[16px] font-semibold text-fg outline-none placeholder:text-fg-subtle"
+        @keydown.enter.prevent="entryValid && saveEntry()" />
+    </div>
+    <div class="flex flex-col gap-2">
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ tab === 'subs' ? t('finances.entryForm.monthlyAmountLabel') : t('finances.entryForm.amountLabel') }}</label>
+      <div class="relative">
+        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[16px] font-semibold text-fg-muted pointer-events-none">$</span>
+        <input v-model="entryAmountDisplay" type="text" inputmode="numeric" placeholder="0"
+          class="w-full h-14 rounded-[14px] bg-card pl-9 pr-4 text-[16px] font-semibold text-fg outline-none tabular-nums placeholder:text-fg-subtle" />
+      </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="flex flex-col gap-2">
+        <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ tab === 'subs' ? t('finances.entryForm.nextChargeLabel') : t('finances.entryForm.dateLabel') }}</label>
+        <AppDate v-model="entryDate" :placeholder="tab === 'subs' ? t('finances.entryForm.nextChargePlaceholder') : t('finances.entryForm.datePlaceholder')" />
+      </div>
+      <div class="flex flex-col gap-2">
+        <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('finances.entryForm.categoryLabel') }}</label>
+        <AppSelect v-model="entryCat" :options="CAT_OPTS" :placeholder="t('finances.entryForm.categoryPlaceholder')" />
+      </div>
+    </div>
+  </AppCreateView>
+
+  <!-- EDITOR DE CATEGORÍA — pantalla completa dentro del módulo, SIN modal -->
+  <AppCreateView v-else-if="editingCatKey"
+    :title="editingCatKey === '__new__' ? t('finances.catForm.newTitle') : t('finances.catForm.editTitle')"
+    :disabled="!catDraft.name.trim()"
+    @close="editingCatKey = null" @save="saveCat">
+    <div class="flex justify-center pt-1">
+      <span class="grid place-items-center size-20 rounded-[24px]" :style="{ background: catDraft.color + '22', color: catDraft.color }">
+        <component :is="ICON_GALLERY.find(g => g.key === catDraft.iconKey)?.icon || ShoppingBag" class="size-9" :stroke-width="1.8" />
+      </span>
+    </div>
+    <div class="flex flex-col gap-2">
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('finances.catForm.nameLabel') }}</label>
+      <input v-model="catDraft.name" type="text" :placeholder="t('finances.catForm.namePlaceholder')" autofocus
+        class="w-full h-14 rounded-[14px] bg-card px-4 text-[16px] font-semibold text-fg outline-none placeholder:text-fg-subtle"
+        @keydown.enter.prevent="catDraft.name.trim() && saveCat()" />
+    </div>
+    <div class="flex flex-col gap-2">
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('finances.catForm.iconLabel') }}</label>
+      <div class="grid grid-cols-6 sm:grid-cols-10 gap-2">
+        <button v-for="g in ICON_GALLERY" :key="g.key" type="button"
+          class="grid place-items-center aspect-square rounded-[14px] bg-card transition-[background-color]"
+          :class="catDraft.iconKey === g.key ? 'ring-2 ring-offset-2 ring-offset-base' : ''"
+          :style="catDraft.iconKey === g.key ? { '--tw-ring-color': catDraft.color, color: catDraft.color, background: catDraft.color + '22' } : {}"
+          @click="catDraft.iconKey = g.key">
+          <component :is="g.icon" class="size-[21px]" :class="catDraft.iconKey === g.key ? '' : 'text-fg'" :stroke-width="2" />
+        </button>
+      </div>
+    </div>
+    <div class="flex flex-col gap-2">
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('finances.catForm.colorLabel') }}</label>
+      <AppColorPicker v-model="catDraft.color" format="hex" />
+    </div>
+  </AppCreateView>
+
+  <div v-else class="h-full w-full flex flex-col gap-2 md:gap-3 px-3 md:px-7 py-3 md:py-5 overflow-hidden relative">
     <!-- Decoración cute -->
     <HibiCloud :size="150" float :duration="8" class="hidden md:block absolute -top-6 -right-8 text-mint opacity-15 pointer-events-none z-40" aria-hidden="true" />
     <HibiCloud :size="90"  float :duration="10" :delay="1.2" class="hidden md:block absolute bottom-6 -left-6 text-cream opacity-15 pointer-events-none z-40" aria-hidden="true" />
@@ -410,111 +476,5 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
       </AppCard>
     </div>
 
-    <!-- EDITOR DE GASTO / SUSCRIPCIÓN: pantalla completa (móvil) / modal (PC). Nada inline. -->
-    <ClientOnly>
-      <Teleport to="body">
-        <Transition name="hibi-fade">
-          <div v-if="showForm" class="fixed inset-0 z-[60] bg-base md:bg-fg/30 md:grid md:place-items-center md:p-6">
-            <div class="h-full md:h-auto md:max-h-[88vh] w-full md:max-w-[460px] bg-base md:rounded-[24px] flex flex-col overflow-hidden">
-              <header class="shrink-0 flex items-center justify-between px-4 pb-3" style="padding-top: max(1rem, env(safe-area-inset-top))">
-                <button type="button" class="grid place-items-center size-10 rounded-full bg-muted text-fg-muted" :aria-label="t('common.close')" @click="closeForm"><X class="size-[19px]" :stroke-width="2.2" /></button>
-                <h2 class="text-[16px] font-extrabold text-fg">{{ tab === 'subs' ? (editId ? t('finances.entryForm.editSub') : t('finances.entryForm.newSub')) : (editId ? t('finances.entryForm.editExpense') : t('finances.entryForm.newExpense')) }}</h2>
-                <div class="size-10" aria-hidden="true" />
-              </header>
-              <form class="flex-1 min-h-0 overflow-y-auto scroll-area px-5 pb-4 flex flex-col gap-5" @submit.prevent="saveEntry">
-                <!-- Concepto / Servicio -->
-                <div>
-                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">{{ tab === 'subs' ? t('finances.entryForm.serviceLabel') : t('finances.entryForm.conceptLabel') }}</label>
-                  <input v-model="entryTitle" type="text" :placeholder="tab === 'subs' ? t('finances.entryForm.servicePlaceholder') : t('finances.entryForm.conceptPlaceholder')" autofocus
-                    class="w-full h-[52px] rounded-[14px] bg-muted px-4 text-[16px] font-semibold text-fg outline-none placeholder:text-fg-subtle"
-                    @keydown.enter.prevent="entryValid && saveEntry()" />
-                </div>
-                <!-- Monto (formato COP con punto de miles en vivo) -->
-                <div>
-                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">{{ tab === 'subs' ? t('finances.entryForm.monthlyAmountLabel') : t('finances.entryForm.amountLabel') }}</label>
-                  <div class="relative">
-                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[16px] font-semibold text-fg-muted pointer-events-none">$</span>
-                    <input v-model="entryAmountDisplay" type="text" inputmode="numeric" placeholder="0"
-                      class="w-full h-[52px] rounded-[14px] bg-muted pl-9 pr-4 text-[16px] font-semibold text-fg outline-none tabular-nums placeholder:text-fg-subtle" />
-                  </div>
-                </div>
-                <!-- Fecha / Próximo cobro -->
-                <div>
-                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">{{ tab === 'subs' ? t('finances.entryForm.nextChargeLabel') : t('finances.entryForm.dateLabel') }}</label>
-                  <AppDate v-model="entryDate" :placeholder="tab === 'subs' ? t('finances.entryForm.nextChargePlaceholder') : t('finances.entryForm.datePlaceholder')" tone="muted" class="w-full" />
-                </div>
-                <!-- Categoría -->
-                <div>
-                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">{{ t('finances.entryForm.categoryLabel') }}</label>
-                  <AppSelect v-model="entryCat" :options="CAT_OPTS" :placeholder="t('finances.entryForm.categoryPlaceholder')" tone="muted" class="w-full" />
-                </div>
-              </form>
-              <div class="shrink-0 flex gap-2 px-5 pt-3" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom))">
-                <button type="button" class="flex-1 h-12 rounded-[14px] bg-muted text-fg font-bold text-[15px]" @click="closeForm">{{ t('common.cancel') }}</button>
-                <button type="button" :disabled="!entryValid" class="flex-1 h-12 rounded-[14px] bg-sky-deep text-white font-bold text-[15px] disabled:opacity-40 inline-flex items-center justify-center gap-2" @click="saveEntry">
-                  <Check class="size-[17px]" :stroke-width="2.4" /> {{ editId ? t('common.save') : (tab === 'subs' ? t('finances.entryForm.submitCreateSub') : t('finances.entryForm.submitCreateExpense')) }}
-                </button>
-              </div>
-            </div>
-          </div>
-        </Transition>
-      </Teleport>
-    </ClientOnly>
-
-    <!-- EDITOR DE CATEGORÍA: pantalla completa (móvil) / modal (PC). Nada inline. -->
-    <ClientOnly>
-      <Teleport to="body">
-        <Transition name="hibi-fade">
-          <div v-if="editingCatKey" class="fixed inset-0 z-[60] bg-base md:bg-fg/30 md:grid md:place-items-center md:p-6">
-            <div class="h-full md:h-auto md:max-h-[88vh] w-full md:max-w-[460px] bg-base md:rounded-[24px] flex flex-col overflow-hidden">
-              <header class="shrink-0 flex items-center justify-between px-4 pb-3" style="padding-top: max(1rem, env(safe-area-inset-top))">
-                <button type="button" class="grid place-items-center size-10 rounded-full bg-muted text-fg-muted" :aria-label="t('common.close')" @click="editingCatKey = null"><X class="size-[19px]" :stroke-width="2.2" /></button>
-                <h2 class="text-[16px] font-extrabold text-fg">{{ editingCatKey === '__new__' ? t('finances.catForm.newTitle') : t('finances.catForm.editTitle') }}</h2>
-                <div class="size-10" aria-hidden="true" />
-              </header>
-              <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-5 pb-4 flex flex-col gap-5">
-                <!-- Vista previa grande -->
-                <div class="flex justify-center pt-1">
-                  <span class="grid place-items-center size-20 rounded-[24px]" :style="{ background: catDraft.color + '22', color: catDraft.color }">
-                    <component :is="ICON_GALLERY.find(g => g.key === catDraft.iconKey)?.icon || ShoppingBag" class="size-9" :stroke-width="1.8" />
-                  </span>
-                </div>
-                <!-- Nombre -->
-                <div>
-                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">{{ t('finances.catForm.nameLabel') }}</label>
-                  <input v-model="catDraft.name" type="text" :placeholder="t('finances.catForm.namePlaceholder')" autofocus
-                    class="w-full h-[52px] rounded-[14px] bg-muted px-4 text-[16px] font-semibold text-fg outline-none placeholder:text-fg-subtle"
-                    @keydown.enter.prevent="saveCat" />
-                </div>
-                <!-- Icono -->
-                <div>
-                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">{{ t('finances.catForm.iconLabel') }}</label>
-                  <div class="grid grid-cols-5 sm:grid-cols-6 gap-2">
-                    <button v-for="g in ICON_GALLERY" :key="g.key" type="button"
-                      class="grid place-items-center aspect-square rounded-[14px] bg-muted transition-[background-color]"
-                      :class="catDraft.iconKey === g.key ? 'ring-2 ring-offset-2 ring-offset-base' : ''"
-                      :style="catDraft.iconKey === g.key ? { '--tw-ring-color': catDraft.color, color: catDraft.color, background: catDraft.color + '22' } : {}"
-                      @click="catDraft.iconKey = g.key">
-                      <component :is="g.icon" class="size-[21px]" :class="catDraft.iconKey === g.key ? '' : 'text-fg'" :stroke-width="2" />
-                    </button>
-                  </div>
-                </div>
-                <!-- Color -->
-                <div>
-                  <label class="block text-[12.5px] font-bold text-fg-muted mb-2 px-1">{{ t('finances.catForm.colorLabel') }}</label>
-                  <AppColorPicker v-model="catDraft.color" format="hex" />
-                </div>
-              </div>
-              <div class="shrink-0 flex gap-2 px-5 pt-3" style="padding-bottom: max(1.25rem, env(safe-area-inset-bottom))">
-                <button type="button" class="flex-1 h-12 rounded-[14px] bg-muted text-fg font-bold text-[15px]" @click="editingCatKey = null">{{ t('common.cancel') }}</button>
-                <button type="button" :disabled="!catDraft.name.trim()" class="flex-1 h-12 rounded-[14px] bg-sky-deep text-white font-bold text-[15px] disabled:opacity-40 inline-flex items-center justify-center gap-2" @click="saveCat">
-                  <Check class="size-[17px]" :stroke-width="2.4" /> {{ t('common.save') }}
-                </button>
-              </div>
-            </div>
-          </div>
-        </Transition>
-      </Teleport>
-    </ClientOnly>
   </div>
 </template>

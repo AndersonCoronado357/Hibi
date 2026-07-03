@@ -51,7 +51,7 @@
     "save": "Save",
     "cancel": "Cancel",
     "add": "Add",
-    "loading": "Loading…",
+    "loading": "Loading",
     "delete": "Delete",
     "edit": "Edit",
     "new": "New",
@@ -78,7 +78,7 @@
       "h1": "Heading 1", "h2": "Heading 2", "quote": "Quote", "code": "Code",
       "ul": "List", "ol": "Numbered list", "link": "Link", "undo": "Undo", "redo": "Redo",
       "textColor": "Text color", "highlight": "Highlight", "size": "Size", "format": "Format",
-      "linkPrompt": "Link URL", "placeholder": "Start writing…"
+      "linkPrompt": "Link URL", "placeholder": "Start writing"
     }
   }
 }

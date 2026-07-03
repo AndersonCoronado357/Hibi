@@ -19,11 +19,11 @@
       "targetLabel": "Fecha objetivo",
       "targetPlaceholder": "Selecciona fecha",
       "areaLabel": "Área",
-      "areaPlaceholder": "Salud, Estudio, Finanzas…",
+      "areaPlaceholder": "Salud, Estudio, Finanzas",
       "totalLabel": "Meta total",
       "totalPlaceholder": "100",
       "unitLabel": "Unidad",
-      "unitPlaceholder": "libros, km, COP, lecciones…",
+      "unitPlaceholder": "libros, km, COP, lecciones",
       "colorLabel": "Color"
     },
     "tones": {

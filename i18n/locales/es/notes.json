@@ -20,7 +20,7 @@
       "show": "Mostrar lista",
       "hide": "Ocultar lista",
       "searchLabel": "Buscar notas",
-      "searchPlaceholder": "Buscar notas…",
+      "searchPlaceholder": "Buscar notas",
       "count": "{n} notas",
       "new": "Nueva",
       "deleteNote": "Eliminar nota",
@@ -30,7 +30,7 @@
     "countMany": "{n} notas",
     "editor": {
       "titlePlaceholder": "Título de la nota",
-      "contentPlaceholder": "Empieza a escribir…",
+      "contentPlaceholder": "Empieza a escribir",
       "noContent": "Sin contenido aún",
       "format": "Formato"
     },

@@ -28,8 +28,8 @@
       "use": "Use",
       "another": "Another"
     },
-    "editorPlaceholder": "Write freely, or tap the suggestion to get started…",
-    "saving": "Saving…",
+    "editorPlaceholder": "Write freely, or tap the suggestion to get started",
+    "saving": "Saving",
     "delete": "Delete",
     "deleteAria": "Delete entry",
     "save": "Save",

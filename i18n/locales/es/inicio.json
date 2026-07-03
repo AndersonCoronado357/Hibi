@@ -1,5 +1,15 @@
 {
   "inicio": {
+    "quickAddedTask": "Añadido a Tareas",
+    "quickAddedReminder": "Añadido a Recordatorios",
+    "quickAddedNote": "Añadido a Notas",
+    "quickAddedEvent": "Añadido al Calendario",
+    "quickAddedMany": "Añadido",
+    "quickWorking": "Creando…",
+    "cmdTask": "Tarea",
+    "cmdEvent": "Cita",
+    "cmdReminder": "Recordatorio",
+    "cmdNote": "Nota",
     "eventsSub": "eventos hoy",
     "eventSub": "evento hoy",
     "tasksSub": "de {n} pendientes",

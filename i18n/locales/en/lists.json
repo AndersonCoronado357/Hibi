@@ -16,10 +16,10 @@
       "title": "New list",
       "subtitle": "So you don't miss a thing",
       "nameLabel": "Name",
-      "namePlaceholder": "Weekly groceries, trip to Japan…",
+      "namePlaceholder": "Weekly groceries, trip to Japan",
       "typeLabel": "Type",
       "initialLabel": "Initial items",
-      "initialPlaceholder": "Bread, milk, apples…"
+      "initialPlaceholder": "Bread, milk, apples"
     },
     "sidebar": {
       "heading": "Your lists",
@@ -31,7 +31,7 @@
     "detail": {
       "markedCount": "{done} of {total} checked",
       "newItemLabel": "New item",
-      "addItemPlaceholder": "Add item…"
+      "addItemPlaceholder": "Add item"
     },
     "aria": {
       "removeInitial": "Remove",

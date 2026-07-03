@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Send, Trash2, MessageCircle, Sparkles, Plus, ChevronLeft, History, X } from '@lucide/vue'
+import { Send, Trash2, MessageCircle, Sparkles, Plus, ChevronLeft, History, X, ListTodo, CalendarClock, BellRing, NotebookPen } from '@lucide/vue'
 import { format, isToday, isYesterday } from 'date-fns'
 
 const { t } = useI18n()
@@ -18,13 +18,35 @@ const showHistory = ref(true) // panel colapsable (desktop)
 const showHistoryMobile = ref(false) // overlay historial (móvil)
 
 const SUGGESTIONS = computed(() => [
-  { text: t('chat.suggestions.summarizeDay'), tone: 'bg-sky-soft text-sky-deep' },
-  { text: t('chat.suggestions.newTask'),      tone: 'bg-mint text-[#34936a]' },
-  { text: t('chat.suggestions.noteIdea'),     tone: 'bg-cream text-[#bf8f2e]' },
-  { text: t('chat.suggestions.remindMe'),     tone: 'bg-peach text-[#c5733f]' },
-  { text: t('chat.suggestions.habits'),       tone: 'bg-pink-soft text-pink-deep' },
-  { text: t('chat.suggestions.tomorrow'),     tone: 'bg-lavender text-[#7a63c0]' },
+  { text: t('chat.suggestions.summarizeDay'),      tone: 'bg-sky-soft text-sky-deep' },
+  { text: t('chat.suggestions.summarizeTomorrow'), tone: 'bg-lavender text-[#7a63c0]' },
+  { text: t('chat.suggestions.habits'),            tone: 'bg-pink-soft text-pink-deep' },
+  { text: t('chat.suggestions.upcomingReminders'), tone: 'bg-peach text-[#c5733f]' },
+  { text: t('chat.suggestions.myTasks'),           tone: 'bg-mint text-[#34936a]' },
 ])
+
+// ── Menú de comandos con "/" ──
+const SLASH_CMDS = computed(() => [
+  { cmd: 'tarea', label: t('chat.slash.task'), icon: ListTodo },
+  { cmd: 'cita', label: t('chat.slash.event'), icon: CalendarClock },
+  { cmd: 'recordatorio', label: t('chat.slash.reminder'), icon: BellRing },
+  { cmd: 'nota', label: t('chat.slash.note'), icon: NotebookPen },
+])
+const slashSel = ref(0)
+const slashQuery = computed(() => { const m = draft.value.match(/^\/(\w*)$/); return m ? m[1]!.toLowerCase() : null })
+const slashList = computed(() => slashQuery.value === null ? [] : SLASH_CMDS.value.filter((c) => c.cmd.startsWith(slashQuery.value!)))
+const slashOpen = computed(() => slashList.value.length > 0)
+watch(slashQuery, () => { slashSel.value = 0 })
+function pickSlash(cmd: string) {
+  draft.value = `/${cmd} `
+  nextTick(() => { const el = document.getElementById('chat-input') as HTMLInputElement | null; if (el) { el.focus(); const n = el.value.length; el.setSelectionRange(n, n) } })
+}
+function onComposerKey(e: KeyboardEvent) {
+  if (!slashOpen.value) return
+  if (e.key === 'ArrowDown') { e.preventDefault(); slashSel.value = (slashSel.value + 1) % slashList.value.length }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); slashSel.value = (slashSel.value - 1 + slashList.value.length) % slashList.value.length }
+  else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); pickSlash(slashList.value[slashSel.value]!.cmd) }
+}
 
 async function send(text?: string) {
   const msg = (text ?? draft.value).trim()
@@ -208,17 +230,17 @@ watch(() => activeId.value, async () => {
               >{{ m.text }}</div>
               <div v-else class="flex items-start gap-2.5">
                 <HibiCloudIcon :size="36" :icon="Sparkles" :icon-size="14" cloud-color="text-sky-soft" icon-color="text-sky-deep" :icon-stroke="2" class="shrink-0 mt-1" />
-                <div class="px-4 py-2.5 rounded-[20px] rounded-tl-[8px] text-[14.5px] leading-snug bg-muted text-fg">{{ m.text }}</div>
+                <div class="px-4 py-2.5 rounded-[20px] rounded-tl-[8px] text-[14.5px] leading-snug bg-muted text-fg">
+                  <template v-if="m.text">{{ m.text }}</template>
+                  <!-- Puntitos DENTRO de la burbuja mientras aún no llega texto (una sola nube) -->
+                  <span v-else class="inline-flex items-center gap-1.5 py-1 align-middle">
+                    <span class="size-1.5 rounded-full bg-sky-deep animate-pulse" />
+                    <span class="size-1.5 rounded-full bg-sky-deep animate-pulse" style="animation-delay: 120ms" />
+                    <span class="size-1.5 rounded-full bg-sky-deep animate-pulse" style="animation-delay: 240ms" />
+                  </span>
+                </div>
               </div>
-              <span class="mt-1 px-1 text-[10.5px] text-fg-subtle" :class="m.role === 'user' ? 'mr-1' : 'ml-[44px]'">{{ fmtTime(m.at) }}</span>
-            </li>
-            <li v-if="sending" class="self-start flex items-start gap-2.5">
-              <HibiCloudIcon :size="36" :icon="Sparkles" :icon-size="14" cloud-color="text-sky-soft" icon-color="text-sky-deep" :icon-stroke="2" class="shrink-0 mt-1" />
-              <div class="inline-flex items-center gap-1.5 px-4 py-3 rounded-[20px] rounded-tl-[8px] bg-muted">
-                <span class="size-1.5 rounded-full bg-sky-deep animate-pulse" />
-                <span class="size-1.5 rounded-full bg-sky-deep animate-pulse" style="animation-delay: 120ms" />
-                <span class="size-1.5 rounded-full bg-sky-deep animate-pulse" style="animation-delay: 240ms" />
-              </div>
+              <span v-if="m.role === 'user' || m.text" class="mt-1 px-1 text-[10.5px] text-fg-subtle" :class="m.role === 'user' ? 'mr-1' : 'ml-[44px]'">{{ fmtTime(m.at) }}</span>
             </li>
           </ul>
         </div>
@@ -241,6 +263,19 @@ watch(() => activeId.value, async () => {
             </Transition>
 
             <form class="relative" @submit.prevent="send()">
+              <!-- Menú de comandos "/" (aparece al escribir "/") -->
+              <Transition name="chips">
+                <div v-if="slashOpen" class="absolute bottom-full mb-2 left-0 w-full md:w-72 rounded-[16px] overflow-hidden p-1.5 z-30 shadow-[0_-6px_28px_rgba(0,0,0,0.14)]" style="background: var(--bg-pop)">
+                  <button v-for="(c, i) in slashList" :key="c.cmd" type="button"
+                    class="w-full flex items-center gap-2.5 px-3 py-2 rounded-[11px] text-left transition-[background-color]"
+                    :class="i === slashSel ? 'bg-sky-soft text-sky-deep' : 'text-fg hover:bg-muted'"
+                    @mouseenter="slashSel = i" @mousedown.prevent="pickSlash(c.cmd)">
+                    <component :is="c.icon" class="size-[16px] shrink-0" :class="i === slashSel ? 'text-sky-deep' : 'text-fg-muted'" :stroke-width="2" aria-hidden="true" />
+                    <span class="text-[13.5px] font-bold">/{{ c.cmd }}</span>
+                    <span class="text-[12px] text-fg-muted ml-auto truncate">{{ c.label }}</span>
+                  </button>
+                </div>
+              </Transition>
               <label for="chat-input" class="sr-only">{{ t('chat.composer.label') }}</label>
               <input
                 id="chat-input"
@@ -248,6 +283,7 @@ watch(() => activeId.value, async () => {
                 type="text"
                 :placeholder="t('chat.composer.placeholder')"
                 class="w-full h-13 rounded-full bg-muted pl-5 pr-14 text-[15px] text-fg outline-none"
+                @keydown="onComposerKey"
               />
               <button
                 type="submit"

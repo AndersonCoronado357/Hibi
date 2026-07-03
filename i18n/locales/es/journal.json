@@ -28,8 +28,8 @@
       "use": "Usar",
       "another": "Otro"
     },
-    "editorPlaceholder": "Escribe libre, o pulsa la sugerencia para empezar…",
-    "saving": "Guardando…",
+    "editorPlaceholder": "Escribe libre, o pulsa la sugerencia para empezar",
+    "saving": "Guardando",
     "delete": "Borrar",
     "deleteAria": "Borrar entrada",
     "save": "Guardar",

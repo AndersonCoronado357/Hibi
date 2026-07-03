@@ -17,10 +17,13 @@ export default defineNuxtConfig({
     googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
     resendApiKey: process.env.RESEND_API_KEY || '',
     mailFrom: process.env.MAIL_FROM || 'noreply@acmsy.com',
+    mailFromName: process.env.MAIL_FROM_NAME || 'Hibi',
     origin: process.env.ORIGIN || '',
     acmsySubdomain: process.env.ACMSY_SUBDOMAIN || 'hibi',
     aiApiUrl: process.env.AI_API_URL || '',
     aiApiKey: process.env.AI_API_KEY || '',
+    aiBasicAuth: process.env.AI_BASIC_AUTH || '', // "user:pass" para gateways con Basic auth (acmsy)
+    aiModel: process.env.AI_MODEL || '',
     ollamaUrl: process.env.OLLAMA_URL || 'http://127.0.0.1:11434',
   },
 
@@ -97,8 +100,16 @@ export default defineNuxtConfig({
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
         { name: 'description', content: 'Hibi — organiza tu día a día con cariño.' },
         { name: 'theme-color', content: '#e9f2fb' },
+        { name: 'mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
+        { name: 'apple-mobile-web-app-title', content: 'Hibi' },
       ],
-      link: [{ rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
+      link: [
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+        { rel: 'manifest', href: '/manifest.webmanifest' },
+        { rel: 'apple-touch-icon', href: '/favicon.svg' },
+      ],
     },
   },
 

@@ -13,12 +13,11 @@
     "msgCount": "{count} msgs",
     "convDateFormat": "d 'de' MMM",
     "suggestions": {
-      "summarizeDay": "Resúmeme el día",
-      "newTask": "Nueva tarea, comprar pan",
-      "noteIdea": "Anota una idea",
-      "remindMe": "Recuérdame en 1 hora",
-      "habits": "Cómo voy con mis hábitos",
-      "tomorrow": "Qué tengo mañana"
+      "summarizeDay": "Resumen de hoy",
+      "summarizeTomorrow": "Resumen de mañana",
+      "habits": "¿Cómo van mis hábitos?",
+      "upcomingReminders": "Próximos recordatorios",
+      "myTasks": "Mis tareas"
     },
     "empty": {
       "greeting": "¡Hola! Soy Hibi",
@@ -26,8 +25,14 @@
     },
     "composer": {
       "label": "Escribe a Hibi",
-      "placeholder": "Escribe a Hibi…",
+      "placeholder": "Escribe a Hibi (o / para comandos)",
       "send": "Enviar"
+    },
+    "slash": {
+      "task": "Crear una tarea",
+      "event": "Agendar una cita",
+      "reminder": "Nuevo recordatorio",
+      "note": "Guardar una nota"
     },
     "deleteConversation": "Eliminar conversación"
   }

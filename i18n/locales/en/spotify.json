@@ -7,7 +7,7 @@
       "connected": "Connected",
       "disconnected": "Not connected"
     },
-    "searchPlaceholder": "Search song, artist, album…",
+    "searchPlaceholder": "Search song, artist, album",
     "disconnect": "Disconnect",
     "disconnectAria": "Disconnect Spotify",
     "connect": {

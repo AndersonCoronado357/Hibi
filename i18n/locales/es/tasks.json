@@ -36,10 +36,13 @@
       "titleLabel": "Título",
       "titlePlaceholder": "¿Qué hay que hacer?",
       "priorityLabel": "Prioridad",
+      "repeatLabel": "Repetir",
+      "everyDay": "Todos los días",
+      "dateRepeatHint": "La fecha la gestiona la repetición",
       "dateLabel": "Fecha",
       "datePlaceholder": "Selecciona una fecha",
       "notesLabel": "Notas",
-      "notesPlaceholder": "Detalles, contexto, enlaces…"
+      "notesPlaceholder": "Detalles, contexto, enlaces"
     },
     "empty": {
       "allTitle": "Aún no hay tareas",

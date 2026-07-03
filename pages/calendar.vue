@@ -262,7 +262,7 @@ const VIEW_OPTS = computed(() => [
       <button type="button"
         class="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[13px] font-bold text-pink-deep bg-pink-soft hover:bg-pink transition-[background-color] outline-none focus-visible:ring-2 focus-visible:ring-pink-deep"
         @click="deleteEvent(editingId!); cancelCreate()">
-        <Trash2 class="size-[15px]" :stroke-width="2.2" aria-hidden="true" />{{ t('calendar.create.deleteEvent') }}
+        <Trash2 class="size-[15px] shrink-0" :stroke-width="2.2" aria-hidden="true" /><span class="leading-none">{{ t('calendar.create.deleteEvent') }}</span>
       </button>
     </div>
   </AppCreateView>

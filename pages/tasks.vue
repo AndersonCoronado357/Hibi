@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import {
-  Plus, ListTodo, LayoutGrid, Inbox, Flag, CheckCircle2, Clock, ChevronDown, Trash2, List,
+  Plus, Repeat, ListTodo, LayoutGrid, Inbox, Flag, CheckCircle2, Clock, ChevronDown, Trash2, List,
   CalendarDays, CalendarClock, CalendarOff,
 } from '@lucide/vue'
-import { format, parseISO, isValid } from 'date-fns'
+import { format, parseISO, isValid, startOfWeek, addDays } from 'date-fns'
 
 const { t } = useI18n()
 const dateLocale = useDateLocale()
@@ -25,6 +25,41 @@ const PRIORITY_BG = ['bg-muted text-fg', 'bg-mint text-[#34936a]', 'bg-sky-soft 
 const PRIORITY_LABEL = computed(() => [
   t('tasks.priority.none'), t('tasks.priority.low'), t('tasks.priority.medium'), t('tasks.priority.high'), t('tasks.priority.urgent'),
 ])
+
+// ── Repetición semanal ──
+// Letras almacenadas (independientes del idioma): L M X J V S D (Lun→Dom).
+const WEEK_ORDER = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+const DAY_LETTER = ['D', 'L', 'M', 'X', 'J', 'V', 'S'] // JS getDay() → letra almacenada
+// Etiquetas localizadas (una letra) en el mismo orden Lun→Dom.
+const weekdayChips = computed(() =>
+  WEEK_ORDER.map((letter, i) => ({
+    letter,
+    label: format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), 'EEEEE', { locale: dateLocale.value }),
+  })),
+)
+const letterLabel = computed<Record<string, string>>(() =>
+  Object.fromEntries(weekdayChips.value.map((c) => [c.letter, c.label])),
+)
+// Primera fecha >= from cuyo día está en `days`.
+function nextOccurrence(from: Date, days: string): string {
+  const set = new Set(days.split(''))
+  const d = new Date(from); d.setHours(0, 0, 0, 0)
+  for (let i = 0; i < 7; i++) { if (set.has(DAY_LETTER[d.getDay()])) return format(d, 'yyyy-MM-dd'); d.setDate(d.getDate() + 1) }
+  return format(from, 'yyyy-MM-dd')
+}
+// Próxima ocurrencia estrictamente después de la fecha actual (o de hoy).
+function nextAfter(fromISO: string | null, days: string): string {
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  let base = today
+  if (fromISO) { const d = parseISO(fromISO); if (isValid(d)) { d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 1); if (d.getTime() > today.getTime()) base = d } }
+  return nextOccurrence(base, days)
+}
+// Etiqueta legible de la repetición (para las filas).
+function repeatText(days: string | null): string | null {
+  if (!days) return null
+  if (days.length === 7) return t('tasks.create.everyDay')
+  return WEEK_ORDER.filter((d) => days.includes(d)).map((d) => letterLabel.value[d]).join(' · ')
+}
 
 const doneCount = computed(() => tasks.value.filter((t) => t.status === 'done').length)
 
@@ -48,7 +83,7 @@ const filters = computed(() => [
   { value: 'important', label: t('tasks.filters.important'), icon: Flag },
   { value: 'done', label: t('tasks.filters.done'), icon: CheckCircle2 },
 ])
-const activeFilter = ref('all')
+const activeFilter = ref('today')
 
 const todayStr = () => format(new Date(), 'yyyy-MM-dd')
 const filteredTasks = computed(() => {
@@ -77,9 +112,16 @@ const newTitle = ref('')
 const newDue = ref('')
 const newPriorityStr = ref<'0'|'1'|'2'|'3'>('0')
 const newNotes = ref('')
+const newRepeatDays = ref<string[]>([])
+const isEveryDay = computed(() => newRepeatDays.value.length === 7)
+function toggleDay(d: string) {
+  const i = newRepeatDays.value.indexOf(d)
+  if (i >= 0) newRepeatDays.value.splice(i, 1); else newRepeatDays.value.push(d)
+}
+function toggleEveryDay() { newRepeatDays.value = isEveryDay.value ? [] : [...WEEK_ORDER] }
 const saving = ref(false)
 function openCreate() {
-  newTitle.value = ''; newDue.value = ''; newPriorityStr.value = '0'; newNotes.value = ''
+  newTitle.value = ''; newDue.value = ''; newPriorityStr.value = '0'; newNotes.value = ''; newRepeatDays.value = []
   view.value = 'create'
 }
 function cancelCreate() { view.value = 'list' }
@@ -87,11 +129,19 @@ async function saveTask() {
   const title = newTitle.value.trim(); if (!title || saving.value) return
   saving.value = true
   try {
-    await createTask({ title, dueDate: newDue.value || null, priority: Number(newPriorityStr.value), notes: newNotes.value || null })
+    const repeatDays = WEEK_ORDER.filter((d) => newRepeatDays.value.includes(d)).join('')
+    const dueDate = repeatDays ? nextOccurrence(new Date(), repeatDays) : (newDue.value || null)
+    await createTask({ title, dueDate, repeatDays: repeatDays || null, priority: Number(newPriorityStr.value), notes: newNotes.value || null })
     view.value = 'list'
   } finally {
     saving.value = false
   }
+}
+
+// Completar: si la tarea es recurrente, salta al próximo día marcado y sigue pendiente.
+function onToggle(task: Task) {
+  if (task.status === 'pending' && task.repeatDays) updateTask(task.id, { dueDate: nextAfter(task.dueDate, task.repeatDays) })
+  else toggleDone(task)
 }
 
 // DnD MANUAL: no usamos el draggable nativo del browser (que aplica opacity al
@@ -166,22 +216,40 @@ function statusOf(s: Status) { return COLUMNS.value.find(c => c.key === s)! }
       <input v-model="newTitle" type="text" :placeholder="t('tasks.create.titlePlaceholder')" autofocus
         class="w-full h-14 rounded-[14px] bg-card px-4 text-[18px] font-semibold text-fg outline-none placeholder:text-fg-subtle" />
     </div>
-    <div class="flex flex-col gap-2">
-      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('tasks.create.priorityLabel') }}</label>
-      <div class="flex flex-wrap gap-1.5">
-        <button v-for="(label, i) in PRIORITY_LABEL" :key="i" type="button"
-          class="hibi-chip"
-          :class="[
-            newPriorityStr === String(i) ? PRIORITY_BG[i] + ' is-active' : 'bg-muted text-fg',
-          ]"
-          @click="newPriorityStr = String(i) as any">
-          <Flag class="size-[13px]" :class="PRIORITY_TONE[i]" :stroke-width="2.4" aria-hidden="true" /> {{ label }}
-        </button>
+    <div class="flex flex-wrap items-end gap-x-6 gap-y-3">
+      <div class="flex flex-col gap-2">
+        <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('tasks.create.priorityLabel') }}</label>
+        <div class="flex flex-wrap gap-1.5">
+          <button v-for="(label, i) in PRIORITY_LABEL" :key="i" type="button"
+            class="hibi-chip"
+            :class="[
+              newPriorityStr === String(i) ? PRIORITY_BG[i] + ' is-active' : 'bg-muted text-fg',
+            ]"
+            @click="newPriorityStr = String(i) as any">
+            <Flag class="size-[13px]" :class="PRIORITY_TONE[i]" :stroke-width="2.4" aria-hidden="true" /> {{ label }}
+          </button>
+        </div>
+      </div>
+      <div class="flex flex-col gap-2 ml-auto">
+        <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('tasks.create.repeatLabel') }}</label>
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <button v-for="c in weekdayChips" :key="c.letter" type="button"
+            class="size-9 rounded-full text-[12.5px] font-bold uppercase grid place-items-center transition-[background-color,color]"
+            :class="newRepeatDays.includes(c.letter) ? 'bg-sky-soft text-sky-deep' : 'bg-muted text-fg-muted hover:text-fg'"
+            :aria-pressed="newRepeatDays.includes(c.letter)"
+            @click="toggleDay(c.letter)">{{ c.label }}</button>
+          <button type="button"
+            class="h-9 px-3.5 rounded-full text-[12.5px] font-bold transition-[background-color,color]"
+            :class="isEveryDay ? 'bg-sky-soft text-sky-deep' : 'bg-muted text-fg-muted hover:text-fg'"
+            :aria-pressed="isEveryDay"
+            @click="toggleEveryDay">{{ t('tasks.create.everyDay') }}</button>
+        </div>
       </div>
     </div>
     <div class="flex flex-col gap-2">
       <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('tasks.create.dateLabel') }}</label>
-      <AppDate v-model="newDue" :placeholder="t('tasks.create.datePlaceholder')" />
+      <AppDate v-model="newDue" :placeholder="t('tasks.create.datePlaceholder')" :disabled="newRepeatDays.length > 0" />
+      <p v-if="newRepeatDays.length > 0" class="text-[11.5px] text-fg-subtle px-1">{{ t('tasks.create.dateRepeatHint') }}</p>
     </div>
     <!-- Notas: textarea grande -->
     <div class="flex flex-col gap-2 flex-1 min-h-[200px]">
@@ -246,7 +314,7 @@ function statusOf(s: Status) { return COLUMNS.value.find(c => c.key === s)! }
               @keydown.enter.prevent="toggleRow(task.id)"
               @keydown.space.prevent="toggleRow(task.id)">
               <!-- Check con nube — wrapper con tamaño fijo para que el swap NO mueva layout -->
-              <button type="button" @click.stop="toggleDone(task)"
+              <button type="button" @click.stop="onToggle(task)"
                 class="shrink-0 relative inline-block"
                 :style="{ width: '40px', height: '27px' }"
                 :aria-label="task.status === 'done' ? t('tasks.row.markPending') : t('tasks.row.markDone')">
@@ -270,6 +338,7 @@ function statusOf(s: Status) { return COLUMNS.value.find(c => c.key === s)! }
                     <span class="size-1.5 rounded-full" :style="{ background: statusOf(task.status).dotBg }" />{{ statusOf(task.status).title }}
                   </span>
                   <span v-if="formatDue(task.dueDate)" class="inline-flex items-center gap-1 text-fg-muted"><Clock class="size-3" aria-hidden="true" />{{ formatDue(task.dueDate) }}</span>
+                  <span v-if="repeatText(task.repeatDays)" class="inline-flex items-center gap-1 text-sky-deep font-semibold"><Repeat class="size-3" :stroke-width="2.4" aria-hidden="true" />{{ repeatText(task.repeatDays) }}</span>
                   <span v-if="task.priority > 0" class="inline-flex items-center gap-1 text-fg-muted">
                     <Flag class="size-3" :class="PRIORITY_TONE[task.priority]" :stroke-width="2.3" />
                     {{ PRIORITY_LABEL[task.priority] }}
@@ -325,6 +394,7 @@ function statusOf(s: Status) { return COLUMNS.value.find(c => c.key === s)! }
               <p class="text-[13.5px] font-semibold text-fg leading-snug">{{ task.title }}</p>
               <div class="flex items-center justify-between mt-2 text-[11.5px] text-fg-muted">
                 <span v-if="formatDue(task.dueDate)" class="inline-flex items-center gap-1"><Clock class="size-3" aria-hidden="true" />{{ formatDue(task.dueDate) }}</span>
+                <Repeat v-if="task.repeatDays" class="size-3 text-sky-deep" :class="task.priority > 0 ? '' : 'ml-auto'" :stroke-width="2.4" aria-hidden="true" />
                 <Flag v-if="task.priority > 0" class="size-3 ml-auto" :class="PRIORITY_TONE[task.priority]" :stroke-width="2.3" aria-hidden="true" />
               </div>
             </article>

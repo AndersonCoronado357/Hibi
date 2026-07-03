@@ -40,17 +40,46 @@ const MINS = computed(() => {
 function pickH(h: number) { emit('update:modelValue', `${String(h).padStart(2,'0')}:${String(parsed.value.mi).padStart(2,'0')}`) }
 function pickM(mi: number) { emit('update:modelValue', `${String(parsed.value.h).padStart(2,'0')}:${String(mi).padStart(2,'0')}`) }
 
+// Centra un botón dentro de su columna (usa rects → correcto sin importar el offsetParent).
+function scrollToCenter(col: HTMLElement | null, btn: HTMLElement | null | undefined) {
+  if (!col || !btn) return
+  const cr = col.getBoundingClientRect(), br = btn.getBoundingClientRect()
+  col.scrollTop += (br.top + br.height / 2) - (cr.top + cr.height / 2)
+}
+// Valor cuya fila está más cerca del centro de la columna.
+function centeredVal(col: HTMLElement | null, attr: string): number | null {
+  if (!col) return null
+  const cr = col.getBoundingClientRect(); const mid = cr.top + cr.height / 2
+  let best: number | null = null, bestDist = Infinity
+  col.querySelectorAll<HTMLElement>(`[${attr}]`).forEach((btn) => {
+    const r = btn.getBoundingClientRect(); const d = Math.abs(r.top + r.height / 2 - mid)
+    if (d < bestDist) { bestDist = d; best = Number(btn.getAttribute(attr)) }
+  })
+  return best
+}
+// Al soltar el scroll, seleccionar el valor centrado (rueda estilo iOS).
+let hTimer: ReturnType<typeof setTimeout> | null = null
+let mTimer: ReturnType<typeof setTimeout> | null = null
+function onHoursScroll() {
+  if (hTimer) clearTimeout(hTimer)
+  hTimer = setTimeout(() => { const v = centeredVal(hoursColRef.value, 'data-h'); if (v != null && v !== parsed.value.h) pickH(v) }, 120)
+}
+function onMinsScroll() {
+  if (mTimer) clearTimeout(mTimer)
+  mTimer = setTimeout(() => { const v = centeredVal(minsColRef.value, 'data-m'); if (v != null && v !== parsed.value.mi) pickM(v) }, 120)
+}
+// Tocar una fila: selecciona y la centra.
+function tapH(h: number, e: Event) { pickH(h); scrollToCenter(hoursColRef.value, e.currentTarget as HTMLElement) }
+function tapM(mi: number, e: Event) { pickM(mi); scrollToCenter(minsColRef.value, e.currentTarget as HTMLElement) }
+
 function toggle() {
   if (props.disabled) return
   open.value = !open.value
   if (open.value) {
     recalcPos()
     nextTick(() => {
-      // scroll a la opción activa
-      const h = hoursColRef.value?.querySelector<HTMLElement>(`[data-h="${parsed.value.h}"]`)
-      const m = minsColRef.value?.querySelector<HTMLElement>(`[data-m="${parsed.value.mi}"]`)
-      if (h && hoursColRef.value) hoursColRef.value.scrollTop = h.offsetTop - hoursColRef.value.clientHeight / 2 + h.clientHeight / 2
-      if (m && minsColRef.value) minsColRef.value.scrollTop = m.offsetTop - minsColRef.value.clientHeight / 2 + m.clientHeight / 2
+      scrollToCenter(hoursColRef.value, hoursColRef.value?.querySelector<HTMLElement>(`[data-h="${parsed.value.h}"]`))
+      scrollToCenter(minsColRef.value, minsColRef.value?.querySelector<HTMLElement>(`[data-m="${parsed.value.mi}"]`))
     })
   }
 }
@@ -86,8 +115,7 @@ const display = computed(() => `${String(parsed.value.h).padStart(2,'0')}:${Stri
       :class="heightClass"
       @click="toggle">
       <Clock class="size-[16px] text-fg-subtle shrink-0" :stroke-width="1.9" aria-hidden="true" />
-      <span v-if="!open" class="text-[15px] font-bold text-fg tabular-nums">{{ display }}</span>
-      <span v-else class="text-[15px] font-bold text-fg-subtle tabular-nums">Selecciona…</span>
+      <span class="text-[15px] font-bold tabular-nums" :class="open ? 'text-sky-deep' : 'text-fg'">{{ display }}</span>
     </button>
     <ClientOnly>
     <Teleport to="body">
@@ -97,21 +125,21 @@ const display = computed(() => `${String(parsed.value.h).padStart(2,'0')}:${Stri
         :style="{ top: popPos.top + 'px', left: popPos.left + 'px', maxHeight: popPos.maxHeight + 'px', background: 'var(--bg-pop)' }">
         <div class="flex flex-col items-center">
           <p class="text-[11px] font-bold text-fg-subtle uppercase tracking-wider mb-2">Hora</p>
-          <div ref="hoursColRef" class="hibi-wheel w-20 h-[220px] overflow-y-auto scroll-area flex flex-col items-center gap-1 px-1">
+          <div ref="hoursColRef" @scroll.passive="onHoursScroll" class="hibi-wheel relative w-20 h-[220px] overflow-y-auto scroll-area snap-y snap-mandatory flex flex-col items-center gap-1 px-1 py-[90px]">
             <button v-for="h in HOURS" :key="h" type="button" :data-h="h"
-              class="h-10 w-full text-center text-[16px] font-bold tabular-nums rounded-[10px] transition-[background-color,color] shrink-0"
+              class="snap-center h-10 w-full text-center text-[16px] font-bold tabular-nums rounded-[10px] transition-[background-color,color] shrink-0"
               :class="parsed.h === h ? 'bg-sky-soft text-sky-deep' : 'text-fg hover:bg-muted'"
-              @click="pickH(h)">{{ String(h).padStart(2,'0') }}</button>
+              @click="tapH(h, $event)">{{ String(h).padStart(2,'0') }}</button>
           </div>
         </div>
         <span class="text-[28px] font-extrabold text-fg-muted self-center">:</span>
         <div class="flex flex-col items-center">
           <p class="text-[11px] font-bold text-fg-subtle uppercase tracking-wider mb-2">Min</p>
-          <div ref="minsColRef" class="hibi-wheel w-20 h-[220px] overflow-y-auto scroll-area flex flex-col items-center gap-1 px-1">
+          <div ref="minsColRef" @scroll.passive="onMinsScroll" class="hibi-wheel relative w-20 h-[220px] overflow-y-auto scroll-area snap-y snap-mandatory flex flex-col items-center gap-1 px-1 py-[90px]">
             <button v-for="m in MINS" :key="m" type="button" :data-m="m"
-              class="h-10 w-full text-center text-[16px] font-bold tabular-nums rounded-[10px] transition-[background-color,color] shrink-0"
+              class="snap-center h-10 w-full text-center text-[16px] font-bold tabular-nums rounded-[10px] transition-[background-color,color] shrink-0"
               :class="parsed.mi === m ? 'bg-sky-soft text-sky-deep' : 'text-fg hover:bg-muted'"
-              @click="pickM(m)">{{ String(m).padStart(2,'0') }}</button>
+              @click="tapM(m, $event)">{{ String(m).padStart(2,'0') }}</button>
           </div>
         </div>
       </div>

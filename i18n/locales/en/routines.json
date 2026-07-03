@@ -31,7 +31,7 @@
       "title": "New routine",
       "subtitle": "A sequence of steps for your day",
       "nameLabel": "Name",
-      "namePlaceholder": "Bright morning, calm night…",
+      "namePlaceholder": "Bright morning, calm night",
       "timeLabel": "Time of day",
       "daysLabel": "Days",
       "stepsLabel": "Steps",
@@ -52,7 +52,7 @@
       "noToday": "No routines for today",
       "seeAll": "See all",
       "createFirst": "Create your first routine",
-      "loading": "Loading routines…",
+      "loading": "Loading routines",
       "newRoutine": "New routine"
     },
     "aria": {
