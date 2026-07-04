@@ -28,7 +28,7 @@ const emit = defineEmits<{
   buy: [id: string, price: number]
   affection: []
   sleep: [active: boolean]
-  playGame: []
+  gameReward: [coins: number]
   'update:room': [key: string]
 }>()
 
@@ -60,6 +60,7 @@ function goTo(i: number) {
   slideDir.value = (n === (idx.value + 1) % SECTIONS.length) ? 1 : (n === (idx.value - 1 + SECTIONS.length) % SECTIONS.length ? -1 : (n > idx.value ? 1 : -1))
   if (room.value === 'dormir' && sleeping.value) { sleeping.value = false; emit('sleep', false) }
   cocinaPanel.value = 'none'
+  gamesPanel.value = 'none'
   emit('update:room', SECTIONS[n]!.key)
 }
 function prev() { goTo(idx.value - 1) }
@@ -187,6 +188,10 @@ const foodName = (id: string) => t(`hibi.items.${id}.name`)
 const foodDesc = (id: string) => t(`hibi.items.${id}.desc`)
 
 const cocinaPanel = ref<'none' | 'nevera' | 'tienda'>('none')
+
+// Juegos: 'none' cerrado, 'menu' eligiendo, o el id del juego en curso.
+const gamesPanel = ref<'none' | 'menu' | string>('none')
+function onGameEnd(coins: number) { gamesPanel.value = 'menu'; emit('gameReward', coins) }
 const owned = computed(() => FOODS.filter(f => (props.inventory[f.id] || 0) > 0))
 const selId = ref<string>('')
 watchEffect(() => {
@@ -441,7 +446,7 @@ onBeforeUnmount(() => {
 
           <!-- Juegos -->
           <template v-else-if="room === 'juegos'">
-            <button type="button" class="inline-flex items-center gap-2 h-12 px-7 rounded-full bg-pink-deep text-white font-bold text-[15px] active:scale-95 transition-transform" @click="emit('playGame')">
+            <button type="button" class="inline-flex items-center gap-2 h-12 px-7 rounded-full bg-pink-deep text-white font-bold text-[15px] active:scale-95 transition-transform" @click="gamesPanel = 'menu'">
               <Gamepad2 class="size-[18px]" :stroke-width="2.1" /> {{ t('hibi.games.play') }}
             </button>
             <p v-if="lastGameCoins" class="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[#bf8f2e]"><Coins class="size-[14px]" :stroke-width="2.3" /> {{ t('hibi.games.won', { n: lastGameCoins, unit: t(lastGameCoins === 1 ? 'hibi.games.coinUnit.one' : 'hibi.games.coinUnit.other') }) }}</p>
@@ -524,6 +529,31 @@ onBeforeUnmount(() => {
         </ul>
       </div>
     </Transition>
+
+    <!-- JUEGOS: menú que sube desde abajo, un poco más de la mitad de la pantalla -->
+    <Transition name="sheet-up">
+      <div v-if="room === 'juegos' && gamesPanel === 'menu'" class="absolute inset-x-0 bottom-0 top-[26%] z-[45] bg-base rounded-t-[22px] flex flex-col overflow-hidden">
+        <div class="flex-1 min-h-0 p-2.5">
+          <HibiGamesMenu :last-game-coins="lastGameCoins" @pick="gamesPanel = $event" @close="gamesPanel = 'none'" />
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Juego elegido: a pantalla completa (como antes). Al salir/terminar vuelve al menú. -->
+    <ClientOnly>
+      <Teleport to="body">
+        <Transition name="sheet-up">
+          <div v-if="gamesPanel !== 'none' && gamesPanel !== 'menu'" class="fixed inset-0 z-[70] bg-base p-3" style="padding-top: max(0.75rem, env(safe-area-inset-top)); padding-bottom: max(0.75rem, env(safe-area-inset-bottom))">
+            <GameFlip v-if="gamesPanel === 'flip'" @end="onGameEnd" @exit="gamesPanel = 'menu'" />
+            <GameMemory v-else-if="gamesPanel === 'memory'" @end="onGameEnd" @exit="gamesPanel = 'menu'" />
+            <GamePop v-else-if="gamesPanel === 'pop'" @end="onGameEnd" @exit="gamesPanel = 'menu'" />
+            <GameSimon v-else-if="gamesPanel === 'simon'" @end="onGameEnd" @exit="gamesPanel = 'menu'" />
+            <GameMerge v-else-if="gamesPanel === 'merge'" @end="onGameEnd" @exit="gamesPanel = 'menu'" />
+            <HibiGame v-else-if="gamesPanel === 'esquiva'" @end="onGameEnd" @exit="gamesPanel = 'menu'" />
+          </div>
+        </Transition>
+      </Teleport>
+    </ClientOnly>
 
     <!-- comida arrastrándose -->
     <ClientOnly>

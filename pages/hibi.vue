@@ -3,7 +3,7 @@
 //  · Móvil: primero un selector 50-50 — "Cuida a tu Hibi" / "Habla con Hibi".
 //  · La escena viva (HibiWorld) trae sus propios cuartos e interacciones reales;
 //    aquí sólo vive el estado persistido, la decadencia, monedas y el mini-juego.
-import { Flame, MessageCircle, Coins } from '@lucide/vue'
+import { Flame, MessageCircle } from '@lucide/vue'
 
 const { t } = useI18n()
 useHead({ title: t('hibi.head.title') })
@@ -163,17 +163,18 @@ function onSleep(active: boolean) {
   commit() // persiste sleeping + pone lastTick = ahora
 }
 
-// ── Mini-juego (esquivar) ───────────────────────────────────────────
-const gameOpen = ref(false)
+// ── Juegos ────────────────────────────────────────────────────────
+// El menú y los mini-juegos viven DENTRO de HibiWorld (panel que sube desde
+// abajo, como la tienda) — aquí solo se recibe el premio cuando uno termina.
 const lastGameCoins = ref(0)
-function onPlayGame() { gameOpen.value = true }
-function onGameEnd(coins: number) {
-  gameOpen.value = false // vuelve a la vista de Juegos (sin modal)
-  pet.coins += coins
-  pet.diversion = clamp(pet.diversion + 10) // jugar la divierte (baja el aburrimiento)
-  pet.carino = clamp(pet.carino + 2)
-  pet.energia = clamp(pet.energia - 3)
-  commit()
+function onGameReward(coins: number) {
+  if (coins > 0) {
+    pet.coins += coins
+    pet.diversion = clamp(pet.diversion + 10) // jugar la divierte (baja el aburrimiento)
+    pet.carino = clamp(pet.carino + 2)
+    pet.energia = clamp(pet.energia - 3)
+    commit()
+  }
   lastGameCoins.value = coins
 }
 
@@ -224,32 +225,12 @@ onBeforeUnmount(() => {
           :sleeping="pet.sleeping"
           :last-game-coins="lastGameCoins"
           @feed="onFeed" @buy="onBuy" @affection="onAffection" @sleep="onSleep"
-          @play-game="onPlayGame" @update:room="onRoom" @chat="router.push('/chat')" />
+          @game-reward="onGameReward" @update:room="onRoom" @chat="router.push('/chat')" />
         <!-- Mientras reconcilia (cache+servidor+decay): nube pulsante, sin números aún -->
         <div v-else class="h-full w-full grid place-items-center">
           <HibiCloud :size="96" class="text-sky-soft opacity-60 animate-pulse" aria-hidden="true" />
         </div>
       </div>
     </div>
-
-    <!-- ═══════════ Mini-juego (sin modal: al perder vuelve a Juegos) ═══════════ -->
-    <ClientOnly>
-      <Teleport to="body">
-        <Transition name="sheet-up">
-          <div v-if="gameOpen" class="fixed inset-0 z-[60] bg-base p-3" style="padding-top: max(0.75rem, env(safe-area-inset-top)); padding-bottom: max(0.75rem, env(safe-area-inset-bottom))">
-            <HibiGame @end="onGameEnd" @exit="gameOpen = false" />
-          </div>
-        </Transition>
-      </Teleport>
-    </ClientOnly>
   </div>
 </template>
-
-<style scoped>
-.sheet-up-enter-active, .sheet-up-leave-active { transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease; }
-.sheet-up-enter-from, .sheet-up-leave-to { transform: translateY(100%); opacity: 0.6; }
-@media (prefers-reduced-motion: reduce) {
-  .sheet-up-enter-active, .sheet-up-leave-active { transition: opacity 0.2s ease; }
-  .sheet-up-enter-from, .sheet-up-leave-to { transform: none; }
-}
-</style>
