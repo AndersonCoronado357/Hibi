@@ -4,6 +4,24 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /* ============================================================
+   Tablets → layout de celular
+   El diseño de escritorio (md:/lg:) SOLO aplica en dispositivos con puntero
+   de mouse (PC/portátil) o en pantallas muy anchas (>=1180px). Las tablets,
+   cuyo puntero es táctil ("coarse"), reciben el layout de celular en el rango
+   ~768–1180px, que está pensado para pantallas angostas y se ve limpio.
+   Efecto: el PC (mouse) y el celular (<768px) NO cambian nada; solo las
+   tablets pasan a la vista de celular.
+   ============================================================ */
+@custom-variant md {
+  @media (min-width: 768px) and (not (pointer: coarse)) { @slot; }
+  @media (min-width: 1180px) { @slot; }
+}
+@custom-variant lg {
+  @media (min-width: 1024px) and (not (pointer: coarse)) { @slot; }
+  @media (min-width: 1180px) { @slot; }
+}
+
+/* ============================================================
    Hibi — Design tokens · plano y suave
    Reglas: sin degradados, sin neón, SIN bordes, sin sombras
    con glow. Las superficies se separan por bloques de color
