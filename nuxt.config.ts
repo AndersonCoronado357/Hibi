@@ -108,9 +108,9 @@ export default defineNuxtConfig({
         { name: 'apple-mobile-web-app-title', content: 'Hibi' },
       ],
       link: [
-        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg?v=2' },
         { rel: 'manifest', href: '/manifest.webmanifest' },
-        { rel: 'apple-touch-icon', href: '/icon-512-maskable.png' },
+        { rel: 'apple-touch-icon', href: '/icon-512-maskable-v2.png' },
       ],
     },
   },
