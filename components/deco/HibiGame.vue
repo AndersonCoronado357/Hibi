@@ -84,8 +84,14 @@ onBeforeUnmount(() => { running.value = false; cancelAnimationFrame(raf); window
 
 <template>
   <div ref="areaRef" class="relative w-full h-full overflow-hidden touch-none select-none cursor-none rounded-[20px] bg-sky-soft" @pointerdown="onMove" @pointermove="onMove">
+    <!-- Escenario de cielo con profundidad: nubes en varias capas + brillos -->
     <HibiCloud :size="120" float :duration="10" class="absolute -top-6 -left-6 text-white opacity-40 pointer-events-none" aria-hidden="true" />
     <HibiCloud :size="80" float :duration="13" :delay="1" class="absolute top-8 right-4 text-white opacity-30 pointer-events-none" aria-hidden="true" />
+    <HibiCloud :size="50" float :duration="16" :delay="0.6" class="absolute top-[36%] left-4 text-white opacity-15 pointer-events-none" aria-hidden="true" />
+    <HibiCloud :size="62" float :duration="14" :delay="2.1" class="absolute top-[20%] right-10 text-white opacity-15 pointer-events-none" aria-hidden="true" />
+    <HibiSparkle :size="16" twinkle :duration="2.6" class="absolute top-[12%] left-[30%] text-white opacity-55 pointer-events-none" />
+    <HibiSparkle :size="12" twinkle :duration="3" :delay="1" class="absolute top-[46%] right-[12%] text-white opacity-45 pointer-events-none" />
+    <HibiHeart :size="14" beat :duration="2.6" class="absolute top-[28%] left-[10%] text-white opacity-40 pointer-events-none" />
 
     <!-- HUD -->
     <div class="absolute top-3 left-3 z-20 inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-card text-fg font-extrabold text-[14px] tabular-nums">

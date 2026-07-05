@@ -62,7 +62,28 @@
         "one": "moneda",
         "other": "monedas"
       },
-      "hint": "Esquiva lo que cae, gana monedas y la diviertes"
+      "hint": "Juega, gana monedas y diviértela",
+      "menuTitle": "Juegos",
+      "menuHint": "Elige un juego y gana monedas",
+      "list": {
+        "flip": { "name": "Happy Flip", "tag": "Salta de nube en nube" },
+        "memory": { "name": "Parejas", "tag": "Encuentra las parejas" },
+        "pop": { "name": "Pop de nubes", "tag": "Toca antes de que se vayan" },
+        "simon": { "name": "Secuencia", "tag": "Repite el orden" },
+        "merge": { "name": "Fusiona", "tag": "Junta nubes iguales" },
+        "esquiva": { "name": "Esquiva", "tag": "Evita lo que cae" }
+      },
+      "flip": { "hud": "Toca para aletear y esquivar las nubes", "tapToStart": "Toca para empezar a volar" },
+      "memory": {
+        "pairs": "{a}/{b}",
+        "peek": "¡Memoriza!",
+        "won": "¡Lo lograste! {n}% de acierto",
+        "movesLabel": "Intentos: {n}",
+        "complete": "¡Parejas completas!"
+      },
+      "pop": { "combo": "¡Combo x{n}!" },
+      "simon": { "round": "Ronda {n}", "watch": "Observa…", "your": "¡Tu turno!", "over": "¡Casi!" },
+      "merge": { "cash": "Cobrar {n}", "hint": "Desliza o usa las flechas" }
     },
     "bedroom": {
       "lightOn": "Encender luz",

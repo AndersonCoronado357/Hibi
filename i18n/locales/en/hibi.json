@@ -62,7 +62,28 @@
         "one": "coin",
         "other": "coins"
       },
-      "hint": "Dodge what falls, earn coins and have fun"
+      "hint": "Play, win coins and cheer her up",
+      "menuTitle": "Games",
+      "menuHint": "Pick a game and win coins",
+      "list": {
+        "flip": { "name": "Happy Flip", "tag": "Hop cloud to cloud" },
+        "memory": { "name": "Memory", "tag": "Find the pairs" },
+        "pop": { "name": "Cloud Pop", "tag": "Tap before they vanish" },
+        "simon": { "name": "Sequence", "tag": "Repeat the order" },
+        "merge": { "name": "Merge", "tag": "Combine matching clouds" },
+        "esquiva": { "name": "Dodge", "tag": "Avoid what falls" }
+      },
+      "flip": { "hud": "Tap to flap and dodge the clouds", "tapToStart": "Tap to start flying" },
+      "memory": {
+        "pairs": "{a}/{b}",
+        "peek": "Memorize!",
+        "won": "You did it! {n}% accuracy",
+        "movesLabel": "Attempts: {n}",
+        "complete": "All pairs found!"
+      },
+      "pop": { "combo": "Combo x{n}!" },
+      "simon": { "round": "Round {n}", "watch": "Watch…", "your": "Your turn!", "over": "So close!" },
+      "merge": { "cash": "Cash in {n}", "hint": "Swipe or use the arrows" }
     },
     "bedroom": {
       "lightOn": "Turn light on",
