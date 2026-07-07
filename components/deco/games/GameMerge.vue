@@ -14,6 +14,23 @@ const maxLvl = ref(1)
 const over = ref(false)
 const areaRef = ref<HTMLElement | null>(null)
 
+// Tamaño del tablero calculado en JS (no con aspect-ratio + max-width en CSS):
+// con alto explícito + aspect-square, algunos navegadores ignoran max-width y
+// el tablero se sale de la pantalla en móvil. Medimos el espacio real
+// disponible y fijamos un cuadrado que SIEMPRE cabe.
+const wrapRef = ref<HTMLElement | null>(null)
+const boardSize = ref(300)
+let ro: ResizeObserver | null = null
+function measureBoard() {
+  const el = wrapRef.value
+  if (!el) return
+  const r = el.getBoundingClientRect()
+  const cs = getComputedStyle(el)
+  const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight)
+  const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom)
+  boardSize.value = Math.max(120, Math.floor(Math.min(r.width - padX, r.height - padY)))
+}
+
 // Rampa de color por nivel: cielo → rosa → menta → lavanda → durazno (se repite).
 const TONES = ['#a6d6f0', '#f7c8d5', '#c6e9d6', '#dcd2f1', '#ffd8c4', '#ffe6a8', '#5aa6d2', '#db8aa3', '#34936a', '#7a63c0', '#c5733f']
 const INK = ['#1f4661', '#8a3a52', '#215a41', '#463876', '#7a3f22', '#7a5c17', '#ffffff', '#ffffff', '#ffffff', '#ffffff', '#ffffff']
@@ -83,8 +100,13 @@ function onKey(e: KeyboardEvent) {
   else if (k === 'ArrowDown') { e.preventDefault(); move('d') }
 }
 
-onMounted(() => { reset(); window.addEventListener('keydown', onKey) })
-onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+onMounted(() => {
+  reset()
+  window.addEventListener('keydown', onKey)
+  nextTick(measureBoard)
+  if (wrapRef.value) { ro = new ResizeObserver(measureBoard); ro.observe(wrapRef.value) }
+})
+onBeforeUnmount(() => { window.removeEventListener('keydown', onKey); ro?.disconnect() })
 </script>
 
 <template>
@@ -106,9 +128,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
     <p class="shrink-0 text-center text-[12px] font-bold text-[#2b7a56]/80 pt-1 pb-1 z-10">{{ t('hibi.games.merge.hint') }}</p>
 
-    <!-- Cuadrícula: ocupa el mayor cuadrado posible dentro del espacio disponible -->
-    <div class="flex-1 min-h-0 grid place-items-center p-3 z-10">
-      <div ref="areaRef" class="grid grid-cols-4 gap-3 h-full max-h-full aspect-square max-w-full p-3 rounded-[24px] bg-white/40 touch-none"
+    <!-- Cuadrícula: ocupa el mayor cuadrado posible dentro del espacio disponible.
+         Tamaño en px calculado en JS (measureBoard) — nunca se sale de pantalla. -->
+    <div ref="wrapRef" class="flex-1 min-h-0 w-full grid place-items-center p-3 z-10 overflow-hidden">
+      <div ref="areaRef" class="grid grid-cols-4 gap-3 p-3 rounded-[24px] bg-white/40 touch-none"
+        :style="{ width: boardSize + 'px', height: boardSize + 'px' }"
         @pointerdown="down" @pointerup="up">
         <template v-for="(row, r) in grid" :key="r">
           <div v-for="(v, c) in row" :key="c" class="relative rounded-[16px] bg-white/45 overflow-hidden">
