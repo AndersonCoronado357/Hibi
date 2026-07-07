@@ -50,6 +50,7 @@ export const userSettings = pgTable('user_settings', {
   locale: text('locale').default('es'),
   theme: text('theme').default('light'),
   notifications: jsonb('notifications').$type<Record<string, boolean>>().default({}),
+  summaryPushedOn: date('summary_pushed_on'), // último día que se envió el resumen por push (evita duplicados)
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
 
@@ -93,6 +94,29 @@ export const notes = pgTable('notes', {
   updatedAt: updated(),
 }, (t) => ({ byUser: index('notes_user_idx').on(t.userId) }))
 
+// Archivos adjuntos (disco persistente, no BLOB en BD). Dos usos, mutuamente
+// excluyentes vía noteId/folderId:
+//  · kind image|audio → noteId set: se insertan inline en el body de ESA nota
+//    (referenciados por URL desde el HTML). No tienen listado propio.
+//  · kind pdf|other (o cualquiera subido desde la carpeta) → folderId set:
+//    viven en el panel de la carpeta, nunca dentro de una nota.
+export const noteAttachments = pgTable('note_attachments', {
+  id: text('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
+  noteId: text('note_id').references(() => notes.id, { onDelete: 'cascade' }),
+  folderId: text('folder_id').references(() => noteFolders.id, { onDelete: 'cascade' }),
+  kind: text('kind').notNull(), // image | audio | pdf | other
+  filename: text('filename').notNull(),
+  mimetype: text('mimetype').notNull(),
+  size: integer('size').notNull().default(0),
+  storageKey: text('storage_key').notNull(), // nombre del archivo en disco (uploads dir)
+  createdAt: created(),
+}, (t) => ({
+  byNote: index('note_attachments_note_idx').on(t.noteId),
+  byFolder: index('note_attachments_folder_idx').on(t.folderId),
+  byUser: index('note_attachments_user_idx').on(t.userId),
+}))
+
 // ───────────────────────── CALENDARIO ─────────────────────────
 export const events = pgTable('events', {
   id: text('id').primaryKey(),
@@ -117,6 +141,7 @@ export const reminders = pgTable('reminders', {
   pre: text('pre'), // "10 min antes"
   notes: text('notes'),
   done: boolean('done').default(false),
+  pushedAt: timestamp('pushed_at', { withTimezone: true }), // cuándo se envió el push (null = pendiente)
   createdAt: created(),
   updatedAt: updated(),
 }, (t) => ({ byUser: index('reminders_user_idx').on(t.userId) }))
@@ -325,3 +350,15 @@ export const spotifyAccounts = pgTable('spotify_accounts', {
   product: text('product'), // premium | free
   updatedAt: updated(),
 })
+
+// ───────────────────────── WEB PUSH ─────────────────────────
+// Una fila por navegador/dispositivo suscrito (un usuario puede tener varias).
+// endpoint+keys vienen tal cual del PushSubscription del navegador.
+export const pushSubscriptions = pgTable('push_subscriptions', {
+  id: text('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
+  endpoint: text('endpoint').notNull().unique(),
+  p256dh: text('p256dh').notNull(),
+  auth: text('auth').notNull(),
+  createdAt: created(),
+}, (t) => ({ byUser: index('push_subscriptions_user_idx').on(t.userId) }))

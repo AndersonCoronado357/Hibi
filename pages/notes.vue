@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Search, Plus, Folder, FolderOpen, Pin, Calendar, ChevronRight, ChevronLeft, ChevronDown, NotebookPen, Type, Trash2 } from '@lucide/vue'
+import { Search, Plus, Folder, FolderOpen, Pin, Calendar, ChevronRight, ChevronLeft, ChevronDown, NotebookPen, Type, Trash2, Paperclip, Image as FileImageIcon, Music2, Video as VideoIcon, FileText, FileType2, File as FileGenericIcon, ExternalLink, Play, Pause, Volume2, VolumeX } from '@lucide/vue'
 import { format, parseISO, isValid, isToday, isYesterday } from 'date-fns'
 
 const { t } = useI18n()
@@ -15,6 +15,111 @@ const {
 const search = ref('')
 const selectedFolder = ref<string>('')
 const selectedNoteId = ref<string | null>(null)
+
+// Imágenes/audio del editor: se suben y se insertan INLINE en el cuerpo de
+// la nota (nunca aparecen en un listado aparte).
+const { upload: uploadInlineAttachment, attachmentUrl } = useNoteAttachments(selectedNoteId)
+async function onUploadImage(file: File) { const a = await uploadInlineAttachment(file); return attachmentUrl(a.id) }
+async function onUploadAudio(file: File) { const a = await uploadInlineAttachment(file); return attachmentUrl(a.id) }
+
+// Documentos de la carpeta (pdf/otros/cualquiera): viven en el panel de la
+// carpeta actual, nunca dentro de una nota — independientes de qué nota esté abierta.
+const selectedFolderRef = computed(() => selectedFolder.value || null)
+const { attachments: folderAttachments, upload: uploadFolderAttachment, remove: removeFolderAttachment, attachmentUrl: folderAttachmentUrl } = useFolderAttachments(selectedFolderRef)
+const folderUploading = ref(false)
+const folderUploadError = ref('')
+let errorTimer: ReturnType<typeof setTimeout> | null = null
+async function onUploadFolderFiles(files: File[]) {
+  folderUploading.value = true
+  const rejected: string[] = []
+  try {
+    for (const f of files) {
+      try { await uploadFolderAttachment(f) }
+      catch { rejected.push(f.name) }
+    }
+  } finally {
+    folderUploading.value = false
+    if (rejected.length) {
+      folderUploadError.value = t('notes.attachments.rejected', { files: rejected.join(', ') })
+      if (errorTimer) clearTimeout(errorTimer)
+      errorTimer = setTimeout(() => (folderUploadError.value = ''), 6000)
+    }
+  }
+}
+const FILE_ICONS = { image: FileImageIcon, audio: Music2, video: VideoIcon, pdf: FileText, text: FileType2, other: FileGenericIcon } as const
+const fileIcon = (kind: string) => FILE_ICONS[kind as keyof typeof FILE_ICONS] ?? FileGenericIcon
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+const FOLDER_ACCEPT = 'image/*,audio/*,video/*,application/pdf,text/plain,text/markdown,.md,.markdown,.txt'
+const folderFileInputRef = ref<HTMLInputElement | null>(null)
+const folderFileInputMobileRef = ref<HTMLInputElement | null>(null)
+function pickFolderFile(mobile = false) { (mobile ? folderFileInputMobileRef : folderFileInputRef).value?.click() }
+function onFolderFilesChosen(e: Event) {
+  const input = e.target as HTMLInputElement
+  const files = Array.from(input.files ?? [])
+  input.value = ''
+  if (files.length) onUploadFolderFiles(files)
+}
+
+// Visor de archivos EN LA APP (no modal: pantalla completa como el editor
+// móvil). Imagen y pdf se muestran directo; audio con reproductor propio.
+// "other" nunca tiene visor posible (se sirve forzado a descarga) → abre en
+// pestaña nueva, que es justo lo que hace el navegador con ese archivo.
+interface ViewableAttachment { id: string; filename: string; kind: string }
+const viewingAttachment = ref<ViewableAttachment | null>(null)
+const textContent = ref('')
+const textLoading = ref(false)
+async function handleFileClick(a: ViewableAttachment) {
+  if (a.kind === 'other') { window.open(folderAttachmentUrl(a.id), '_blank', 'noopener'); return }
+  viewingAttachment.value = a
+  if (a.kind === 'text') {
+    textContent.value = ''; textLoading.value = true
+    try { textContent.value = await $fetch<string>(folderAttachmentUrl(a.id), { responseType: 'text' }) }
+    finally { textLoading.value = false }
+  }
+}
+function closeViewer() { viewingAttachment.value = null; stopAudio() }
+
+const audioElRef = ref<HTMLAudioElement | null>(null)
+const audioPlaying = ref(false)
+const audioCurrent = ref(0)
+const audioDuration = ref(0)
+function toggleAudioPlay() {
+  const el = audioElRef.value
+  if (!el) return
+  if (el.paused) { el.play(); audioPlaying.value = true } else { el.pause(); audioPlaying.value = false }
+}
+function onAudioTime(e: Event) { const el = e.target as HTMLAudioElement; audioCurrent.value = el.currentTime; audioDuration.value = el.duration || 0 }
+function onAudioEnded() { audioPlaying.value = false }
+function audioPct() { return audioDuration.value ? (audioCurrent.value / audioDuration.value) * 100 : 0 }
+function formatTime(s: number) { if (!isFinite(s) || s < 0) s = 0; return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}` }
+function seekAudio(e: MouseEvent) {
+  const el = audioElRef.value
+  if (!el || !isFinite(el.duration)) return
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  el.currentTime = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * el.duration
+}
+function stopAudio() { audioElRef.value?.pause(); audioPlaying.value = false; audioCurrent.value = 0 }
+
+// Volumen: mismo patrón que Spotify (composables/useSpotify.ts + pages/spotify.vue)
+// — slider .hibi-range con relleno en gradiente, botón que alterna mute y
+// recuerda el volumen previo.
+const audioVolume = ref(1)
+const audioPreMute = ref(0.7)
+function setAudioVolume(v: number) {
+  audioVolume.value = Math.max(0, Math.min(1, v))
+  if (audioElRef.value) audioElRef.value.volume = audioVolume.value
+}
+function toggleAudioMute() {
+  if (audioVolume.value > 0.001) { audioPreMute.value = audioVolume.value; setAudioVolume(0) }
+  else setAudioVolume(audioPreMute.value || 0.5)
+}
+// Al abrir un audio nuevo, el <audio> se monta con volumen 1 por defecto;
+// hay que aplicarle el volumen recordado de la sesión.
+watch(audioElRef, (el) => { if (el) el.volume = audioVolume.value })
 
 // Selección inicial de carpeta cuando cargan
 watchEffect(() => {
@@ -280,10 +385,16 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
           </div>
           <div class="flex items-center justify-between px-1">
             <h3 class="text-[13px] font-bold text-fg-muted">{{ t('notes.list.count', { n: filtered.length }) }}</h3>
-            <button class="inline-flex items-center gap-1 text-sky-deep text-[12.5px] font-bold hover:underline" @click="createNote">
-              <Plus class="size-3.5" :stroke-width="2.3" />{{ t('notes.list.new') }}
-            </button>
+            <div class="flex items-center gap-3">
+              <button class="inline-flex items-center gap-1 text-sky-deep text-[12.5px] font-bold hover:underline disabled:opacity-50" :disabled="folderUploading" @click="pickFolderFile(false)">
+                <Paperclip class="size-3.5" :stroke-width="2.3" />{{ t('notes.list.addFile') }}
+              </button>
+              <button class="inline-flex items-center gap-1 text-sky-deep text-[12.5px] font-bold hover:underline" @click="createNote">
+                <Plus class="size-3.5" :stroke-width="2.3" />{{ t('notes.list.new') }}
+              </button>
+            </div>
           </div>
+          <p v-if="folderUploadError" class="text-[12px] font-semibold text-pink-deep px-1">{{ folderUploadError }}</p>
         </div>
         <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-2 pb-3">
           <ul class="flex flex-col gap-1">
@@ -306,10 +417,31 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
                 <Trash2 class="size-[14px]" :stroke-width="2" />
               </button>
             </li>
+            <!-- Documentos de esta carpeta: misma fila que una nota, nunca dentro de una nota -->
+            <li v-for="a in folderAttachments" :key="a.id" class="relative group/note">
+              <!-- Misma fila para todos los tipos de archivo (icono+nombre+tamaño),
+                   audio incluido: la reproducción vive en el visor de pantalla
+                   completa, no en esta lista. -->
+              <button type="button"
+                class="w-full flex items-center gap-2.5 text-left p-3 rounded-[12px] transition-[background-color] hover:bg-muted"
+                @click="handleFileClick(a)">
+                <component :is="fileIcon(a.kind)" class="shrink-0 size-4 text-fg-subtle" :stroke-width="1.9" aria-hidden="true" />
+                <div class="flex-1 min-w-0 pr-7">
+                  <h4 class="text-[14px] font-bold text-fg truncate">{{ a.filename }}</h4>
+                  <p class="text-[11px] text-fg-subtle mt-0.5">{{ formatFileSize(a.size) }}</p>
+                </div>
+              </button>
+              <button type="button"
+                class="absolute top-2 right-2 grid place-items-center size-7 rounded-full text-fg-subtle opacity-0 group-hover/note:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]"
+                :aria-label="t('notes.attachments.remove')" @click.stop="removeFolderAttachment(a.id)">
+                <Trash2 class="size-[14px]" :stroke-width="2" />
+              </button>
+            </li>
           </ul>
         </div>
       </template>
     </AppCard>
+    <input ref="folderFileInputRef" type="file" class="hidden" :accept="FOLDER_ACCEPT" multiple @change="onFolderFilesChosen" />
 
     <!-- Editor -->
     <AppCard class="z-10 hidden md:flex flex-1 min-w-0 flex-col overflow-hidden relative" :padded="false">
@@ -327,7 +459,7 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
         <!-- Título editable -->
         <h1
           class="hibi-title-edit text-[34px] font-extrabold text-fg leading-tight outline-none mb-4 shrink-0"
-          contenteditable="true" spellcheck="false"
+          contenteditable="true" spellcheck="false" role="textbox" aria-multiline="false"
           :data-placeholder="t('notes.editor.titlePlaceholder')"
           @blur="onEditTitle"
         >{{ selected!.title }}</h1>
@@ -337,6 +469,8 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
             :key="selected!.id"
             :model-value="selected!.content"
             :placeholder="t('notes.editor.contentPlaceholder')"
+            :upload-image="onUploadImage"
+            :upload-audio="onUploadAudio"
             @update:model-value="onEditContent" />
         </div>
       </div>
@@ -400,10 +534,14 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
             <FolderOpen class="size-[18px] shrink-0" :style="{ color: folders.find(f => f.id === selectedFolder)?.color }" :stroke-width="1.9" aria-hidden="true" />
             <h2 class="text-[17px] font-extrabold text-fg truncate">{{ folders.find(f => f.id === selectedFolder)?.name }}</h2>
           </div>
+          <button type="button" class="grid place-items-center size-9 rounded-full bg-muted text-fg-muted shrink-0 disabled:opacity-50" :disabled="folderUploading" :aria-label="t('notes.list.addFile')" @click="pickFolderFile(true)">
+            <Paperclip class="size-[16px]" :stroke-width="2" />
+          </button>
           <AppButton variant="primary" size="sm" class="shrink-0" @click="createNote">
             <template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>{{ t('notes.list.new') }}
           </AppButton>
         </div>
+        <p v-if="folderUploadError" class="shrink-0 text-[12px] font-semibold text-pink-deep pb-2">{{ folderUploadError }}</p>
 
         <!-- Buscar -->
         <div class="shrink-0 relative pb-3">
@@ -415,7 +553,7 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
 
         <!-- Lista de notas -->
         <div class="flex-1 min-h-0 overflow-y-auto scroll-area">
-          <ul v-if="filtered.length" class="flex flex-col gap-2 pb-2">
+          <ul v-if="filtered.length || folderAttachments.length" class="flex flex-col gap-2 pb-2">
             <li v-for="n in filtered" :key="n.id">
               <button type="button"
                 class="w-full text-left p-3.5 rounded-[14px] bg-card transition-[background-color] active:bg-muted"
@@ -426,6 +564,25 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
                 </div>
                 <p class="text-[13px] text-fg-muted line-clamp-2 mt-1 leading-snug">{{ n.preview }}</p>
                 <p class="text-[11px] text-fg-subtle mt-2 inline-flex items-center gap-1"><Calendar class="size-3" aria-hidden="true" />{{ n.updated }}</p>
+              </button>
+            </li>
+            <!-- Documentos de esta carpeta: misma fila que una nota, nunca dentro de una nota -->
+            <li v-for="a in folderAttachments" :key="a.id" class="relative">
+              <!-- Misma fila para todos los tipos de archivo (icono+nombre+tamaño),
+                   audio incluido: la reproducción vive en el visor de pantalla
+                   completa, no en esta lista. -->
+              <button type="button"
+                class="w-full flex items-center gap-3 text-left p-3.5 rounded-[14px] bg-card transition-[background-color] active:bg-muted"
+                @click="handleFileClick(a)">
+                <component :is="fileIcon(a.kind)" class="shrink-0 size-[18px] text-fg-subtle" :stroke-width="1.9" aria-hidden="true" />
+                <div class="flex-1 min-w-0 pr-8">
+                  <h4 class="text-[15px] font-bold text-fg break-words truncate">{{ a.filename }}</h4>
+                  <p class="text-[11px] text-fg-subtle mt-1">{{ formatFileSize(a.size) }}</p>
+                </div>
+              </button>
+              <button type="button" class="absolute top-1/2 right-2.5 -translate-y-1/2 grid place-items-center size-8 rounded-[10px] text-fg-subtle active:text-pink-deep active:bg-pink-soft shrink-0"
+                :aria-label="t('notes.attachments.remove')" @click.stop="removeFolderAttachment(a.id)">
+                <Trash2 class="size-[15px]" :stroke-width="2" />
               </button>
             </li>
           </ul>
@@ -468,15 +625,65 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
           <AppCard class="flex-1 min-h-0 flex flex-col !p-0 overflow-hidden">
             <div class="flex-1 min-h-0 flex flex-col px-4 py-4">
               <h1 class="hibi-title-edit text-[24px] font-extrabold text-fg leading-tight outline-none mb-3 shrink-0 break-words"
-                contenteditable="true" spellcheck="false" :data-placeholder="t('notes.editor.titlePlaceholder')" @blur="onEditTitle">{{ selected!.title }}</h1>
+                contenteditable="true" spellcheck="false" role="textbox" aria-multiline="false" :data-placeholder="t('notes.editor.titlePlaceholder')" @blur="onEditTitle">{{ selected!.title }}</h1>
               <div class="flex-1 min-h-0 flex">
-                <AppRichEditor :key="selected!.id" v-model:toolbar-open="mobileToolbarOpen" :model-value="selected!.content" :placeholder="t('notes.editor.contentPlaceholder')" @update:model-value="onEditContent" />
+                <AppRichEditor :key="selected!.id" v-model:toolbar-open="mobileToolbarOpen" :model-value="selected!.content" :placeholder="t('notes.editor.contentPlaceholder')" :upload-image="onUploadImage" :upload-audio="onUploadAudio" @update:model-value="onEditContent" />
               </div>
             </div>
           </AppCard>
         </div>
       </Transition>
+      <input ref="folderFileInputMobileRef" type="file" class="hidden" multiple @change="onFolderFilesChosen" />
     </div>
+
+    <!-- Visor de archivos EN LA APP (no modal, pantalla completa como el
+         editor móvil). Imagen/pdf se muestran directo; audio con reproductor
+         propio. "other" nunca llega aquí (se descarga, ver handleFileClick). -->
+    <Transition name="hibi-drill">
+      <div v-if="viewingAttachment" class="absolute inset-0 z-50 bg-base flex flex-col p-4 md:p-6">
+        <header class="shrink-0 flex items-center gap-2 pb-3">
+          <button type="button" class="grid place-items-center size-9 rounded-full bg-muted text-fg-muted hover:bg-[var(--bg-inset)] shrink-0" :aria-label="t('common.back')" @click="closeViewer">
+            <ChevronLeft class="size-[18px]" :stroke-width="2" />
+          </button>
+          <h2 class="flex-1 min-w-0 text-[14px] font-bold text-fg truncate">{{ viewingAttachment.filename }}</h2>
+          <a :href="folderAttachmentUrl(viewingAttachment.id)" target="_blank" rel="noopener"
+            class="shrink-0 grid place-items-center size-9 rounded-full bg-muted text-fg-muted hover:bg-[var(--bg-inset)]" :aria-label="t('notes.attachments.openNewTab')">
+            <ExternalLink class="size-[16px]" :stroke-width="2" />
+          </a>
+        </header>
+        <div class="flex-1 min-h-0 flex items-center justify-center overflow-auto">
+          <img v-if="viewingAttachment.kind === 'image'" :src="folderAttachmentUrl(viewingAttachment.id)" alt="" class="max-w-full max-h-full object-contain rounded-[12px]" />
+          <iframe v-else-if="viewingAttachment.kind === 'pdf'" :src="folderAttachmentUrl(viewingAttachment.id)" class="w-full h-full rounded-[12px]" style="border: 0" />
+          <video v-else-if="viewingAttachment.kind === 'video'" :src="folderAttachmentUrl(viewingAttachment.id)" controls autoplay class="max-w-full max-h-full rounded-[12px]" />
+          <div v-else-if="viewingAttachment.kind === 'text'" class="w-full h-full max-w-3xl overflow-y-auto scroll-area rounded-[12px] bg-card p-5">
+            <p v-if="textLoading" class="text-[13px] text-fg-subtle">{{ t('common.loading') }}</p>
+            <pre v-else class="text-[13px] text-fg leading-relaxed whitespace-pre-wrap break-words font-mono">{{ textContent }}</pre>
+          </div>
+          <div v-else-if="viewingAttachment.kind === 'audio'" class="w-full max-w-md flex flex-col items-center gap-6 px-6">
+            <HibiCloudIcon :size="96" :icon="Music2" :icon-size="34" cloud-color="text-lavender" icon-color="text-fg" />
+            <div class="w-full flex items-center gap-3">
+              <button type="button" class="grid place-items-center size-12 rounded-full bg-sky text-[#1f4661] shrink-0" @click="toggleAudioPlay">
+                <component :is="audioPlaying ? Pause : Play" class="size-5" fill="currentColor" :stroke-width="0" />
+              </button>
+              <div class="flex-1 h-2 rounded-full bg-muted cursor-pointer relative" @click="seekAudio">
+                <div class="absolute inset-y-0 left-0 rounded-full bg-sky-deep pointer-events-none" :style="{ width: audioPct() + '%' }" />
+              </div>
+              <span class="text-[12px] font-bold text-fg-subtle tabular-nums shrink-0">{{ formatTime(audioCurrent) }}</span>
+            </div>
+            <div class="w-full flex items-center gap-2.5">
+              <button type="button" class="grid place-items-center size-8 rounded-full text-fg-muted shrink-0 hover:text-sky-deep transition-colors" :aria-label="audioVolume > 0 ? t('common.editor.mute') : t('common.editor.unmute')" @click="toggleAudioMute">
+                <component :is="audioVolume > 0 ? Volume2 : VolumeX" class="size-[17px]" :stroke-width="2" />
+              </button>
+              <input type="range" min="0" max="1" step="0.02" :value="audioVolume" class="hibi-range flex-1"
+                :style="{ background: 'linear-gradient(to right, var(--color-sky-deep) ' + Math.round(audioVolume * 100) + '%, var(--bg-muted) ' + Math.round(audioVolume * 100) + '%)' }"
+                :aria-label="t('common.editor.volume')" @input="(e) => setAudioVolume(+(e.target as HTMLInputElement).value)" />
+            </div>
+            <audio ref="audioElRef" :src="folderAttachmentUrl(viewingAttachment.id)" class="hidden"
+              @timeupdate="onAudioTime" @loadedmetadata="onAudioTime" @ended="onAudioEnded" />
+          </div>
+        </div>
+      </div>
+    </Transition>
 
     <!-- Popover de color de carpeta (teleport para escapar del overflow) -->
     <ClientOnly>
@@ -525,4 +732,10 @@ onBeforeUnmount(() => { if (typeof document !== 'undefined') document.removeEven
   color: var(--text-subtle);
   pointer-events: none;
 }
+
+/* Slider de volumen: mismo que Spotify (pages/spotify.vue), sin bordes. */
+.hibi-range { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 9999px; background: var(--bg-muted); cursor: pointer; outline: none; }
+.hibi-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--color-sky-deep); border: none; cursor: pointer; }
+.hibi-range::-moz-range-thumb { width: 13px; height: 13px; border-radius: 50%; background: var(--color-sky-deep); border: none; cursor: pointer; }
+.hibi-range::-moz-range-track { height: 4px; border-radius: 9999px; background: var(--bg-muted); }
 </style>

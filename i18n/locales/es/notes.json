@@ -23,6 +23,7 @@
       "searchPlaceholder": "Buscar notas",
       "count": "{n} notas",
       "new": "Nueva",
+      "addFile": "Archivo",
       "deleteNote": "Eliminar nota",
       "backToNotes": "Volver a las notas"
     },
@@ -40,6 +41,11 @@
       "pickTitle": "Elige una nota",
       "pickHint": "O crea una nueva con el botón “+ Nueva”."
     },
-    "pinned": "Fijada"
+    "pinned": "Fijada",
+    "attachments": {
+      "remove": "Quitar archivo",
+      "openNewTab": "Abrir en pestaña nueva",
+      "rejected": "No se permite ese tipo de archivo: {files}"
+    }
   }
 }
