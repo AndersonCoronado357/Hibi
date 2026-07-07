@@ -30,6 +30,28 @@ export function useNotifications() {
 
   const canNotify = () => supported() && Notification.permission === 'granted' && isEnabled()
 
+  // En Chrome/navegadores de celular, `new Notification(...)` desde la página
+  // está prohibido (lanza "Illegal constructor") y hay que mostrarla vía el
+  // Service Worker. En desktop ambos caminos funcionan, así que probamos
+  // primero el del Service Worker (con timeout de seguridad) y si no hay uno
+  // disponible caemos al constructor directo.
+  async function showNotification(title: string, options?: NotificationOptions): Promise<boolean> {
+    if (!supported()) return false
+    // Icono SIEMPRE: en Android una notificación sin icono se descarta en
+    // silencio. Mismo icono que usa el push del servidor (sw.js).
+    const opts: NotificationOptions = { icon: '/icon-512-v3.png', badge: '/icon-512-v3.png', tag: 'hibi', ...options }
+    if ('serviceWorker' in navigator) {
+      try {
+        const reg = await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
+        ])
+        if (reg) { await reg.showNotification(title, opts); return true }
+      } catch { /* cae al constructor directo */ }
+    }
+    try { new Notification(title, opts); return true } catch { return false }
+  }
+
   const NOTIFIED_KEY = () => 'hibi.notified.' + localDay()
   function notifiedIds(): string[] {
     try { return JSON.parse(localStorage.getItem(NOTIFIED_KEY()) || '[]') as string[] } catch { return [] }
@@ -50,13 +72,13 @@ export function useNotifications() {
   function fire(r: NotiReminder) {
     if (!canNotify() || !typeOn('reminders')) return
     if (notifiedIds().includes(r.id)) return
-    try { new Notification('Hibi', { body: r.title }); markNotified(r.id) } catch { /* ignore */ }
+    showNotification('Hibi', { body: r.title }).then((ok) => { if (ok) markNotified(r.id) })
   }
 
   // Muestra una notificación AHORA (para probar/confirmar). No deduplica.
-  function notify(title: string, body?: string): boolean {
-    if (!supported() || Notification.permission !== 'granted') return false
-    try { new Notification(title, body ? { body } : undefined); return true } catch { return false }
+  function notify(title: string, body?: string): Promise<boolean> {
+    if (!supported() || Notification.permission !== 'granted') return Promise.resolve(false)
+    return showNotification(title, body ? { body } : undefined)
   }
 
   // Tipo "Recordatorios": reprograma los recordatorios de HOY con hora futura.
@@ -86,10 +108,50 @@ export function useNotifications() {
     try { if (localStorage.getItem(key)) return } catch { /* ignore */ }
     const at = new Date(); at.setHours(8, 0, 0, 0)
     const delay = at.getTime() - Date.now()
-    const fireIt = () => { try { new Notification('Hibi', { body: text }); localStorage.setItem(key, '1') } catch { /* ignore */ } }
+    const fireIt = () => { showNotification('Hibi', { body: text }).then((ok) => { if (ok) localStorage.setItem(key, '1') }) }
     if (delay <= 0) fireIt()
     else summaryTimer = setTimeout(fireIt, Math.min(delay, 2_147_483_000))
   }
 
-  return { supported, permission, requestPermission, isEnabled, setEnabled, typeOn, setType, scheduleToday, scheduleDailySummary, clearTimers, notify }
+  // ─────────── Web Push real (llega con la app cerrada) ───────────
+  const pushSupported = () => import.meta.client && 'serviceWorker' in navigator && 'PushManager' in window
+
+  function urlBase64ToUint8Array(base64: string): Uint8Array {
+    const padding = '='.repeat((4 - (base64.length % 4)) % 4)
+    const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/')
+    const raw = atob(b64)
+    return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)))
+  }
+
+  // Suscribe este navegador/dispositivo y guarda la suscripción en el servidor.
+  // Devuelve { ok, error } en vez de tragarse el motivo del fallo — hace falta
+  // poder mostrárselo al usuario cuando algo falla en un dispositivo que no
+  // podemos inspeccionar directamente.
+  async function subscribePush(vapidPublicKey: string): Promise<{ ok: boolean; error?: string }> {
+    if (!pushSupported()) return { ok: false, error: 'pushSupported=false (falta serviceWorker o PushManager)' }
+    if (!vapidPublicKey) return { ok: false, error: 'vapidPublicKey vacío' }
+    try {
+      const reg = await navigator.serviceWorker.ready
+      let sub = await reg.pushManager.getSubscription()
+      if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) })
+      const json = sub.toJSON()
+      await $fetch('/api/push/subscribe', { method: 'POST', body: { endpoint: json.endpoint, keys: json.keys } })
+      return { ok: true }
+    } catch (err: any) { return { ok: false, error: String(err?.message || err) } }
+  }
+
+  // Da de baja este navegador (se llama al apagar el maestro de notificaciones).
+  async function unsubscribePush(): Promise<void> {
+    if (!pushSupported()) return
+    try {
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.getSubscription()
+      if (sub) {
+        await $fetch('/api/push/unsubscribe', { method: 'POST', body: { endpoint: sub.endpoint } }).catch(() => {})
+        await sub.unsubscribe()
+      }
+    } catch { /* ignore */ }
+  }
+
+  return { supported, permission, requestPermission, isEnabled, setEnabled, typeOn, setType, scheduleToday, scheduleDailySummary, clearTimers, notify, pushSupported, subscribePush, unsubscribePush }
 }
