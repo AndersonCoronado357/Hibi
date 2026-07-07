@@ -23,6 +23,7 @@
       "searchPlaceholder": "Search notes",
       "count": "{n} notes",
       "new": "New",
+      "addFile": "File",
       "deleteNote": "Delete note",
       "backToNotes": "Back to notes"
     },
@@ -40,6 +41,11 @@
       "pickTitle": "Pick a note",
       "pickHint": "Or create a new one with the “+ New” button."
     },
-    "pinned": "Pinned"
+    "pinned": "Pinned",
+    "attachments": {
+      "remove": "Remove file",
+      "openNewTab": "Open in new tab",
+      "rejected": "That file type isn't allowed: {files}"
+    }
   }
 }

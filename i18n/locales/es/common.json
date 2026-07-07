@@ -78,7 +78,11 @@
       "h1": "Título grande", "h2": "Título medio", "quote": "Cita", "code": "Código",
       "ul": "Lista", "ol": "Lista numerada", "link": "Enlace", "undo": "Deshacer", "redo": "Rehacer",
       "textColor": "Color del texto", "highlight": "Resaltador", "size": "Tamaño", "format": "Formato",
-      "linkPrompt": "URL del enlace", "placeholder": "Empieza a escribir"
+      "linkPrompt": "URL del enlace", "placeholder": "Empieza a escribir",
+      "insertImage": "Insertar imagen", "insertAudio": "Insertar audio",
+      "playPause": "Reproducir o pausar", "volume": "Volumen", "resize": "Redimensionar",
+      "alignLeft": "Alinear a la izquierda", "alignCenter": "Centrar", "alignRight": "Alinear a la derecha",
+      "mute": "Silenciar", "unmute": "Activar sonido"
     }
   }
 }

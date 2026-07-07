@@ -78,7 +78,11 @@
       "h1": "Heading 1", "h2": "Heading 2", "quote": "Quote", "code": "Code",
       "ul": "List", "ol": "Numbered list", "link": "Link", "undo": "Undo", "redo": "Redo",
       "textColor": "Text color", "highlight": "Highlight", "size": "Size", "format": "Format",
-      "linkPrompt": "Link URL", "placeholder": "Start writing"
+      "linkPrompt": "Link URL", "placeholder": "Start writing",
+      "insertImage": "Insert image", "insertAudio": "Insert audio",
+      "playPause": "Play or pause", "volume": "Volume", "resize": "Resize",
+      "alignLeft": "Align left", "alignCenter": "Center", "alignRight": "Align right",
+      "mute": "Mute", "unmute": "Unmute"
     }
   }
 }

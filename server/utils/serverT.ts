@@ -18,6 +18,12 @@ const MESSAGES: Record<string, { es: string; en: string }> = {
   currentRequired: { es: 'Escribe tu contraseña actual', en: 'Enter your current password' },
   newPasswordTooShort: { es: 'La nueva contraseña necesita al menos 8 caracteres', en: 'New password needs at least 8 characters' },
   wrongCurrentPassword: { es: 'La contraseña actual no es correcta', en: 'Current password is wrong' },
+  noteNotFound: { es: 'Nota no encontrada', en: 'Note not found' },
+  folderNotFound: { es: 'Carpeta no encontrada', en: 'Folder not found' },
+  notFound: { es: 'No encontrado', en: 'Not found' },
+  fileTooLarge: { es: 'El archivo es demasiado grande (máx. 20MB)', en: 'The file is too large (max 20MB)' },
+  onlyImageAudioInline: { es: 'Solo imágenes o audio se pueden insertar en la nota', en: 'Only images or audio can be inserted in the note' },
+  fileTypeNotAllowed: { es: 'Ese tipo de archivo no está permitido (solo imágenes, audio, video, pdf o texto)', en: 'That file type is not allowed (only images, audio, video, pdf or text)' },
 }
 
 export function tServer(event: H3Event, key: string): string {
