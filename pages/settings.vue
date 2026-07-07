@@ -82,7 +82,13 @@ const {
   permission: notifPerm, isEnabled: notifEnabled, requestPermission: reqNotifPerm,
   setEnabled: setNotifEnabled, setType: setNotifType, typeOn: notifTypeOn,
   scheduleToday: scheduleNotifs, scheduleDailySummary: scheduleSummary, notify: notifyNow,
+  subscribePush, unsubscribePush,
 } = useNotifications()
+// Se pide al servidor (no useRuntimeConfig) porque en prod el valor horneado
+// en el build queda vacío — el env_file se aplica recién al arrancar el
+// contenedor. Ver server/api/push/vapid-key.get.ts.
+const vapidPublicKey = ref('')
+async function loadVapidKey() { try { const r = await $fetch('/api/push/vapid-key'); vapidPublicKey.value = r.publicKey } catch { /* ignore */ } }
 const { reminders: allReminders } = useReminders()
 const { summary: daySummary } = useInicioSummary()
 function summaryText(): string {
@@ -97,6 +103,7 @@ function rescheduleAll() {
 }
 
 onMounted(async () => {
+  await loadVapidKey()
   const s = await loadSettings()
   if (s) {
     if (s.displayName) profileName.value = s.displayName
@@ -109,6 +116,11 @@ onMounted(async () => {
   notifications.value.desktop = notifPerm() === 'granted' && notifEnabled()
   notifications.value.reminders = notifTypeOn('reminders')
   notifications.value.summary = notifTypeOn('summary')
+  // Si el maestro YA estaba activo (de antes de que existiera push), el watch
+  // de abajo no dispara al cargar la página (no es un cambio). Autosuscribe
+  // aquí para que estas cuentas también queden con push real sin tener que
+  // apagar y prender el interruptor. subscribePush es idempotente.
+  if (notifications.value.desktop) subscribePush(vapidPublicKey.value)
 })
 watch(profileName, (v) => saveSettings({ displayName: v }))
 watch(notifications, (v) => saveSettings({ notifications: { ...v } }), { deep: true })
@@ -119,15 +131,27 @@ watch(() => notifications.value.desktop, async (on, prev) => {
   setNotifEnabled(on)
   if (on) {
     const p = await reqNotifPerm()
-    if (p === 'granted') { rescheduleAll(); notifyNow('Hibi', t('settings.notifTestBody')) }
+    if (p === 'granted') {
+      rescheduleAll()
+      notifyNow('Hibi', t('settings.notifTestBody'))
+      // Suscribe este dispositivo a push real (llega aunque la app esté
+      // cerrada) y manda una prueba real de extremo a extremo por el servidor.
+      const r = await subscribePush(vapidPublicKey.value)
+      if (r.ok) { try { await $fetch('/api/push/test', { method: 'POST' }) } catch { /* ignore */ } }
+    }
     else notifications.value.desktop = false // permiso denegado → refleja apagado
+  } else {
+    unsubscribePush()
   }
 })
 // TIPO "Recordatorios".
 watch(() => notifications.value.reminders, (on, prev) => {
   if (on === prev) return
   setNotifType('reminders', on)
-  if (on) { try { scheduleNotifs(allReminders.value as any) } catch { /* ignore */ } }
+  if (on) {
+    try { scheduleNotifs(allReminders.value as any) } catch { /* ignore */ }
+    if (notifPerm() === 'granted' && notifEnabled()) notifyNow('Hibi', t('settings.notifTestBody'))
+  }
 })
 // TIPO "Resumen diario".
 watch(() => notifications.value.summary, (on, prev) => {

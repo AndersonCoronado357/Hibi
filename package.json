@@ -38,11 +38,13 @@
     "vee-validate": "^4.15.1",
     "vue": "^3.5.35",
     "vue-router": "^4.6.4",
+    "web-push": "^3.6.7",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@nuxt/kit": "^3.21.7",
     "@tailwindcss/vite": "^4.3.0",
+    "@types/web-push": "^3.6.4",
     "drizzle-kit": "^0.31.10",
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3",

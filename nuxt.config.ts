@@ -27,6 +27,12 @@ export default defineNuxtConfig({
     aiBasicAuth: process.env.AI_BASIC_AUTH || '', // "user:pass" para gateways con Basic auth (acmsy)
     aiModel: process.env.AI_MODEL || '',
     ollamaUrl: process.env.OLLAMA_URL || 'http://127.0.0.1:11434',
+    vapidPrivateKey: process.env.VAPID_PRIVATE_KEY || '',
+    vapidSubject: process.env.VAPID_SUBJECT || 'mailto:noreply@acmsy.com',
+    cronSecret: process.env.CRON_SECRET || '',
+    public: {
+      vapidPublicKey: process.env.VAPID_PUBLIC_KEY || '',
+    },
   },
 
   modules: [
@@ -128,5 +134,8 @@ export default defineNuxtConfig({
     '/': { redirect: '/login' },
     // El login es 100% interactivo (animaciones, cursor): renderizado en cliente.
     '/login': { ssr: false },
+    // El service worker NUNCA se cachea: Cloudflare lo estaba guardando 4h y no
+    // propagaba los cambios (push sin icono). no-store obliga a revalidar siempre.
+    '/sw.js': { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } },
   },
 })
