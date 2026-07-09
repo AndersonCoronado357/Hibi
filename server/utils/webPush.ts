@@ -66,9 +66,12 @@ async function typeOn(userId: number, type: 'reminders' | 'summary'): Promise<bo
   return n[type] !== false
 }
 
-// Recordatorios que vencen HOY con hora ya cumplida, sin enviar aún. Manda el
-// push y marca pushed_at para no repetir. Ventana de 3h para que un reinicio
-// del servidor no dispare de golpe recordatorios muy viejos.
+// Recordatorios que vencen HOY con hora ya cumplida, sin enviar aún. Ventana de
+// 3h para que un reinicio del servidor no dispare de golpe recordatorios muy
+// viejos. Solo se marca pushed_at cuando el push SE ENTREGÓ (sent>0): si falla
+// (p. ej. ningún dispositivo alcanzable en ese momento) se reintenta el próximo
+// minuto mientras siga dentro de la ventana. Si el tipo está apagado, se marca
+// igual para no reprocesarlo.
 export async function sendDueReminders(): Promise<{ sent: number; matched: number }> {
   ensureConfigured()
   const { co, today, hhmm } = nowCO()
@@ -84,13 +87,12 @@ export async function sendDueReminders(): Promise<{ sent: number; matched: numbe
     gte(schema.reminders.time, lowerBound),
   ))
 
+  const mark = (id: string) => useDb().update(schema.reminders).set({ pushedAt: new Date() }).where(eq(schema.reminders.id, id))
   let sent = 0
   for (const r of due) {
-    // Se marca SIEMPRE (aunque no se envíe) para no reprocesar el mismo minuto.
-    await useDb().update(schema.reminders).set({ pushedAt: new Date() }).where(eq(schema.reminders.id, r.id))
-    if (!(await typeOn(r.userId, 'reminders'))) continue
+    if (!(await typeOn(r.userId, 'reminders'))) { await mark(r.id); continue } // apagado: marcar y saltar
     const res = await sendPushToUser(r.userId, { title: 'Hibi · Recordatorio', body: r.title })
-    if (res.sent > 0) sent++
+    if (res.sent > 0) { await mark(r.id); sent++ } // solo se marca si de verdad se envió; si no, reintenta
   }
   return { sent, matched: due.length }
 }
@@ -106,11 +108,14 @@ export async function sendDailySummaries(): Promise<{ sent: number }> {
   // Usuarios con al menos una suscripción push y resumen no enviado hoy.
   const users = await db.selectDistinct({ userId: schema.pushSubscriptions.userId })
     .from(schema.pushSubscriptions)
+  // Marca el resumen del día como procesado (upsert por si no hay fila de settings).
+  const markToday = (userId: number) => db.insert(schema.userSettings).values({ userId, summaryPushedOn: today })
+    .onConflictDoUpdate({ target: schema.userSettings.userId, set: { summaryPushedOn: today } })
   let sent = 0
   for (const { userId } of users) {
     const [st] = await db.select().from(schema.userSettings).where(eq(schema.userSettings.userId, userId)).limit(1)
     if (st?.summaryPushedOn === today) continue
-    if (!(await typeOn(userId, 'summary'))) { continue }
+    if (!(await typeOn(userId, 'summary'))) { await markToday(userId); continue } // apagado: marcar y saltar
     const [tk] = await db.select({ n: count() }).from(schema.tasks)
       .where(and(eq(schema.tasks.userId, userId), eq(schema.tasks.status, 'pending'), eq(schema.tasks.dueDate, today)))
     const [ev] = await db.select({ n: count() }).from(schema.events)
@@ -120,10 +125,8 @@ export async function sendDailySummaries(): Promise<{ sent: number }> {
     const tasks = tk?.n ?? 0, events = ev?.n ?? 0, rems = rm?.n ?? 0
     const body = `Hoy tienes ${tasks} tareas, ${events} eventos y ${rems} recordatorios.`
     const res = await sendPushToUser(userId, { title: 'Hibi', body })
-    // Marca enviado (upsert por si no existe fila de settings).
-    await db.insert(schema.userSettings).values({ userId, summaryPushedOn: today })
-      .onConflictDoUpdate({ target: schema.userSettings.userId, set: { summaryPushedOn: today } })
-    if (res.sent > 0) sent++
+    // Solo se marca si de verdad se entregó; si falla, se reintenta el próximo minuto.
+    if (res.sent > 0) { await markToday(userId); sent++ }
   }
   return { sent }
 }
