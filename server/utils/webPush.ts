@@ -38,6 +38,11 @@ function ensureConfigured() {
 
 // Manda un push a TODOS los dispositivos suscritos de un usuario. Si el
 // navegador confirma que una suscripción ya no existe (404/410), la borramos.
+// urgency:'high' + Topic-Priority hacen que el push despierte el dispositivo
+// aunque esté en sueño profundo (Doze). Sin esto, un Android idle toda la noche
+// NO despierta para un push normal y el resumen de las 8am queda en cola hasta
+// que el usuario abre el navegador (justo el bug reportado). TTL de 12h para que
+// aún llegue si estuvo apagado un rato, sin arrastrar avisos de días atrás.
 export async function sendPushToUser(userId: number, payload: { title: string; body: string }) {
   ensureConfigured()
   const subs = await useDb().select().from(schema.pushSubscriptions).where(eq(schema.pushSubscriptions.userId, userId))
@@ -46,6 +51,7 @@ export async function sendPushToUser(userId: number, payload: { title: string; b
       await webpush.sendNotification(
         { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
         JSON.stringify(payload),
+        { urgency: 'high', TTL: 12 * 3600 },
       )
     } catch (err: any) {
       if (err?.statusCode === 404 || err?.statusCode === 410) {
