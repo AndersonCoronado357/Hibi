@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Plus, Wallet, Repeat, ShoppingBag, Home as HomeI, Utensils, Bus, Film, HeartPulse, TrendingDown, TrendingUp, Settings2,
-  Car, Coffee, Pizza, Gift, Plane, Book, Shirt, Sparkles, Heart, Music, Gamepad2, Dog, Baby, Banknote, Trash2, Check, X, ArrowLeft } from '@lucide/vue'
+  Car, Coffee, Pizza, Gift, Plane, Book, Shirt, Sparkles, Heart, Music, Gamepad2, Dog, Baby, Banknote, Trash2, Check, X, ArrowLeft, ChevronLeft, ChevronRight } from '@lucide/vue'
 import { markRaw, type Component } from 'vue'
-import { format } from 'date-fns'
+import { format, addMonths, subMonths, isSameMonth } from 'date-fns'
 
 const { t } = useI18n()
 const dateLocale = useDateLocale()
@@ -67,14 +67,24 @@ function fmtDate(iso?: string | null) {
   } catch { return iso }
 }
 
-const totalMonth = computed(() => expenses.value.reduce((a, t) => a + Math.abs(t.amount), 0))
 const totalSubs = computed(() => subscriptions.value.reduce((a, s) => a + s.amount, 0))
 
-// Nombre del mes ACTUAL, calculado en vivo (antes estaba hardcodeado en el i18n
-// como "junio" y se quedaba pegado). `monthRaw` respeta el idioma (agosto/August);
-// `monthCap` para inicio de frase en español (Agosto).
-const monthRaw = computed(() => format(new Date(), 'MMMM', { locale: dateLocale.value }))
-const monthCap = computed(() => monthRaw.value.charAt(0).toUpperCase() + monthRaw.value.slice(1))
+// Mes seleccionado (arranca en el actual). Se puede navegar con las flechas.
+// Antes el mes estaba hardcodeado en el i18n ("junio") y se quedaba pegado.
+const monthCursor = ref(new Date())
+const monthPrefix = computed(() => format(monthCursor.value, 'yyyy-MM')) // yyyy-MM para filtrar spentDate
+const monthRaw = computed(() => format(monthCursor.value, 'MMMM', { locale: dateLocale.value })) // respeta idioma (agosto/August)
+const monthCap = computed(() => monthRaw.value.charAt(0).toUpperCase() + monthRaw.value.slice(1)) // inicio de frase
+const monthYearLabel = computed(() => { const s = format(monthCursor.value, 'MMMM yyyy', { locale: dateLocale.value }); return s.charAt(0).toUpperCase() + s.slice(1) })
+const isCurrentMonth = computed(() => isSameMonth(monthCursor.value, new Date()))
+function prevMonth() { monthCursor.value = subMonths(monthCursor.value, 1) }
+function nextMonth() { monthCursor.value = addMonths(monthCursor.value, 1) }
+function goCurrentMonth() { monthCursor.value = new Date() }
+
+// Gastos SOLO del mes seleccionado — el total, el desglose y la lista se filtran
+// por aquí, así "Gastado en agosto" cuenta de verdad solo agosto.
+const monthExpenses = computed(() => expenses.value.filter(e => (e.spentDate || '').startsWith(monthPrefix.value)))
+const totalMonth = computed(() => monthExpenses.value.reduce((a, t) => a + Math.abs(t.amount), 0))
 
 type Tab = 'expenses' | 'subs'
 type View = 'list' | 'categories'
@@ -89,7 +99,7 @@ const tabOptions = computed(() => [
 // Desglose por categoría para la tarjeta de resumen
 const byCat = computed(() => {
   const map: Record<string, number> = {}
-  for (const t of expenses.value) { const k = t.categoryId || ''; map[k] = (map[k] || 0) + Math.abs(t.amount) }
+  for (const t of monthExpenses.value) { const k = t.categoryId || ''; map[k] = (map[k] || 0) + Math.abs(t.amount) }
   return Object.entries(map)
     .map(([key, amount]) => ({ key, amount, meta: CAT_META.value[key], pct: Math.round((amount / (totalMonth.value || 1)) * 100) }))
     .filter(c => c.meta)
@@ -360,6 +370,12 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
     <div v-else-if="tab === 'expenses'" class="relative z-10 flex-1 min-h-0 flex flex-col gap-2 md:gap-3 overflow-hidden">
       <!-- Resumen compacto: total + barra (sin saturar) -->
       <AppCard class="shrink-0 !p-4 md:!p-5 flex flex-col gap-2.5">
+        <!-- Navegación de mes: flechas + mes/año (toca para volver al actual) -->
+        <div class="flex items-center justify-between gap-2">
+          <button type="button" class="grid place-items-center size-8 rounded-full bg-muted text-fg-muted active:bg-inset shrink-0" :aria-label="t('finances.monthNav.prev')" @click="prevMonth"><ChevronLeft class="size-[17px]" :stroke-width="2.2" /></button>
+          <button type="button" class="flex-1 h-8 rounded-full text-[13px] font-extrabold text-fg capitalize truncate px-2" :class="isCurrentMonth ? '' : 'text-sky-deep'" @click="goCurrentMonth">{{ monthYearLabel }}</button>
+          <button type="button" class="grid place-items-center size-8 rounded-full bg-muted text-fg-muted active:bg-inset shrink-0" :aria-label="t('finances.monthNav.next')" @click="nextMonth"><ChevronRight class="size-[17px]" :stroke-width="2.2" /></button>
+        </div>
         <div class="flex items-end justify-between gap-3">
           <div class="min-w-0">
             <p class="text-[11.5px] font-bold text-fg-muted uppercase tracking-wide">{{ t('finances.expenses.spentThisMonth', { month: monthRaw }) }}</p>
@@ -378,7 +394,7 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
       <AppCard class="flex-1 min-h-0 min-w-0 flex flex-col" :padded="false">
         <header class="px-4 md:px-5 pt-4 md:pt-5 pb-2 md:pb-3 shrink-0 flex items-center justify-between">
           <h2 class="text-[14px] font-bold text-fg">{{ t('finances.expenses.movements') }}</h2>
-          <span class="text-[12.5px] font-bold text-fg-muted tabular-nums">{{ t('finances.expenses.thisMonth', { count: expenses.length }) }}</span>
+          <span class="text-[12.5px] font-bold text-fg-muted tabular-nums">{{ t('finances.expenses.thisMonth', { count: monthExpenses.length }) }}</span>
         </header>
         <!-- Carga inicial -->
         <div v-if="expensesLoadingEmpty" class="flex-1 min-h-0 overflow-hidden px-2 md:px-3 pb-3 flex flex-col gap-1">
@@ -392,7 +408,7 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
           </div>
         </div>
         <!-- Vacío -->
-        <div v-else-if="!expenses.length" class="flex-1 min-h-0 grid place-items-center px-6 pb-6 text-center">
+        <div v-else-if="!monthExpenses.length" class="flex-1 min-h-0 grid place-items-center px-6 pb-6 text-center">
           <div class="flex flex-col items-center gap-2">
             <span class="relative inline-block" :style="{ width: '72px', height: '49px' }" aria-hidden="true">
               <HibiCloud :size="72" :body-opacity="0.3" class="absolute inset-0 text-mint" />
@@ -403,7 +419,7 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
           </div>
         </div>
         <ul v-else class="flex-1 min-h-0 overflow-y-auto scroll-area px-2 md:px-3 pb-3 flex flex-col">
-          <li v-for="tx in expenses" :key="tx.id" class="group/tx flex items-center gap-2 p-2 rounded-[12px] hover:bg-muted transition-[background-color]">
+          <li v-for="tx in monthExpenses" :key="tx.id" class="group/tx flex items-center gap-2 p-2 rounded-[12px] hover:bg-muted transition-[background-color]">
             <div role="button" tabindex="0" class="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer text-left outline-none rounded-[10px] focus-visible:ring-2 focus-visible:ring-sky-deep" @click="startEditExpense(tx)" @keydown.enter.prevent="startEditExpense(tx)" @keydown.space.prevent="startEditExpense(tx)">
               <span class="relative inline-block shrink-0" :style="{ width: '54px', height: '37px' }" aria-hidden="true">
                 <HibiCloud :size="54" :body-opacity="0.25" :style="{ color: CAT_META[tx.categoryId || '']?.color || '#bf8f2e' }" class="absolute inset-0" />

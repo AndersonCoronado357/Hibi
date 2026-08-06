@@ -6,6 +6,7 @@
     "title": "Finanzas",
     "subtitle": "{month} · {amount} gastado",
     "month": "{month}",
+    "monthNav": { "prev": "Mes anterior", "next": "Mes siguiente" },
     "dateFormat": "d MMM",
     "tabs": {
       "expenses": "Gastos",
