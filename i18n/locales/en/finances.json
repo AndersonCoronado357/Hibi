@@ -4,8 +4,8 @@
       "title": "Hibi — Finances"
     },
     "title": "Finances",
-    "subtitle": "June · {amount} spent",
-    "month": "June",
+    "subtitle": "{month} · {amount} spent",
+    "month": "{month}",
     "dateFormat": "MMM d",
     "tabs": {
       "expenses": "Expenses",
@@ -23,7 +23,7 @@
       "deleteAria": "Delete category"
     },
     "expenses": {
-      "spentThisMonth": "Spent in June",
+      "spentThisMonth": "Spent in {month}",
       "categoriesButton": "Categories",
       "movements": "Movements",
       "thisMonth": "{count} this month",

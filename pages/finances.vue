@@ -70,6 +70,12 @@ function fmtDate(iso?: string | null) {
 const totalMonth = computed(() => expenses.value.reduce((a, t) => a + Math.abs(t.amount), 0))
 const totalSubs = computed(() => subscriptions.value.reduce((a, s) => a + s.amount, 0))
 
+// Nombre del mes ACTUAL, calculado en vivo (antes estaba hardcodeado en el i18n
+// como "junio" y se quedaba pegado). `monthRaw` respeta el idioma (agosto/August);
+// `monthCap` para inicio de frase en español (Agosto).
+const monthRaw = computed(() => format(new Date(), 'MMMM', { locale: dateLocale.value }))
+const monthCap = computed(() => monthRaw.value.charAt(0).toUpperCase() + monthRaw.value.slice(1))
+
 type Tab = 'expenses' | 'subs'
 type View = 'list' | 'categories'
 const tab = ref<Tab>('expenses')
@@ -292,7 +298,7 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
 
     <!-- Toolbar -->
     <div class="relative z-10">
-      <PageHero :icon="Wallet" tone="mint" :title="t('finances.title')" :subtitle="t('finances.subtitle', { amount: fmt(totalMonth) })">
+      <PageHero :icon="Wallet" tone="mint" :title="t('finances.title')" :subtitle="t('finances.subtitle', { month: monthCap, amount: fmt(totalMonth) })">
         <template #actions>
           <AppSegmented :model-value="tab" :options="tabOptions" @update:model-value="(v) => switchTab(v as Tab)" />
           <AppButton variant="primary" size="sm" class="ml-auto shrink-0" @click="newEntry">
@@ -356,7 +362,7 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
       <AppCard class="shrink-0 !p-4 md:!p-5 flex flex-col gap-2.5">
         <div class="flex items-end justify-between gap-3">
           <div class="min-w-0">
-            <p class="text-[11.5px] font-bold text-fg-muted uppercase tracking-wide">{{ t('finances.expenses.spentThisMonth') }}</p>
+            <p class="text-[11.5px] font-bold text-fg-muted uppercase tracking-wide">{{ t('finances.expenses.spentThisMonth', { month: monthRaw }) }}</p>
             <p class="text-[26px] md:text-[28px] font-extrabold text-fg leading-none tabular-nums mt-0.5">{{ fmt(totalMonth) }}</p>
           </div>
           <button type="button" class="shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-muted text-fg-muted text-[12.5px] font-bold" @click="view = 'categories'">
