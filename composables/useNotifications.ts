@@ -153,5 +153,17 @@ export function useNotifications() {
     } catch { /* ignore */ }
   }
 
-  return { supported, permission, requestPermission, isEnabled, setEnabled, typeOn, setType, scheduleToday, scheduleDailySummary, clearTimers, notify, pushSupported, subscribePush, unsubscribePush }
+  // ¿Este dispositivo está suscrito a push real? Si lo está, el SERVIDOR manda
+  // los recordatorios/resumen, así que el agendado client-side (setTimeout) NO
+  // debe correr o llegaría el aviso DOS veces (push al estar cerrada + local al
+  // abrir). El client-side queda solo como respaldo para dispositivos sin push.
+  async function hasPushSubscription(): Promise<boolean> {
+    if (!pushSupported()) return false
+    try {
+      const reg = await navigator.serviceWorker.ready
+      return !!(await reg.pushManager.getSubscription())
+    } catch { return false }
+  }
+
+  return { supported, permission, requestPermission, isEnabled, setEnabled, typeOn, setType, scheduleToday, scheduleDailySummary, clearTimers, notify, pushSupported, subscribePush, unsubscribePush, hasPushSubscription }
 }

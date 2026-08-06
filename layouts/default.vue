@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Programa notificaciones del navegador para los recordatorios de HOY (solo si
 // el usuario dio permiso en Ajustes). A prueba de fallos: cualquier error se ignora.
-const { scheduleToday, scheduleDailySummary, permission } = useNotifications()
+const { scheduleToday, scheduleDailySummary, permission, hasPushSubscription } = useNotifications()
 const { reminders } = useReminders()
 const { summary } = useInicioSummary()
 const { t } = useI18n()
@@ -10,11 +10,14 @@ function summaryText() {
   if (!s) return ''
   return t('settings.notifSummaryBody', { tasks: s.todayTasks ?? 0, events: s.todayEvents ?? 0, reminders: s.reminders ?? 0 })
 }
-function reschedule() {
+async function reschedule() {
   try {
     if (permission() !== 'granted') return
-    scheduleToday(reminders.value as any)     // tipo "Recordatorios"
-    scheduleDailySummary(summaryText())        // tipo "Resumen diario"
+    // Si hay push real, el servidor manda los avisos → NO agendar locales
+    // (si no, llegan dos veces: push al estar cerrada + local al abrir).
+    if (await hasPushSubscription()) return
+    scheduleToday(reminders.value as any)     // respaldo sin push: tipo "Recordatorios"
+    scheduleDailySummary(summaryText())        // respaldo sin push: tipo "Resumen diario"
   } catch { /* ignore */ }
 }
 onMounted(reschedule)

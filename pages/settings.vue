@@ -82,7 +82,7 @@ const {
   permission: notifPerm, isEnabled: notifEnabled, requestPermission: reqNotifPerm,
   setEnabled: setNotifEnabled, setType: setNotifType, typeOn: notifTypeOn,
   scheduleToday: scheduleNotifs, scheduleDailySummary: scheduleSummary, notify: notifyNow,
-  subscribePush, unsubscribePush,
+  subscribePush, unsubscribePush, hasPushSubscription,
 } = useNotifications()
 // Se pide al servidor (no useRuntimeConfig) porque en prod el valor horneado
 // en el build queda vacío — el env_file se aplica recién al arrancar el
@@ -96,8 +96,10 @@ function summaryText(): string {
   if (!s) return ''
   return t('settings.notifSummaryBody', { tasks: s.todayTasks ?? 0, events: s.todayEvents ?? 0, reminders: s.reminders ?? 0 })
 }
-function rescheduleAll() {
+async function rescheduleAll() {
   if (notifPerm() !== 'granted' || !notifEnabled()) return
+  // Con push real, el servidor manda los avisos → no agendar locales (evita doble).
+  if (await hasPushSubscription()) return
   try { scheduleNotifs(allReminders.value as any) } catch { /* ignore */ }
   try { scheduleSummary(summaryText()) } catch { /* ignore */ }
 }
@@ -132,12 +134,12 @@ watch(() => notifications.value.desktop, async (on, prev) => {
   if (on) {
     const p = await reqNotifPerm()
     if (p === 'granted') {
-      rescheduleAll()
       notifyNow('Hibi', t('settings.notifTestBody'))
-      // Suscribe este dispositivo a push real (llega aunque la app esté
-      // cerrada) y manda una prueba real de extremo a extremo por el servidor.
+      // Suscribe PRIMERO a push real; así rescheduleAll (después) ve que hay
+      // push y NO agenda avisos locales → nunca llega el aviso doble.
       const r = await subscribePush(vapidPublicKey.value)
       if (r.ok) { try { await $fetch('/api/push/test', { method: 'POST' }) } catch { /* ignore */ } }
+      rescheduleAll() // solo agenda local si el push falló (respaldo)
     }
     else notifications.value.desktop = false // permiso denegado → refleja apagado
   } else {
