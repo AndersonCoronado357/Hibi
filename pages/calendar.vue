@@ -70,21 +70,26 @@ function next() {
   else cursor.value = addMonths(cursor.value, 1)
 }
 
-// Swipe horizontal en móvil para cambiar de mes/semana/día (izquierda = siguiente,
-// derecha = anterior). Solo con el DEDO (pointerType touch) para no interferir con
-// el mouse en desktop; ignora gestos verticales (scroll) y cuando hay un panel de
-// día abierto o el editor. Umbral: >55px y claramente más horizontal que vertical.
+// Swipe horizontal con el DEDO para cambiar de mes/semana/día (izquierda =
+// siguiente, derecha = anterior). Usamos eventos TÁCTILES (touchstart/touchend)
+// y NO de puntero: en un móvil real, cuando el navegador toma el gesto como
+// scroll dispara `pointercancel` en vez de `pointerup`, y el handler nunca
+// corría (ese era el bug). `touchend` siempre dispara con la posición final.
+// Ignora gestos verticales (scroll), multitáctil, y el panel de día/editor
+// abiertos. Umbral: >45px y claramente más horizontal que vertical.
 let swipeX = 0, swipeY = 0, swiping = false
-function onSwipeStart(e: PointerEvent) {
-  if (e.pointerType !== 'touch') { swiping = false; return }
-  swipeX = e.clientX; swipeY = e.clientY; swiping = true
+function onSwipeStart(e: TouchEvent) {
+  if (e.touches.length !== 1) { swiping = false; return }
+  swipeX = e.touches[0]!.clientX; swipeY = e.touches[0]!.clientY; swiping = true
 }
-function onSwipeEnd(e: PointerEvent) {
-  if (!swiping || e.pointerType !== 'touch') return
+function onSwipeEnd(e: TouchEvent) {
+  if (!swiping) return
   swiping = false
   if (mobileDayDetail.value || view.value === 'create') return
-  const dx = e.clientX - swipeX, dy = e.clientY - swipeY
-  if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.4) return
+  const tp = e.changedTouches[0]
+  if (!tp) return
+  const dx = tp.clientX - swipeX, dy = tp.clientY - swipeY
+  if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy) * 1.3) return
   if (dx < 0) next(); else prev()
 }
 
@@ -327,7 +332,7 @@ const VIEW_OPTS = computed(() => [
       </PageHero>
     </div>
 
-    <div class="flex-1 min-h-0 flex gap-3" @pointerdown="onSwipeStart" @pointerup="onSwipeEnd">
+    <div class="flex-1 min-h-0 flex gap-3" @touchstart.passive="onSwipeStart" @touchend="onSwipeEnd">
       <!-- CARGANDO (primera carga): esqueleto pulse en el estilo del resto -->
       <AppCard v-if="isLoading && !eventsData.length" class="flex-1 min-w-0 flex flex-col" :padded="false">
         <div class="grid grid-cols-7 gap-1 px-2 md:px-3 pt-2 md:pt-3 shrink-0">
