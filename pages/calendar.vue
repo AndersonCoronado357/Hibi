@@ -59,6 +59,17 @@ const headerLabel = computed(() => {
   }
   return format(cursor.value, t('calendar.format.monthYear'), { locale: dateLocale.value })
 })
+// Versión COMPACTA para el header móvil (botón angosto). Cambia según la vista:
+// día → "mié 9 sep" (antes se quedaba fijo en "Sep 26"), semana → rango, mes → "Sep 26".
+const headerLabelShort = computed(() => {
+  if (view.value === 'day') return format(cursor.value, 'EEE d MMM', { locale: dateLocale.value })
+  if (view.value === 'week') {
+    const s = startOfWeek(cursor.value, { weekStartsOn: 1 })
+    const e = endOfWeek(cursor.value, { weekStartsOn: 1 })
+    return `${format(s, 'd', { locale: dateLocale.value })}–${format(e, 'd MMM', { locale: dateLocale.value })}`
+  }
+  return format(cursor.value, t('calendar.format.monthShortYear'), { locale: dateLocale.value })
+})
 // Dirección de la transición del periodo (para el deslizamiento tipo carrusel).
 const navDir = ref<'cal-next' | 'cal-prev'>('cal-next')
 // Clave del periodo visible: cambia al navegar (mes/semana/día) y dispara la
@@ -325,7 +336,7 @@ const VIEW_OPTS = computed(() => [
           <!-- MOVIL: barra compacta que CABE en 343px sin scroll -->
           <div class="flex md:hidden items-center gap-1.5 w-full">
             <button class="grid place-items-center size-9 rounded-[11px] bg-card text-sky-deep shrink-0" :aria-label="t('calendar.nav.prev')" @click="prev"><ChevronLeft class="size-4" :stroke-width="2" /></button>
-            <button class="flex-1 h-9 px-2 rounded-[11px] bg-card text-[13px] font-bold text-sky-deep capitalize truncate" @click="cursor = new Date()">{{ format(cursor, t('calendar.format.monthShortYear'), { locale: dateLocale.value }) }}</button>
+            <button class="flex-1 h-9 px-2 rounded-[11px] bg-card text-[13px] font-bold text-sky-deep capitalize truncate" @click="cursor = new Date()">{{ headerLabelShort }}</button>
             <button class="grid place-items-center size-9 rounded-[11px] bg-card text-sky-deep shrink-0" :aria-label="t('calendar.nav.next')" @click="next"><ChevronRight class="size-4" :stroke-width="2" /></button>
             <div class="inline-flex items-center gap-0.5 p-0.5 rounded-full bg-card shrink-0">
               <button v-for="opt in VIEW_OPTS" :key="String(opt.value)" type="button"
