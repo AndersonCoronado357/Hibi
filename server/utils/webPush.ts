@@ -129,6 +129,9 @@ export async function sendDailySummaries(): Promise<{ sent: number }> {
     const [rm] = await db.select({ n: count() }).from(schema.reminders)
       .where(and(eq(schema.reminders.userId, userId), eq(schema.reminders.remindDate, today), eq(schema.reminders.done, false)))
     const tasks = tk?.n ?? 0, events = ev?.n ?? 0, rems = rm?.n ?? 0
+    // No molestar con un resumen vacío: si no hay NADA hoy, no se manda (pero
+    // se marca como procesado para no volver a evaluarlo todo el día).
+    if (tasks === 0 && events === 0 && rems === 0) { await markToday(userId); continue }
     const body = `Hoy tienes ${tasks} tareas, ${events} eventos y ${rems} recordatorios.`
     const res = await sendPushToUser(userId, { title: 'Hibi', body })
     // Solo se marca si de verdad se entregó; si falla, se reintenta el próximo minuto.
