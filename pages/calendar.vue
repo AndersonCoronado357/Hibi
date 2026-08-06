@@ -354,7 +354,7 @@ const VIEW_OPTS = computed(() => [
       </PageHero>
     </div>
 
-    <div class="flex-1 min-h-0 flex gap-3 relative overflow-hidden" @touchstart.passive="onSwipeStart" @touchend="onSwipeEnd">
+    <div class="flex-1 min-h-0 flex gap-3 relative overflow-hidden rounded-[22px]" @touchstart.passive="onSwipeStart" @touchend="onSwipeEnd">
       <Transition :name="navDir">
       <!-- CARGANDO (primera carga): esqueleto pulse en el estilo del resto -->
       <AppCard v-if="isLoading && !eventsData.length" key="loading" class="flex-1 min-w-0 flex flex-col" :padded="false">
