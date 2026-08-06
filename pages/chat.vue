@@ -265,7 +265,7 @@ watch(() => activeId.value, async () => {
             <form class="relative" @submit.prevent="send()">
               <!-- Menú de comandos "/" (aparece al escribir "/") -->
               <Transition name="chips">
-                <div v-if="slashOpen" class="absolute bottom-full mb-2 left-0 w-full md:w-72 rounded-[16px] overflow-hidden p-1.5 z-30 shadow-[0_-6px_28px_rgba(0,0,0,0.14)]" style="background: var(--bg-pop)">
+                <div v-if="slashOpen" class="absolute bottom-full mb-2 left-0 w-full md:w-72 rounded-[16px] overflow-hidden p-1.5 z-30" style="background: var(--bg-pop)">
                   <button v-for="(c, i) in slashList" :key="c.cmd" type="button"
                     class="w-full flex items-center gap-2.5 px-3 py-2 rounded-[11px] text-left transition-[background-color]"
                     :class="i === slashSel ? 'bg-sky-soft text-sky-deep' : 'text-fg hover:bg-muted'"
