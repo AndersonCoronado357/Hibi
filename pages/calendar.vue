@@ -70,6 +70,24 @@ function next() {
   else cursor.value = addMonths(cursor.value, 1)
 }
 
+// Swipe horizontal en móvil para cambiar de mes/semana/día (izquierda = siguiente,
+// derecha = anterior). Solo con el DEDO (pointerType touch) para no interferir con
+// el mouse en desktop; ignora gestos verticales (scroll) y cuando hay un panel de
+// día abierto o el editor. Umbral: >55px y claramente más horizontal que vertical.
+let swipeX = 0, swipeY = 0, swiping = false
+function onSwipeStart(e: PointerEvent) {
+  if (e.pointerType !== 'touch') { swiping = false; return }
+  swipeX = e.clientX; swipeY = e.clientY; swiping = true
+}
+function onSwipeEnd(e: PointerEvent) {
+  if (!swiping || e.pointerType !== 'touch') return
+  swiping = false
+  if (mobileDayDetail.value || view.value === 'create') return
+  const dx = e.clientX - swipeX, dy = e.clientY - swipeY
+  if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.4) return
+  if (dx < 0) next(); else prev()
+}
+
 const weekDays = computed(() => {
   const s = startOfWeek(new Date(), { weekStartsOn: 1 })
   return Array.from({ length: 7 }, (_, j) => format(addDays(s, j), 'EEEEE', { locale: dateLocale.value }).toUpperCase())
@@ -309,7 +327,7 @@ const VIEW_OPTS = computed(() => [
       </PageHero>
     </div>
 
-    <div class="flex-1 min-h-0 flex gap-3">
+    <div class="flex-1 min-h-0 flex gap-3" @pointerdown="onSwipeStart" @pointerup="onSwipeEnd">
       <!-- CARGANDO (primera carga): esqueleto pulse en el estilo del resto -->
       <AppCard v-if="isLoading && !eventsData.length" class="flex-1 min-w-0 flex flex-col" :padded="false">
         <div class="grid grid-cols-7 gap-1 px-2 md:px-3 pt-2 md:pt-3 shrink-0">
@@ -463,12 +481,15 @@ const VIEW_OPTS = computed(() => [
               </div>
               <ul v-else class="flex flex-col gap-2">
                 <li v-for="e in selectedEvents" :key="e.id"
-                  class="flex items-center gap-3 px-3.5 py-3 rounded-[14px] min-w-0 cursor-pointer"
+                  class="flex items-center gap-2 px-3.5 py-3 rounded-[14px] min-w-0 cursor-pointer"
                   :style="evStyle(e)"
                   @click="openEdit(e)">
                   <span class="size-2.5 rounded-full shrink-0" :style="{ background: e.color }" aria-hidden="true" />
                   <p class="flex-1 min-w-0 text-[14px] font-bold break-words">{{ e.title }}</p>
                   <span class="shrink-0 text-[12px] font-semibold opacity-80 tabular-nums whitespace-nowrap">{{ e.startTime ? e.startTime : t('calendar.allDay') }}{{ e.endTime ? ' – ' + e.endTime : '' }}</span>
+                  <button type="button" class="shrink-0 grid place-items-center size-8 -mr-1 rounded-full text-current/70 active:bg-black/10" :aria-label="t('calendar.create.deleteEvent')" @click.stop="deleteEvent(e.id)">
+                    <Trash2 class="size-[15px]" :stroke-width="2.1" />
+                  </button>
                 </li>
               </ul>
             </div>
@@ -534,12 +555,15 @@ const VIEW_OPTS = computed(() => [
               </div>
               <ul v-else class="flex flex-col gap-2">
                 <li v-for="e in selectedEvents" :key="e.id"
-                  class="flex items-center gap-3 px-3.5 py-3 rounded-[14px] min-w-0 cursor-pointer"
+                  class="flex items-center gap-2 px-3.5 py-3 rounded-[14px] min-w-0 cursor-pointer"
                   :style="evStyle(e)"
                   @click="openEdit(e)">
                   <span class="size-2.5 rounded-full shrink-0" :style="{ background: e.color }" aria-hidden="true" />
                   <p class="flex-1 min-w-0 text-[14px] font-bold break-words">{{ e.title }}</p>
                   <span class="shrink-0 text-[12px] font-semibold opacity-80 tabular-nums whitespace-nowrap">{{ e.startTime ? e.startTime : t('calendar.allDay') }}{{ e.endTime ? ' – ' + e.endTime : '' }}</span>
+                  <button type="button" class="shrink-0 grid place-items-center size-8 -mr-1 rounded-full text-current/70 active:bg-black/10" :aria-label="t('calendar.create.deleteEvent')" @click.stop="deleteEvent(e.id)">
+                    <Trash2 class="size-[15px]" :stroke-width="2.1" />
+                  </button>
                 </li>
               </ul>
             </div>
