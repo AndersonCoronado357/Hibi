@@ -513,6 +513,24 @@ html, body { scrollbar-width: none; -ms-overflow-style: none; }
   transform: translateX(64px) scale(0.96);
 }
 
+/* Calendario: deslizamiento tipo carrusel al cambiar de periodo (swipe/flechas).
+   La tarjeta saliente se posiciona absoluta (inset 0) para que la entrante entre
+   simultánea desde el otro lado. `!important` porque AppCard trae `relative` de
+   base y gana por orden de fuente. Contenedor con overflow-hidden. */
+.cal-next-enter-active, .cal-prev-enter-active,
+.cal-next-leave-active, .cal-prev-leave-active {
+  transition: transform 0.34s var(--ease-soft);
+  will-change: transform;
+}
+.cal-next-leave-active, .cal-prev-leave-active {
+  position: absolute !important;
+  inset: 0;
+}
+.cal-next-enter-from { transform: translateX(100%); }
+.cal-next-leave-to   { transform: translateX(-100%); }
+.cal-prev-enter-from { transform: translateX(-100%); }
+.cal-prev-leave-to   { transform: translateX(100%); }
+
 /* Aparición de formularios inline: leve slide-down + fundido.
    Sin scale/translate grande que mueva el layout adyacente. */
 .inline-form-enter-active {
