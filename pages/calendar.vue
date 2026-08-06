@@ -59,32 +59,48 @@ const headerLabel = computed(() => {
   }
   return format(cursor.value, t('calendar.format.monthYear'), { locale: dateLocale.value })
 })
+// Dirección de la transición del periodo (para el deslizamiento tipo carrusel).
+const navDir = ref<'cal-next' | 'cal-prev'>('cal-next')
+// Clave del periodo visible: cambia al navegar (mes/semana/día) y dispara la
+// transición. Incluye la vista para que también anime al cambiar de vista.
+const periodKey = computed(() => {
+  if (view.value === 'day') return 'd:' + format(cursor.value, 'yyyy-MM-dd')
+  if (view.value === 'week') return 'w:' + format(startOfWeek(cursor.value, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+  return (view.value === 'agenda' ? 'a:' : 'm:') + format(cursor.value, 'yyyy-MM')
+})
 function prev() {
+  navDir.value = 'cal-prev'
   if (view.value === 'day') cursor.value = addDays(cursor.value, -1)
   else if (view.value === 'week') cursor.value = subWeeks(cursor.value, 1)
   else cursor.value = subMonths(cursor.value, 1)
 }
 function next() {
+  navDir.value = 'cal-next'
   if (view.value === 'day') cursor.value = addDays(cursor.value, 1)
   else if (view.value === 'week') cursor.value = addWeeks(cursor.value, 1)
   else cursor.value = addMonths(cursor.value, 1)
 }
 
-// Swipe horizontal en móvil para cambiar de mes/semana/día (izquierda = siguiente,
-// derecha = anterior). Solo con el DEDO (pointerType touch) para no interferir con
-// el mouse en desktop; ignora gestos verticales (scroll) y cuando hay un panel de
-// día abierto o el editor. Umbral: >55px y claramente más horizontal que vertical.
+// Swipe horizontal con el DEDO para cambiar de mes/semana/día (izquierda =
+// siguiente, derecha = anterior). Usamos eventos TÁCTILES (touchstart/touchend)
+// y NO de puntero: en un móvil real, cuando el navegador toma el gesto como
+// scroll dispara `pointercancel` en vez de `pointerup`, y el handler nunca
+// corría (ese era el bug). `touchend` siempre dispara con la posición final.
+// Ignora gestos verticales (scroll), multitáctil, y el panel de día/editor
+// abiertos. Umbral: >45px y claramente más horizontal que vertical.
 let swipeX = 0, swipeY = 0, swiping = false
-function onSwipeStart(e: PointerEvent) {
-  if (e.pointerType !== 'touch') { swiping = false; return }
-  swipeX = e.clientX; swipeY = e.clientY; swiping = true
+function onSwipeStart(e: TouchEvent) {
+  if (e.touches.length !== 1) { swiping = false; return }
+  swipeX = e.touches[0]!.clientX; swipeY = e.touches[0]!.clientY; swiping = true
 }
-function onSwipeEnd(e: PointerEvent) {
-  if (!swiping || e.pointerType !== 'touch') return
+function onSwipeEnd(e: TouchEvent) {
+  if (!swiping) return
   swiping = false
   if (mobileDayDetail.value || view.value === 'create') return
-  const dx = e.clientX - swipeX, dy = e.clientY - swipeY
-  if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.4) return
+  const tp = e.changedTouches[0]
+  if (!tp) return
+  const dx = tp.clientX - swipeX, dy = tp.clientY - swipeY
+  if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy) * 1.3) return
   if (dx < 0) next(); else prev()
 }
 
@@ -327,9 +343,10 @@ const VIEW_OPTS = computed(() => [
       </PageHero>
     </div>
 
-    <div class="flex-1 min-h-0 flex gap-3" @pointerdown="onSwipeStart" @pointerup="onSwipeEnd">
+    <div class="flex-1 min-h-0 flex gap-3 relative overflow-hidden" @touchstart.passive="onSwipeStart" @touchend="onSwipeEnd">
+      <Transition :name="navDir">
       <!-- CARGANDO (primera carga): esqueleto pulse en el estilo del resto -->
-      <AppCard v-if="isLoading && !eventsData.length" class="flex-1 min-w-0 flex flex-col" :padded="false">
+      <AppCard v-if="isLoading && !eventsData.length" key="loading" class="flex-1 min-w-0 flex flex-col" :padded="false">
         <div class="grid grid-cols-7 gap-1 px-2 md:px-3 pt-2 md:pt-3 shrink-0">
           <div v-for="(d, i) in weekDays" :key="i" class="text-center text-[11px] md:text-[11.5px] font-bold uppercase tracking-wide text-fg-subtle py-1.5">{{ d }}</div>
         </div>
@@ -339,7 +356,7 @@ const VIEW_OPTS = computed(() => [
       </AppCard>
 
       <!-- DÍA: 24h scroll interno -->
-      <AppCard v-else-if="view === 'day'" class="flex-1 min-w-0 flex flex-col" :padded="false">
+      <AppCard v-else-if="view === 'day'" :key="periodKey" class="flex-1 min-w-0 flex flex-col" :padded="false">
         <!-- Franja de eventos de TODO EL DÍA (sin hora) -->
         <div v-if="allDayEventsOn(cursor).length" class="shrink-0 border-b border-[var(--bg-muted)] px-3 md:px-4 py-2 flex flex-col gap-1.5">
           <div v-for="ev in allDayEventsOn(cursor)" :key="ev.id"
@@ -370,7 +387,7 @@ const VIEW_OPTS = computed(() => [
       </AppCard>
 
       <!-- SEMANA -->
-      <AppCard v-else-if="view === 'week'" class="flex-1 min-w-0 flex flex-col relative overflow-hidden" :padded="false">
+      <AppCard v-else-if="view === 'week'" :key="periodKey" class="flex-1 min-w-0 flex flex-col relative overflow-hidden" :padded="false">
         <!-- MOVIL: parecido al mes (header LMXJVSD + 7 celdas con numero +
              puntos). Tap a un dia abre el drill-down detalle. Sin scroll
              horizontal: solo vertical. -->
@@ -498,7 +515,7 @@ const VIEW_OPTS = computed(() => [
       </AppCard>
 
       <!-- MES -->
-      <AppCard v-else-if="view === 'month'" class="flex-1 min-w-0 flex flex-col relative overflow-hidden" :padded="false">
+      <AppCard v-else-if="view === 'month'" :key="periodKey" class="flex-1 min-w-0 flex flex-col relative overflow-hidden" :padded="false">
         <!-- VISTA NORMAL DEL MES (siempre renderizada — el detalle se superpone en movil) -->
         <div class="flex flex-col flex-1 min-h-0">
           <div class="grid grid-cols-7 gap-1 px-2 md:px-3 pt-2 md:pt-3 shrink-0">
@@ -573,7 +590,7 @@ const VIEW_OPTS = computed(() => [
 
       <!-- AGENDA: bloque de fecha a la izq (centrado vertical) + eventos en
            una linea (titulo izq / hora der). Ancho completo. -->
-      <AppCard v-else class="flex-1 min-w-0 flex flex-col" :padded="false">
+      <AppCard v-else :key="periodKey" class="flex-1 min-w-0 flex flex-col" :padded="false">
         <div class="flex-1 min-h-0 overflow-y-auto scroll-area px-4 md:px-8 py-4 md:py-5">
           <div v-if="!agendaDays.length" class="text-center text-fg-muted py-12">{{ t('calendar.empty.agenda') }}</div>
           <ul v-else class="flex flex-col gap-5 md:gap-6 w-full">
@@ -601,6 +618,7 @@ const VIEW_OPTS = computed(() => [
           </ul>
         </div>
       </AppCard>
+      </Transition>
 
       <!-- Sidebar del día (solo en MES) -->
       <AppCard v-if="view === 'month'" class="hidden lg:flex flex-col w-[300px] shrink-0 overflow-hidden" :padded="false">
