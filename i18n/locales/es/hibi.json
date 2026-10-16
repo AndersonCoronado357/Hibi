@@ -66,14 +66,35 @@
       "menuTitle": "Juegos",
       "menuHint": "Elige un juego y gana monedas",
       "list": {
-        "flip": { "name": "Happy Flip", "tag": "Salta de nube en nube" },
-        "memory": { "name": "Parejas", "tag": "Encuentra las parejas" },
-        "pop": { "name": "Pop de nubes", "tag": "Toca antes de que se vayan" },
-        "simon": { "name": "Secuencia", "tag": "Repite el orden" },
-        "merge": { "name": "Fusiona", "tag": "Junta nubes iguales" },
-        "esquiva": { "name": "Esquiva", "tag": "Evita lo que cae" }
+        "flip": {
+          "name": "Happy Flip",
+          "tag": "Salta de nube en nube"
+        },
+        "memory": {
+          "name": "Parejas",
+          "tag": "Encuentra las parejas"
+        },
+        "pop": {
+          "name": "Pop de nubes",
+          "tag": "Toca antes de que se vayan"
+        },
+        "simon": {
+          "name": "Secuencia",
+          "tag": "Repite el orden"
+        },
+        "merge": {
+          "name": "Fusiona",
+          "tag": "Junta nubes iguales"
+        },
+        "esquiva": {
+          "name": "Esquiva",
+          "tag": "Evita lo que cae"
+        }
       },
-      "flip": { "hud": "Toca para aletear y esquivar las nubes", "tapToStart": "Toca para empezar a volar" },
+      "flip": {
+        "hud": "Toca para aletear y esquivar las nubes",
+        "tapToStart": "Toca para empezar a volar"
+      },
       "memory": {
         "pairs": "{a}/{b}",
         "peek": "¡Memoriza!",
@@ -81,9 +102,19 @@
         "movesLabel": "Intentos: {n}",
         "complete": "¡Parejas completas!"
       },
-      "pop": { "combo": "¡Combo x{n}!" },
-      "simon": { "round": "Ronda {n}", "watch": "Observa…", "your": "¡Tu turno!", "over": "¡Casi!" },
-      "merge": { "cash": "Cobrar {n}", "hint": "Desliza o usa las flechas" }
+      "pop": {
+        "combo": "¡Combo x{n}!"
+      },
+      "simon": {
+        "round": "Ronda {n}",
+        "watch": "Observa…",
+        "your": "¡Tu turno!",
+        "over": "¡Casi!"
+      },
+      "merge": {
+        "cash": "Cobrar {n}",
+        "hint": "Desliza o usa las flechas"
+      }
     },
     "bedroom": {
       "lightOn": "Encender luz",
@@ -96,36 +127,131 @@
       "exitAria": "Salir del juego"
     },
     "items": {
-      "galleta": { "name": "Galleta", "desc": "Dulce y crujiente" },
-      "manzana": { "name": "Manzana", "desc": "Fruta fresca" },
-      "banana": { "name": "Banana", "desc": "Rica en energía" },
-      "cereza": { "name": "Cerezas", "desc": "Dulces y jugosas" },
-      "uvas": { "name": "Uvas", "desc": "Racimo jugoso" },
-      "zanahoria": { "name": "Zanahoria", "desc": "Crujiente y sana" },
-      "naranja": { "name": "Naranja", "desc": "Cítrica y fresca" },
-      "croissant": { "name": "Croissant", "desc": "Hojaldre mantecoso" },
-      "cafe": { "name": "Café", "desc": "Un empujoncito" },
-      "leche": { "name": "Leche", "desc": "Vasito tibio" },
-      "huevo": { "name": "Huevo", "desc": "Proteína pura" },
-      "ensalada": { "name": "Ensalada", "desc": "Verde y ligera" },
-      "sopa": { "name": "Sopa", "desc": "Calentita" },
-      "sandwich": { "name": "Sándwich", "desc": "Relleno completo" },
-      "sushi": { "name": "Sushi", "desc": "Fresco del mar" },
-      "pollo": { "name": "Pollo", "desc": "Muslo jugoso" },
-      "carne": { "name": "Carne", "desc": "Filete sustancioso" },
-      "jamon": { "name": "Jamón", "desc": "Lonchas saladas" },
-      "pizza": { "name": "Pizza", "desc": "Porción con queso" },
-      "palomitas": { "name": "Palomitas", "desc": "Para la peli" },
-      "dona": { "name": "Dona", "desc": "Glaseada" },
-      "dulce": { "name": "Dulce", "desc": "Caramelito" },
-      "paleta": { "name": "Paleta", "desc": "Chupa-chupa" },
-      "helado": { "name": "Helado", "desc": "Frío y cremoso" },
-      "pastel": { "name": "Pastel", "desc": "Festín de cumpleaños" },
-      "pan": { "name": "Pan", "desc": "Recién horneado" },
-      "frijoles": { "name": "Frijoles", "desc": "Plato casero" },
-      "refresco": { "name": "Refresco", "desc": "Burbujeante" },
-      "malta": { "name": "Malta", "desc": "Maltita dulce" },
-      "jugo": { "name": "Jugo", "desc": "Natural exprimido" }
+      "galleta": {
+        "name": "Galleta",
+        "desc": "Dulce y crujiente"
+      },
+      "manzana": {
+        "name": "Manzana",
+        "desc": "Fruta fresca"
+      },
+      "banana": {
+        "name": "Banana",
+        "desc": "Rica en energía"
+      },
+      "cereza": {
+        "name": "Cerezas",
+        "desc": "Dulces y jugosas"
+      },
+      "uvas": {
+        "name": "Uvas",
+        "desc": "Racimo jugoso"
+      },
+      "zanahoria": {
+        "name": "Zanahoria",
+        "desc": "Crujiente y sana"
+      },
+      "naranja": {
+        "name": "Naranja",
+        "desc": "Cítrica y fresca"
+      },
+      "croissant": {
+        "name": "Croissant",
+        "desc": "Hojaldre mantecoso"
+      },
+      "cafe": {
+        "name": "Café",
+        "desc": "Un empujoncito"
+      },
+      "leche": {
+        "name": "Leche",
+        "desc": "Vasito tibio"
+      },
+      "huevo": {
+        "name": "Huevo",
+        "desc": "Proteína pura"
+      },
+      "ensalada": {
+        "name": "Ensalada",
+        "desc": "Verde y ligera"
+      },
+      "sopa": {
+        "name": "Sopa",
+        "desc": "Calentita"
+      },
+      "sandwich": {
+        "name": "Sándwich",
+        "desc": "Relleno completo"
+      },
+      "sushi": {
+        "name": "Sushi",
+        "desc": "Fresco del mar"
+      },
+      "pollo": {
+        "name": "Pollo",
+        "desc": "Muslo jugoso"
+      },
+      "carne": {
+        "name": "Carne",
+        "desc": "Filete sustancioso"
+      },
+      "jamon": {
+        "name": "Jamón",
+        "desc": "Lonchas saladas"
+      },
+      "pizza": {
+        "name": "Pizza",
+        "desc": "Porción con queso"
+      },
+      "palomitas": {
+        "name": "Palomitas",
+        "desc": "Para la peli"
+      },
+      "dona": {
+        "name": "Dona",
+        "desc": "Glaseada"
+      },
+      "dulce": {
+        "name": "Dulce",
+        "desc": "Caramelito"
+      },
+      "paleta": {
+        "name": "Paleta",
+        "desc": "Chupa-chupa"
+      },
+      "helado": {
+        "name": "Helado",
+        "desc": "Frío y cremoso"
+      },
+      "pastel": {
+        "name": "Pastel",
+        "desc": "Festín de cumpleaños"
+      },
+      "pan": {
+        "name": "Pan",
+        "desc": "Recién horneado"
+      },
+      "frijoles": {
+        "name": "Frijoles",
+        "desc": "Plato casero"
+      },
+      "refresco": {
+        "name": "Refresco",
+        "desc": "Burbujeante"
+      },
+      "malta": {
+        "name": "Malta",
+        "desc": "Maltita dulce"
+      },
+      "jugo": {
+        "name": "Jugo",
+        "desc": "Natural exprimido"
+      }
+    },
+    "recover": {
+      "title": "Recuperar tu racha de {n} días",
+      "sub": "Vuelve justo donde la dejaste",
+      "short": "Te faltan {n} monedas"
     }
   }
 }

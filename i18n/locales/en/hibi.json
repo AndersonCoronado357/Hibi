@@ -66,14 +66,35 @@
       "menuTitle": "Games",
       "menuHint": "Pick a game and win coins",
       "list": {
-        "flip": { "name": "Happy Flip", "tag": "Hop cloud to cloud" },
-        "memory": { "name": "Memory", "tag": "Find the pairs" },
-        "pop": { "name": "Cloud Pop", "tag": "Tap before they vanish" },
-        "simon": { "name": "Sequence", "tag": "Repeat the order" },
-        "merge": { "name": "Merge", "tag": "Combine matching clouds" },
-        "esquiva": { "name": "Dodge", "tag": "Avoid what falls" }
+        "flip": {
+          "name": "Happy Flip",
+          "tag": "Hop cloud to cloud"
+        },
+        "memory": {
+          "name": "Memory",
+          "tag": "Find the pairs"
+        },
+        "pop": {
+          "name": "Cloud Pop",
+          "tag": "Tap before they vanish"
+        },
+        "simon": {
+          "name": "Sequence",
+          "tag": "Repeat the order"
+        },
+        "merge": {
+          "name": "Merge",
+          "tag": "Combine matching clouds"
+        },
+        "esquiva": {
+          "name": "Dodge",
+          "tag": "Avoid what falls"
+        }
       },
-      "flip": { "hud": "Tap to flap and dodge the clouds", "tapToStart": "Tap to start flying" },
+      "flip": {
+        "hud": "Tap to flap and dodge the clouds",
+        "tapToStart": "Tap to start flying"
+      },
       "memory": {
         "pairs": "{a}/{b}",
         "peek": "Memorize!",
@@ -81,9 +102,19 @@
         "movesLabel": "Attempts: {n}",
         "complete": "All pairs found!"
       },
-      "pop": { "combo": "Combo x{n}!" },
-      "simon": { "round": "Round {n}", "watch": "Watch…", "your": "Your turn!", "over": "So close!" },
-      "merge": { "cash": "Cash in {n}", "hint": "Swipe or use the arrows" }
+      "pop": {
+        "combo": "Combo x{n}!"
+      },
+      "simon": {
+        "round": "Round {n}",
+        "watch": "Watch…",
+        "your": "Your turn!",
+        "over": "So close!"
+      },
+      "merge": {
+        "cash": "Cash in {n}",
+        "hint": "Swipe or use the arrows"
+      }
     },
     "bedroom": {
       "lightOn": "Turn light on",
@@ -96,36 +127,131 @@
       "exitAria": "Exit the game"
     },
     "items": {
-      "galleta": { "name": "Cookie", "desc": "Sweet and crunchy" },
-      "manzana": { "name": "Apple", "desc": "Fresh fruit" },
-      "banana": { "name": "Banana", "desc": "Energy-rich" },
-      "cereza": { "name": "Cherries", "desc": "Sweet and juicy" },
-      "uvas": { "name": "Grapes", "desc": "Juicy bunch" },
-      "zanahoria": { "name": "Carrot", "desc": "Crunchy and healthy" },
-      "naranja": { "name": "Orange", "desc": "Citrusy and fresh" },
-      "croissant": { "name": "Croissant", "desc": "Buttery pastry" },
-      "cafe": { "name": "Coffee", "desc": "A little boost" },
-      "leche": { "name": "Milk", "desc": "Warm little glass" },
-      "huevo": { "name": "Egg", "desc": "Pure protein" },
-      "ensalada": { "name": "Salad", "desc": "Green and light" },
-      "sopa": { "name": "Soup", "desc": "Nice and warm" },
-      "sandwich": { "name": "Sandwich", "desc": "Fully loaded" },
-      "sushi": { "name": "Sushi", "desc": "Fresh from the sea" },
-      "pollo": { "name": "Chicken", "desc": "Juicy drumstick" },
-      "carne": { "name": "Steak", "desc": "Hearty fillet" },
-      "jamon": { "name": "Ham", "desc": "Salty slices" },
-      "pizza": { "name": "Pizza", "desc": "Cheesy slice" },
-      "palomitas": { "name": "Popcorn", "desc": "For the movie" },
-      "dona": { "name": "Donut", "desc": "Glazed" },
-      "dulce": { "name": "Candy", "desc": "Little sweet" },
-      "paleta": { "name": "Lollipop", "desc": "Lick and lick" },
-      "helado": { "name": "Ice cream", "desc": "Cold and creamy" },
-      "pastel": { "name": "Cake", "desc": "Birthday feast" },
-      "pan": { "name": "Bread", "desc": "Freshly baked" },
-      "frijoles": { "name": "Beans", "desc": "Homemade dish" },
-      "refresco": { "name": "Soda", "desc": "Fizzy" },
-      "malta": { "name": "Malt", "desc": "Sweet malt drink" },
-      "jugo": { "name": "Juice", "desc": "Freshly squeezed" }
+      "galleta": {
+        "name": "Cookie",
+        "desc": "Sweet and crunchy"
+      },
+      "manzana": {
+        "name": "Apple",
+        "desc": "Fresh fruit"
+      },
+      "banana": {
+        "name": "Banana",
+        "desc": "Energy-rich"
+      },
+      "cereza": {
+        "name": "Cherries",
+        "desc": "Sweet and juicy"
+      },
+      "uvas": {
+        "name": "Grapes",
+        "desc": "Juicy bunch"
+      },
+      "zanahoria": {
+        "name": "Carrot",
+        "desc": "Crunchy and healthy"
+      },
+      "naranja": {
+        "name": "Orange",
+        "desc": "Citrusy and fresh"
+      },
+      "croissant": {
+        "name": "Croissant",
+        "desc": "Buttery pastry"
+      },
+      "cafe": {
+        "name": "Coffee",
+        "desc": "A little boost"
+      },
+      "leche": {
+        "name": "Milk",
+        "desc": "Warm little glass"
+      },
+      "huevo": {
+        "name": "Egg",
+        "desc": "Pure protein"
+      },
+      "ensalada": {
+        "name": "Salad",
+        "desc": "Green and light"
+      },
+      "sopa": {
+        "name": "Soup",
+        "desc": "Nice and warm"
+      },
+      "sandwich": {
+        "name": "Sandwich",
+        "desc": "Fully loaded"
+      },
+      "sushi": {
+        "name": "Sushi",
+        "desc": "Fresh from the sea"
+      },
+      "pollo": {
+        "name": "Chicken",
+        "desc": "Juicy drumstick"
+      },
+      "carne": {
+        "name": "Steak",
+        "desc": "Hearty fillet"
+      },
+      "jamon": {
+        "name": "Ham",
+        "desc": "Salty slices"
+      },
+      "pizza": {
+        "name": "Pizza",
+        "desc": "Cheesy slice"
+      },
+      "palomitas": {
+        "name": "Popcorn",
+        "desc": "For the movie"
+      },
+      "dona": {
+        "name": "Donut",
+        "desc": "Glazed"
+      },
+      "dulce": {
+        "name": "Candy",
+        "desc": "Little sweet"
+      },
+      "paleta": {
+        "name": "Lollipop",
+        "desc": "Lick and lick"
+      },
+      "helado": {
+        "name": "Ice cream",
+        "desc": "Cold and creamy"
+      },
+      "pastel": {
+        "name": "Cake",
+        "desc": "Birthday feast"
+      },
+      "pan": {
+        "name": "Bread",
+        "desc": "Freshly baked"
+      },
+      "frijoles": {
+        "name": "Beans",
+        "desc": "Homemade dish"
+      },
+      "refresco": {
+        "name": "Soda",
+        "desc": "Fizzy"
+      },
+      "malta": {
+        "name": "Malt",
+        "desc": "Sweet malt drink"
+      },
+      "jugo": {
+        "name": "Juice",
+        "desc": "Freshly squeezed"
+      }
+    },
+    "recover": {
+      "title": "Restore your {n}-day streak",
+      "sub": "Pick up right where you left off",
+      "short": "You need {n} more coins"
     }
   }
 }

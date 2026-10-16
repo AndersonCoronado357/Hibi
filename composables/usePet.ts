@@ -7,6 +7,9 @@ export interface PetSnapshot {
   diversion: number
   coins: number
   streak: number
+  /** Racha que se perdió y todavía se puede recomprar con monedas */
+  lostStreak: number
+  lostStreakDay: string
   sleeping: boolean
   room: string
   inventory: Record<string, number>
@@ -18,7 +21,9 @@ function normalize(row: any): PetSnapshot | null {
   if (!row) return null
   return {
     energia: row.energia, pancita: row.pancita, carino: row.carino, diversion: row.diversion,
-    coins: row.coins, streak: row.streak, sleeping: !!row.sleeping, room: row.room || 'casa',
+    coins: row.coins, streak: row.streak,
+    lostStreak: row.lostStreak ?? 0, lostStreakDay: row.lostStreakDay || '',
+    sleeping: !!row.sleeping, room: row.room || 'casa',
     inventory: row.inventory && typeof row.inventory === 'object' ? row.inventory : {},
     lastCareDay: row.lastCareDay || '',
     lastTick: row.lastTick ? Date.parse(row.lastTick) : 0,
@@ -37,7 +42,9 @@ export function usePet() {
     method: 'PATCH',
     body: {
       energia: r100(p.energia), pancita: r100(p.pancita), carino: r100(p.carino), diversion: r100(p.diversion),
-      coins: p.coins, streak: p.streak, sleeping: p.sleeping, room: p.room,
+      coins: p.coins, streak: p.streak,
+      lostStreak: p.lostStreak ?? 0, lostStreakDay: p.lostStreakDay ?? '',
+      sleeping: p.sleeping, room: p.room,
       inventory: p.inventory, lastCareDay: p.lastCareDay, lastTick: p.lastTick,
     },
   }).catch(() => { /* offline: la caché local ya guardó */ })

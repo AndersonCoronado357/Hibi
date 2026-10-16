@@ -15,11 +15,12 @@ const careOpen = ref(false) // móvil: false = selector, true = mundo. Desktop l
 interface Pet {
   energia: number; pancita: number; carino: number; diversion: number
   streak: number; lastCareDay: string; lastTick: number; coins: number; room: string; sleeping: boolean
+  lostStreak: number; lostStreakDay: string
   inventory: Record<string, number>
 }
 const STORE = 'hibi.pet.v1'
 const STARTER_INV = { galleta: 3, manzana: 2, sandwich: 1 }
-const pet = reactive<Pet>({ energia: 80, pancita: 82, carino: 86, diversion: 80, streak: 1, lastCareDay: '', lastTick: 0, coins: 40, room: 'casa', sleeping: false, inventory: { ...STARTER_INV } })
+const pet = reactive<Pet>({ energia: 80, pancita: 82, carino: 86, diversion: 80, streak: 1, lastCareDay: '', lastTick: 0, coins: 40, room: 'casa', sleeping: false, lostStreak: 0, lostStreakDay: '', inventory: { ...STARTER_INV } })
 // No mostramos los stats hasta reconciliar cache + servidor + decay, para que
 // al entrar se vea UN solo valor final y no un parpadeo (defaults → cache → decay).
 const ready = ref(false)
@@ -74,7 +75,12 @@ function applyDecay() {
     pet.lastTick = Date.now() // consume el tiempo ya aplicado (no re-contar)
   }
   const yest = dayKey(new Date(Date.now() - 86_400_000))
-  if (pet.lastCareDay && pet.lastCareDay !== dayKey() && pet.lastCareDay !== yest) pet.streak = 0
+  if (pet.lastCareDay && pet.lastCareDay !== dayKey() && pet.lastCareDay !== yest) {
+    // Antes de borrarla, se guarda para poder recomprarla. Solo vale la pena a
+    // partir de 2 días: recuperar una racha de 1 no es ningún logro.
+    if (pet.streak > 1) { pet.lostStreak = pet.streak; pet.lostStreakDay = dayKey() }
+    pet.streak = 0
+  }
 }
 // Guarda en la caché local Y (con debounce) en el servidor.
 function save() {
@@ -90,6 +96,30 @@ function registerDailyCare() {
   pet.lastCareDay = today
 }
 function commit() { registerDailyCare(); pet.lastTick = Date.now(); save() }
+
+// ── Recomprar la racha perdida ──────────────────────────────────────────
+// Precio fijo: recuperar la racha cuesta siempre lo mismo, dure lo que dure.
+const PRECIO_RACHA = 3000
+const DIAS_PARA_RECUPERAR = 7
+const diasDesdeLaPerdida = computed(() => {
+  if (!pet.lostStreakDay) return 99
+  const [a, m, d] = pet.lostStreakDay.split('-').map(Number)
+  const roto = new Date(a!, (m! - 1), d!).getTime()
+  return Math.floor((Date.now() - roto) / 86_400_000)
+})
+const rachaRecuperable = computed(() => pet.lostStreak > 1 && diasDesdeLaPerdida.value <= DIAS_PARA_RECUPERAR)
+const precioRacha = computed(() => PRECIO_RACHA)
+function recuperarRacha() {
+  if (!rachaRecuperable.value || pet.coins < precioRacha.value) return
+  pet.coins -= precioRacha.value
+  pet.streak = pet.lostStreak
+  pet.lostStreak = 0
+  pet.lostStreakDay = ''
+  // Cuenta como cuidado de hoy: si no, la racha recién comprada se rompe sola
+  // esta misma noche.
+  pet.lastCareDay = dayKey()
+  save()
+}
 
 // Al entrar: base local (instantánea) → si el servidor es más reciente (otro
 // dispositivo) lo adopta → decae desde su lastTick → persiste la fusión.
@@ -224,8 +254,9 @@ onBeforeUnmount(() => {
           :coins="pet.coins" :streak="pet.streak" :state="state" :room="pet.room" :inventory="pet.inventory"
           :sleeping="pet.sleeping"
           :last-game-coins="lastGameCoins"
+          :racha-recuperable="rachaRecuperable" :racha-perdida="pet.lostStreak" :precio-racha="precioRacha"
           @feed="onFeed" @buy="onBuy" @affection="onAffection" @sleep="onSleep"
-          @game-reward="onGameReward" @update:room="onRoom" @chat="router.push('/chat')" />
+          @recuperar-racha="recuperarRacha" @game-reward="onGameReward" @update:room="onRoom" @chat="router.push('/chat')" />
         <!-- Mientras reconcilia (cache+servidor+decay): nube pulsante, sin números aún -->
         <div v-else class="h-full w-full grid place-items-center">
           <HibiCloud :size="96" class="text-sky-soft opacity-60 animate-pulse" aria-hidden="true" />

@@ -20,12 +20,14 @@ const { t } = useI18n()
 const props = defineProps<{
   energia: number; pancita: number; carino: number; diversion: number
   coins: number; streak: number; state: string; room: string
+  rachaRecuperable: boolean; rachaPerdida: number; precioRacha: number
   inventory: Record<string, number>; lastGameCoins?: number
   sleeping?: boolean
 }>()
 const emit = defineEmits<{
   feed: [id: string, gain: number]
   buy: [id: string, price: number]
+  recuperarRacha: []
   affection: []
   sleep: [active: boolean]
   gameReward: [coins: number]
@@ -379,6 +381,29 @@ onBeforeUnmount(() => {
       <span class="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-card text-[#bf8f2e] text-[13px] font-extrabold tabular-nums"><Coins class="size-[15px]" :stroke-width="2.3" /> {{ coins }}</span>
       <span class="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-card text-[#c5733f] text-[13px] font-extrabold tabular-nums"><Flame class="size-[15px]" :stroke-width="2.3" /> {{ streak }}</span>
     </div>
+    <!-- Recuperar la racha perdida: fila ancha, solo cuando hay algo que
+         recuperar. Nada de ventanas flotantes. -->
+    <div v-if="rachaRecuperable" class="relative z-30 shrink-0 px-4 pt-2">
+      <div class="w-full flex items-center gap-3 p-2.5 rounded-[16px] bg-card">
+        <span class="shrink-0 grid place-items-center size-10 rounded-[13px] bg-peach text-[#c5733f]">
+          <Flame class="size-[19px]" :stroke-width="2.2" />
+        </span>
+        <span class="flex-1 min-w-0">
+          <span class="block text-[13.5px] font-extrabold text-fg truncate">{{ t('hibi.recover.title', { n: rachaPerdida }) }}</span>
+          <span class="block text-[11.5px] text-fg-muted truncate">{{ coins >= precioRacha ? t('hibi.recover.sub') : t('hibi.recover.short', { n: precioRacha - coins }) }}</span>
+        </span>
+        <button
+          type="button"
+          class="shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[12.5px] font-extrabold transition-[opacity]"
+          :class="coins >= precioRacha ? 'bg-peach text-[#9a5a33] active:opacity-85' : 'bg-muted text-fg-subtle cursor-not-allowed'"
+          :disabled="coins < precioRacha"
+          @click="emit('recuperarRacha')"
+        >
+          <Coins class="size-[14px]" :stroke-width="2.3" /> {{ precioRacha }}
+        </button>
+      </div>
+    </div>
+
     <!-- bolitas de estado -->
     <div class="relative z-30 shrink-0 flex items-start justify-center gap-3 md:gap-4 pt-1.5 md:pt-4 px-4">
       <button v-for="s in STATS" :key="s.key" type="button" class="flex flex-col items-center gap-1 active:scale-95 transition-transform" :aria-label="s.label" @click="tapStat(s.go)">

@@ -311,6 +311,10 @@ export const petState = pgTable('pet_state', {
   diversion: integer('diversion').notNull().default(80),
   coins: integer('coins').notNull().default(40),
   streak: integer('streak').notNull().default(1),
+  // Racha que se perdió, para poder recomprarla con monedas. Se guarda el día
+  // en que se rompió porque la oferta caduca a los 7 días.
+  lostStreak: integer('lost_streak').notNull().default(0),
+  lostStreakDay: text('lost_streak_day').notNull().default(''),
   sleeping: boolean('sleeping').notNull().default(false), // si se quedó dormida
   room: text('room').notNull().default('casa'),
   inventory: jsonb('inventory').$type<Record<string, number>>().notNull().default({}),
