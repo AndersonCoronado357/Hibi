@@ -34,6 +34,8 @@ watch([reminders, summary], reschedule, { deep: true })
     <MobileMoreSheet />
     <ClientOnly>
       <MascotFab />
+      <!-- Saludo del día de amor y amistad: solo ese día, una vez -->
+      <HibiLoveDay />
     </ClientOnly>
   </div>
 </template>
