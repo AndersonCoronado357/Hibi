@@ -116,7 +116,7 @@ export default defineNuxtConfig({
       link: [
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg?v=3' },
         { rel: 'manifest', href: '/manifest.webmanifest' },
-        { rel: 'apple-touch-icon', href: '/icon-512-maskable-v3.png' },
+        { rel: 'apple-touch-icon', href: '/icon-512-maskable-v4.png' },
       ],
     },
   },
