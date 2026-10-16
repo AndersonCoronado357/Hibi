@@ -166,7 +166,7 @@ async function saveGoal() {
               <!-- current/total: largo en COP → solo desde sm -->
               <p class="hidden sm:block text-[11px] text-fg-muted tabular-nums">{{ fmtCurrent(g) }} / {{ fmtTotal(g) }}</p>
             </div>
-            <button type="button" class="grid place-items-center size-7 rounded-full text-fg-subtle md:opacity-0 md:group-hover/goal:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" :aria-label="t('goals.deleteAria')" @click="removeGoal(g.id)"><Trash2 class="size-[14px]" :stroke-width="2" /></button>
+            <button type="button" class="grid place-items-center size-7 rounded-full text-fg-subtle hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" :aria-label="t('goals.deleteAria')" @click="removeGoal(g.id)"><Trash2 class="size-[14px]" :stroke-width="2" /></button>
           </div>
         </div>
 

@@ -457,7 +457,7 @@ function removeRoutine(id: string) {
               <p class="min-w-0 text-[13px] text-fg break-words" :class="{ 'line-through opacity-50': sub.done }">{{ sub.title }}</p>
               <div class="flex items-center gap-0.5">
                 <span draggable="true" class="grid place-items-center size-7 rounded-[8px] text-fg-subtle cursor-grab active:cursor-grabbing" :aria-label="t('routines.aria.dragSubstep')" @click.stop @dragstart.stop="onSubDragStart($event, i, si)"><GripVertical class="size-[13px]" :stroke-width="2" /></span>
-                <button type="button" class="grid place-items-center size-7 rounded-[8px] text-fg-subtle md:opacity-0 md:group-hover/sub:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" :aria-label="t('routines.aria.deleteSubstep')" @click.stop="removeSubstepFromStep(i, si)"><X class="size-[13px]" :stroke-width="2.2" /></button>
+                <button type="button" class="grid place-items-center size-7 rounded-[8px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" :aria-label="t('routines.aria.deleteSubstep')" @click.stop="removeSubstepFromStep(i, si)"><X class="size-[13px]" :stroke-width="2.2" /></button>
               </div>
             </li>
             <!-- Añadir subpaso a este paso: solo cuando se abre con el botón + -->

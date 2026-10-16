@@ -220,11 +220,11 @@ async function saveReminder() {
                           class="absolute inset-0" />
                       </Transition>
                     </span>
-                    <!-- Eliminar: discreto, aparece al pasar el cursor -->
+                    <!-- Eliminar: siempre visible. Oculto tras el hover no se podia tocar en tablet/celular. -->
                     <span
                       role="button"
                       tabindex="0"
-                      class="grid place-items-center size-8 rounded-[10px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft transition-[background-color,color,opacity] opacity-0 group-hover/rem:opacity-100 focus-visible:opacity-100 outline-none"
+                      class="grid place-items-center size-8 rounded-[10px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft transition-[background-color,color,opacity] focus-visible:opacity-100 outline-none"
                       :aria-label="t('reminders.row.delete')"
                       @click.stop="removeReminder(r.id)"
                       @keydown.enter.stop.prevent="removeReminder(r.id)"

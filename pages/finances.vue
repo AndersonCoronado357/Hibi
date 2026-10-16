@@ -432,7 +432,7 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
               </div>
               <span class="text-[15px] font-bold text-fg tabular-nums shrink-0">{{ fmt(tx.amount) }}</span>
             </div>
-            <button type="button" class="shrink-0 grid place-items-center size-8 rounded-[9px] text-fg-subtle md:opacity-0 md:group-hover/tx:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" :aria-label="t('finances.expenses.deleteAria')" @click.stop="removeExpense(tx.id)"><Trash2 class="size-[15px]" :stroke-width="2" /></button>
+            <button type="button" class="shrink-0 grid place-items-center size-8 rounded-[9px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" :aria-label="t('finances.expenses.deleteAria')" @click.stop="removeExpense(tx.id)"><Trash2 class="size-[15px]" :stroke-width="2" /></button>
           </li>
         </ul>
       </AppCard>
@@ -492,7 +492,7 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
               </div>
               <span class="text-[15px] font-bold text-fg tabular-nums shrink-0">{{ fmt(s.amount) }}</span>
             </div>
-            <button type="button" class="shrink-0 grid place-items-center size-8 rounded-[9px] text-fg-subtle md:opacity-0 md:group-hover/sub:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" :aria-label="t('finances.subs.deleteAria')" @click.stop="removeSubscription(s.id)"><Trash2 class="size-[15px]" :stroke-width="2" /></button>
+            <button type="button" class="shrink-0 grid place-items-center size-8 rounded-[9px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" :aria-label="t('finances.subs.deleteAria')" @click.stop="removeSubscription(s.id)"><Trash2 class="size-[15px]" :stroke-width="2" /></button>
           </li>
         </ul>
       </AppCard>

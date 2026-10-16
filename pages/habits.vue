@@ -374,7 +374,7 @@ function removeHabit(id: string) { apiRemoveHabit(id) }
                     <span>{{ ratePct(h) }}%</span>
                   </p>
                 </div>
-                <button type="button" class="shrink-0 grid place-items-center size-7 rounded-full text-fg-subtle opacity-0 group-hover/habit:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" :aria-label="t('habits.delete')" @click="removeHabit(h.id)"><Trash2 class="size-[14px]" :stroke-width="2" /></button>
+                <button type="button" class="shrink-0 grid place-items-center size-7 rounded-full text-fg-subtle hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" :aria-label="t('habits.delete')" @click="removeHabit(h.id)"><Trash2 class="size-[14px]" :stroke-width="2" /></button>
               </div>
               <button v-for="(d, i) in days" :key="h.id+'-'+i" type="button"
                 class="aspect-square max-h-10 w-full rounded-[10px] grid place-items-center transition-[background-color]"

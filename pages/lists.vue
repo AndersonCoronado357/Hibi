@@ -295,7 +295,7 @@ function onRemoveList(id: string) {
               <span v-if="ratingOf(i)" class="shrink-0 inline-flex items-center gap-0.5 text-[#bf8f2e]">
                 <Star v-for="n in ratingOf(i)" :key="n" class="size-3 fill-current" :stroke-width="0" aria-hidden="true" />
               </span>
-              <button type="button" class="shrink-0 grid place-items-center size-7 rounded-full text-fg-subtle md:opacity-0 md:group-hover/item:opacity-100 hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" :aria-label="t('lists.aria.removeItem')" @click.stop="onRemoveItem(i.id)"><Trash2 class="size-[14px]" :stroke-width="2" /></button>
+              <button type="button" class="shrink-0 grid place-items-center size-7 rounded-full text-fg-subtle hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" :aria-label="t('lists.aria.removeItem')" @click.stop="onRemoveItem(i.id)"><Trash2 class="size-[14px]" :stroke-width="2" /></button>
             </li>
           </ul>
         </div>
