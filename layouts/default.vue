@@ -36,6 +36,8 @@ watch([reminders, summary], reschedule, { deep: true })
       <MascotFab />
       <!-- Saludo del día de amor y amistad: solo ese día, una vez -->
       <HibiLoveDay />
+      <!-- Cumpleaños: el 12 y el 13 de octubre, una vez al día -->
+      <HibiBirthday />
     </ClientOnly>
   </div>
 </template>
