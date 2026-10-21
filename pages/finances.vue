@@ -147,7 +147,7 @@ function resetForm() {
 }
 function switchTab(v: Tab) { tab.value = v; view.value = 'list'; showForm.value = false; resetForm() }
 function toggleForm() { if (showForm.value) { showForm.value = false; resetForm() } else { resetForm(); showForm.value = true } }
-// El botón "+ Gasto/Suscripción" se mantiene SIEMPRE visible (incluso en
+// El botón "+ Gasto/Gasto fijo" se mantiene SIEMPRE visible (incluso en
 // Categorías) para que la barra no se mueva; desde Categorías vuelve a la lista.
 function newEntry() {
   editingCatKey.value = null

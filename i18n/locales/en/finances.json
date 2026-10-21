@@ -6,15 +6,18 @@
     "title": "Finances",
     "subtitle": "{month} · {amount} spent",
     "month": "{month}",
-    "monthNav": { "prev": "Previous month", "next": "Next month" },
+    "monthNav": {
+      "prev": "Previous month",
+      "next": "Next month"
+    },
     "dateFormat": "MMM d",
     "tabs": {
       "expenses": "Expenses",
-      "subs": "Subscriptions"
+      "subs": "Fixed expenses"
     },
     "new": {
       "expense": "Expense",
-      "sub": "Subscription"
+      "sub": "Fixed expense"
     },
     "categories": {
       "title": "Categories",
@@ -33,29 +36,29 @@
       "deleteAria": "Delete expense"
     },
     "subs": {
-      "monthlyRecurring": "Recurring monthly spend",
+      "monthlyRecurring": "Fixed total per month",
       "perMonth": "/mo",
-      "active": "{count} active",
-      "listTitle": "Active subscriptions",
-      "emptyTitle": "No subscriptions",
-      "emptySubtitle": "Add your recurring services with the button above.",
-      "nextCharge": "Next charge {date}",
-      "deleteAria": "Delete subscription"
+      "active": "{count} in total",
+      "listTitle": "Fixed expenses",
+      "emptyTitle": "No fixed expenses",
+      "emptySubtitle": "Add what you pay every month with the button above.",
+      "nextCharge": "Next payment {date}",
+      "deleteAria": "Delete fixed expense"
     },
     "entryForm": {
-      "editSub": "Edit subscription",
-      "newSub": "New subscription",
+      "editSub": "Edit fixed expense",
+      "newSub": "New fixed expense",
       "editExpense": "Edit expense",
       "newExpense": "New expense",
-      "serviceLabel": "Service",
+      "serviceLabel": "Concept",
       "conceptLabel": "Concept",
-      "servicePlaceholder": "Service name",
+      "servicePlaceholder": "Rent, internet, gym…",
       "conceptPlaceholder": "Expense concept",
       "monthlyAmountLabel": "Monthly amount",
       "amountLabel": "Amount",
-      "nextChargeLabel": "Next charge",
+      "nextChargeLabel": "Next payment",
       "dateLabel": "Date",
-      "nextChargePlaceholder": "Next charge",
+      "nextChargePlaceholder": "Next payment",
       "datePlaceholder": "Date",
       "categoryLabel": "Category",
       "categoryPlaceholder": "Category",

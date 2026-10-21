@@ -6,15 +6,18 @@
     "title": "Finanzas",
     "subtitle": "{month} · {amount} gastado",
     "month": "{month}",
-    "monthNav": { "prev": "Mes anterior", "next": "Mes siguiente" },
+    "monthNav": {
+      "prev": "Mes anterior",
+      "next": "Mes siguiente"
+    },
     "dateFormat": "d MMM",
     "tabs": {
       "expenses": "Gastos",
-      "subs": "Suscripciones"
+      "subs": "Gastos fijos"
     },
     "new": {
       "expense": "Gasto",
-      "sub": "Suscripción"
+      "sub": "Gasto fijo"
     },
     "categories": {
       "title": "Categorías",
@@ -33,29 +36,29 @@
       "deleteAria": "Eliminar gasto"
     },
     "subs": {
-      "monthlyRecurring": "Gasto mensual recurrente",
+      "monthlyRecurring": "Total fijo al mes",
       "perMonth": "/mes",
-      "active": "{count} activas",
-      "listTitle": "Suscripciones activas",
-      "emptyTitle": "Sin suscripciones",
-      "emptySubtitle": "Agrega tus servicios recurrentes con el botón de arriba.",
-      "nextCharge": "Próximo cobro {date}",
-      "deleteAria": "Eliminar suscripción"
+      "active": "{count} en total",
+      "listTitle": "Gastos fijos",
+      "emptyTitle": "Sin gastos fijos",
+      "emptySubtitle": "Anota lo que pagas todos los meses con el botón de arriba.",
+      "nextCharge": "Próximo pago {date}",
+      "deleteAria": "Eliminar gasto fijo"
     },
     "entryForm": {
-      "editSub": "Editar suscripción",
-      "newSub": "Nueva suscripción",
+      "editSub": "Editar gasto fijo",
+      "newSub": "Nuevo gasto fijo",
       "editExpense": "Editar gasto",
       "newExpense": "Nuevo gasto",
-      "serviceLabel": "Servicio",
+      "serviceLabel": "Concepto",
       "conceptLabel": "Concepto",
-      "servicePlaceholder": "Nombre del servicio",
+      "servicePlaceholder": "Arriendo, internet, gimnasio…",
       "conceptPlaceholder": "Concepto del gasto",
       "monthlyAmountLabel": "Monto mensual",
       "amountLabel": "Monto",
-      "nextChargeLabel": "Próximo cobro",
+      "nextChargeLabel": "Próximo pago",
       "dateLabel": "Fecha",
-      "nextChargePlaceholder": "Próximo cobro",
+      "nextChargePlaceholder": "Próximo pago",
       "datePlaceholder": "Fecha",
       "categoryLabel": "Categoría",
       "categoryPlaceholder": "Categoría",
