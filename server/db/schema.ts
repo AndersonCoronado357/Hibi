@@ -298,12 +298,27 @@ export const fixedExpenses = pgTable('fixed_expenses', {
   categoryId: text('category_id').references(() => financeCategories.id, { onDelete: 'set null' }),
   title: text('title').notNull(),
   amount: integer('amount').notNull().default(0), // COP/mes
-  nextPayment: date('next_payment'),
   // Color propio, para distinguir de un vistazo cada gasto fijo. Si está
   // vacío se cae al color de la categoría, como antes.
   color: text('color'),
   createdAt: created(),
 }, (t) => ({ byUser: index('fixed_expenses_user_idx').on(t.userId) }))
+
+// Historial de lo que ha costado cada gasto fijo. `amount` en la tabla de
+// arriba es solo el valor vigente; aquí queda lo que valía antes y desde qué
+// mes, que es lo que permite que el total de un mes pasado siga cuadrando
+// aunque hoy el arriendo cueste otra cosa.
+export const fixedExpenseAmounts = pgTable('fixed_expense_amounts', {
+  id: text('id').primaryKey(),
+  fixedExpenseId: text('fixed_expense_id').notNull().references(() => fixedExpenses.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
+  amount: integer('amount').notNull(),
+  fromMonth: text('from_month').notNull(), // yyyy-MM desde el que rige este valor
+  createdAt: created(),
+}, (t) => ({
+  byUser: index('fixed_expense_amounts_user_idx').on(t.userId),
+  byGasto: index('fixed_expense_amounts_gasto_idx').on(t.fixedExpenseId),
+}))
 
 // ───────────────────────── MASCOTA (Hibi) ─────────────────────────
 export const petState = pgTable('pet_state', {

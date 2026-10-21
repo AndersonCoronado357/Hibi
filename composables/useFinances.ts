@@ -21,9 +21,10 @@ export interface FixedExpense {
   categoryId: string | null
   title: string
   amount: number // COP/mes entero
-  nextPayment: string | null // yyyy-MM-dd | null
   color: string | null
   createdAt: string
+  /** Lo que ha costado por mes. El último es el vigente. */
+  history?: { amount: number; fromMonth: string; changedAt?: string }[]
 }
 
 export function useFinances() {
@@ -35,7 +36,7 @@ export function useFinances() {
     optimistic: (i) => ({ categoryId: null, title: '', amount: 0, spentDate: '', ...i }),
   })
   const fixedExpensesR = useResource<FixedExpense>('fixed-expenses', {
-    optimistic: (i) => ({ categoryId: null, title: '', amount: 0, nextPayment: null, color: null, ...i }),
+    optimistic: (i) => ({ categoryId: null, title: '', amount: 0, color: null, history: [], ...i }),
   })
 
   return {
@@ -54,8 +55,8 @@ export function useFinances() {
     updateExpense: (id: string, patch: Partial<Pick<Expense, 'title' | 'amount' | 'spentDate' | 'categoryId'>>) => expensesR.update(id, patch),
     removeExpense: (id: string) => expensesR.remove(id),
 
-    createFixedExpense: (input: { title: string; amount: number; nextPayment?: string | null; categoryId?: string | null; color?: string | null }) => fixedExpensesR.create(input),
-    updateFixedExpense: (id: string, patch: Partial<Pick<FixedExpense, 'title' | 'amount' | 'nextPayment' | 'categoryId' | 'color'>>) => fixedExpensesR.update(id, patch),
+    createFixedExpense: (input: { title: string; amount: number; categoryId?: string | null; color?: string | null }) => fixedExpensesR.create(input),
+    updateFixedExpense: (id: string, patch: Partial<Pick<FixedExpense, 'title' | 'amount' | 'categoryId' | 'color'>>) => fixedExpensesR.update(id, patch),
     removeFixedExpense: (id: string) => fixedExpensesR.remove(id),
   }
 }

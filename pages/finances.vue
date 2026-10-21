@@ -67,7 +67,16 @@ function fmtDate(iso?: string | null) {
   } catch { return iso }
 }
 
-const totalFixed = computed(() => fixedExpenses.value.reduce((a, s) => a + s.amount, 0))
+// Lo que costaba un gasto fijo en un mes dado. Se busca el ultimo valor que
+// empezo a regir en ese mes o antes; si no hay ninguno, es que el gasto todavia
+// no existia y ese mes no suma nada.
+function montoEnMes(g: FixedExpense, mes: string): number {
+  const h = g.history || []
+  if (!h.length) return g.amount
+  let valor: number | null = null
+  for (const r of h) { if (r.fromMonth <= mes) valor = r.amount }
+  return valor ?? 0
+}
 
 // Mes seleccionado (arranca en el actual). Se puede navegar con las flechas.
 // Antes el mes estaba hardcodeado en el i18n ("junio") y se quedaba pegado.
@@ -84,7 +93,13 @@ function goCurrentMonth() { monthCursor.value = new Date() }
 // Gastos SOLO del mes seleccionado — el total, el desglose y la lista se filtran
 // por aquí, así "Gastado en agosto" cuenta de verdad solo agosto.
 const monthExpenses = computed(() => expenses.value.filter(e => (e.spentDate || '').startsWith(monthPrefix.value)))
-const totalMonth = computed(() => monthExpenses.value.reduce((a, t) => a + Math.abs(t.amount), 0))
+const totalVariable = computed(() => monthExpenses.value.reduce((a, t) => a + Math.abs(t.amount), 0))
+// Los gastos fijos son dinero que sale TODOS los meses, asi que cuentan en el
+// total del mes igual que los sueltos.
+const totalFixed = computed(() => fixedExpenses.value.reduce((a, g) => a + montoEnMes(g, monthPrefix.value), 0))
+const totalMonth = computed(() => totalVariable.value + totalFixed.value)
+// El de la pestana de fijos siempre muestra lo vigente hoy
+const totalFixedHoy = computed(() => fixedExpenses.value.reduce((a, g) => a + g.amount, 0))
 
 type Tab = 'expenses' | 'fixed'
 type View = 'list' | 'categories'
@@ -100,6 +115,10 @@ const tabOptions = computed(() => [
 const byCat = computed(() => {
   const map: Record<string, number> = {}
   for (const t of monthExpenses.value) { const k = t.categoryId || ''; map[k] = (map[k] || 0) + Math.abs(t.amount) }
+  for (const g of fixedExpenses.value) {
+    const m = montoEnMes(g, monthPrefix.value)
+    if (m) { const k = g.categoryId || ''; map[k] = (map[k] || 0) + m }
+  }
   return Object.entries(map)
     .map(([key, amount]) => ({ key, amount, meta: CAT_META.value[key], pct: Math.round((amount / (totalMonth.value || 1)) * 100) }))
     .filter(c => c.meta)
@@ -140,12 +159,31 @@ const newTitle = ref(''); const newAmount = ref<number | null>(null); const newC
 const newFixedTitle = ref(''); const newFixedAmount = ref<number | null>(null); const newFixedDate = ref(''); const newFixedCat = ref('')
 // Color propio del gasto fijo. Arranca en el de la categoria elegida.
 const newFixedColor = ref('#5aa6d2')
+// Historial de montos del gasto fijo abierto, para mostrarlo al editar
+const historialEditado = ref<{ amount: number; fromMonth: string; changedAt?: string }[]>([])
+// Fecha de un cambio de monto. Si fue hoy se anade la hora: si no, varios
+// cambios del mismo dia salen todos como "Hoy" y no hay forma de ordenarlos.
+function fmtCambio(iso?: string, mes?: string): string {
+  if (!iso) return mes ? mesLargo(mes) : ''
+  const dia = iso.slice(0, 10)
+  const etiqueta = fmtDate(dia)
+  if (dia !== todayIso()) return etiqueta
+  try { return etiqueta + ' ' + format(new Date(iso), 'HH:mm') } catch { return etiqueta }
+}
+function mesLargo(yyyyMM: string): string {
+  try {
+    const [a, m] = yyyyMM.split('-').map(Number)
+    const s = format(new Date(a!, m! - 1, 1), 'MMMM yyyy', { locale: dateLocale.value })
+    return s.charAt(0).toUpperCase() + s.slice(1)
+  } catch { return yyyyMM }
+}
 const editId = ref<string | null>(null) // si != null, el form edita ese ítem
 
 function resetForm() {
   editId.value = null
   newTitle.value = ''; newAmount.value = null; newCat.value = defaultCatId.value; newDate.value = ''
   newFixedTitle.value = ''; newFixedAmount.value = null; newFixedCat.value = defaultCatId.value; newFixedDate.value = ''
+  historialEditado.value = []
   newFixedColor.value = CAT_META.value?.[defaultCatId.value]?.color || '#5aa6d2'
 }
 function switchTab(v: Tab) { tab.value = v; view.value = 'list'; showForm.value = false; resetForm() }
@@ -218,15 +256,15 @@ function addSub() {
   if (editId.value) {
     const patch: Record<string, unknown> = { title: t, amount, categoryId }
     patch.color = newFixedColor.value
-    if (newFixedDate.value) patch.nextPayment = newFixedDate.value
     updateFixedExpense(editId.value, patch)
   } else {
-    createFixedExpense({ title: t, amount, categoryId, nextPayment: newFixedDate.value || null, color: newFixedColor.value })
+    createFixedExpense({ title: t, amount, categoryId, color: newFixedColor.value })
   }
   showForm.value = false; resetForm()
 }
 function startEditFixed(s: FixedExpense) {
-  editId.value = s.id; newFixedTitle.value = s.title; newFixedAmount.value = s.amount; newFixedCat.value = s.categoryId || ''; newFixedDate.value = s.nextPayment || ''
+  editId.value = s.id; newFixedTitle.value = s.title; newFixedAmount.value = s.amount; newFixedCat.value = s.categoryId || ''
+  historialEditado.value = s.history || []
   newFixedColor.value = s.color || CAT_META.value?.[s.categoryId || '']?.color || '#5aa6d2'
   showForm.value = true
 }
@@ -264,10 +302,10 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
           class="w-full h-14 rounded-[14px] bg-card pl-9 pr-4 text-[16px] font-semibold text-fg outline-none tabular-nums placeholder:text-fg-subtle" />
       </div>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <div class="flex flex-col gap-2">
-        <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ tab === 'fixed' ? t('finances.entryForm.nextPaymentLabel') : t('finances.entryForm.dateLabel') }}</label>
-        <AppDate v-model="entryDate" :placeholder="tab === 'fixed' ? t('finances.entryForm.nextPaymentPlaceholder') : t('finances.entryForm.datePlaceholder')" />
+    <div class="grid grid-cols-1 gap-3" :class="tab === 'fixed' ? '' : 'md:grid-cols-2'">
+      <div v-if="tab !== 'fixed'" class="flex flex-col gap-2">
+        <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('finances.entryForm.dateLabel') }}</label>
+        <AppDate v-model="entryDate" :placeholder="t('finances.entryForm.datePlaceholder')" />
       </div>
       <div class="flex flex-col gap-2">
         <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('finances.entryForm.categoryLabel') }}</label>
@@ -277,6 +315,17 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
     <div v-if="tab === 'fixed'" class="flex flex-col gap-2">
       <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('finances.entryForm.colorLabel') }}</label>
       <AppColorPicker v-model="newFixedColor" format="hex" />
+    </div>
+    <!-- Trazabilidad: lo que costaba antes no se pierde al editar el monto -->
+    <div v-if="tab === 'fixed' && historialEditado.length > 1" class="flex flex-col gap-2">
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('finances.entryForm.historyLabel') }}</label>
+      <ul class="flex flex-col rounded-[14px] bg-card overflow-hidden">
+        <li v-for="(h, i) in [...historialEditado].reverse()" :key="h.fromMonth"
+          class="flex items-center justify-between gap-3 px-4 h-12">
+          <span class="text-[13px] text-fg-muted truncate">{{ fmtCambio(h.changedAt, h.fromMonth) }}</span>
+          <span class="text-[14px] font-bold tabular-nums shrink-0" :class="i === 0 ? 'text-fg' : 'text-fg-subtle'">{{ fmt(h.amount) }}</span>
+        </li>
+      </ul>
     </div>
   </AppCreateView>
 
@@ -396,6 +445,9 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
           <div class="min-w-0">
             <p class="text-[11.5px] font-bold text-fg-muted uppercase tracking-wide">{{ t('finances.expenses.spentThisMonth', { month: monthRaw }) }}</p>
             <p class="text-[26px] md:text-[28px] font-extrabold text-fg leading-none tabular-nums mt-0.5">{{ fmt(totalMonth) }}</p>
+            <!-- De donde sale el total: si no, no cuadra con la lista de abajo,
+                 que solo trae los gastos sueltos. -->
+            <p v-if="totalFixed" class="text-[12px] text-fg-muted mt-1 truncate">{{ t('finances.expenses.split', { variable: fmt(totalVariable), fixed: fmt(totalFixed) }) }}</p>
           </div>
           <button type="button" class="shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-muted text-fg-muted text-[12.5px] font-bold" @click="view = 'categories'">
             <Settings2 class="size-[14px]" :stroke-width="2.2" /> {{ t('finances.expenses.categoriesButton') }}
@@ -460,7 +512,7 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
       <AppCard class="shrink-0 !p-4 md:!p-5 flex items-end justify-between gap-3">
         <div class="min-w-0">
           <p class="text-[11.5px] font-bold text-fg-muted uppercase tracking-wide">{{ t('finances.fixed.monthlyRecurring') }}</p>
-          <p class="text-[26px] md:text-[28px] font-extrabold text-fg leading-none tabular-nums mt-0.5">{{ fmt(totalFixed) }}<span class="text-[15px] text-fg-muted font-bold">{{ t('finances.fixed.perMonth') }}</span></p>
+          <p class="text-[26px] md:text-[28px] font-extrabold text-fg leading-none tabular-nums mt-0.5">{{ fmt(totalFixedHoy) }}<span class="text-[15px] text-fg-muted font-bold">{{ t('finances.fixed.perMonth') }}</span></p>
         </div>
         <span class="shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-mint text-[#34936a] text-[12.5px] font-bold">
           <Repeat class="size-[14px]" :stroke-width="2.2" /> {{ t('finances.fixed.active', { count: fixedExpenses.length }) }}
@@ -504,7 +556,7 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
               </span>
               <div class="flex-1 min-w-0">
                 <p class="text-[14px] font-semibold text-fg truncate">{{ s.title }}</p>
-                <p class="text-[12px] text-fg-muted truncate"><template v-if="s.nextPayment">{{ t('finances.fixed.nextPayment', { date: fmtDate(s.nextPayment) }) }}</template><template v-if="s.nextPayment && CAT_META[s.categoryId || '']"> · </template><template v-if="CAT_META[s.categoryId || '']">{{ CAT_META[s.categoryId || '']?.name }}</template></p>
+                <p class="text-[12px] text-fg-muted truncate"><template v-if="CAT_META[s.categoryId || '']">{{ CAT_META[s.categoryId || '']?.name }}</template><template v-if="CAT_META[s.categoryId || ''] && (s.history || []).length > 1"> · </template><template v-if="(s.history || []).length > 1">{{ t('finances.fixed.changes', { count: (s.history || []).length - 1 }) }}</template></p>
               </div>
               <span class="text-[15px] font-bold text-fg tabular-nums shrink-0">{{ fmt(s.amount) }}</span>
             </div>
