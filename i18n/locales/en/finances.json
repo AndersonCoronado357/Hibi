@@ -63,7 +63,8 @@
       "categoryLabel": "Category",
       "categoryPlaceholder": "Category",
       "submitCreateSub": "Create",
-      "submitCreateExpense": "Log"
+      "submitCreateExpense": "Log",
+      "colorLabel": "Color"
     },
     "catForm": {
       "newTitle": "New category",

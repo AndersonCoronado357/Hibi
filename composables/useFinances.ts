@@ -22,6 +22,7 @@ export interface Subscription {
   title: string
   amount: number // COP/mes entero
   nextCharge: string | null // yyyy-MM-dd | null
+  color: string | null
   createdAt: string
 }
 
@@ -34,7 +35,7 @@ export function useFinances() {
     optimistic: (i) => ({ categoryId: null, title: '', amount: 0, spentDate: '', ...i }),
   })
   const subscriptionsR = useResource<Subscription>('subscriptions', {
-    optimistic: (i) => ({ categoryId: null, title: '', amount: 0, nextCharge: null, ...i }),
+    optimistic: (i) => ({ categoryId: null, title: '', amount: 0, nextCharge: null, color: null, ...i }),
   })
 
   return {

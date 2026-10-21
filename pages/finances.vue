@@ -138,12 +138,15 @@ function deleteCat(key: string) {
 
 const newTitle = ref(''); const newAmount = ref<number | null>(null); const newCat = ref(''); const newDate = ref('')
 const newSubTitle = ref(''); const newSubAmount = ref<number | null>(null); const newSubDate = ref(''); const newSubCat = ref('')
+// Color propio del gasto fijo. Arranca en el de la categoria elegida.
+const newSubColor = ref('#5aa6d2')
 const editId = ref<string | null>(null) // si != null, el form edita ese ítem
 
 function resetForm() {
   editId.value = null
   newTitle.value = ''; newAmount.value = null; newCat.value = defaultCatId.value; newDate.value = ''
   newSubTitle.value = ''; newSubAmount.value = null; newSubCat.value = defaultCatId.value; newSubDate.value = ''
+  newSubColor.value = CAT_META.value?.[defaultCatId.value]?.color || '#5aa6d2'
 }
 function switchTab(v: Tab) { tab.value = v; view.value = 'list'; showForm.value = false; resetForm() }
 function toggleForm() { if (showForm.value) { showForm.value = false; resetForm() } else { resetForm(); showForm.value = true } }
@@ -214,15 +217,17 @@ function addSub() {
   const categoryId = newSubCat.value || null
   if (editId.value) {
     const patch: Record<string, unknown> = { title: t, amount, categoryId }
+    patch.color = newSubColor.value
     if (newSubDate.value) patch.nextCharge = newSubDate.value
     updateSubscription(editId.value, patch)
   } else {
-    createSubscription({ title: t, amount, categoryId, nextCharge: newSubDate.value || null })
+    createSubscription({ title: t, amount, categoryId, nextCharge: newSubDate.value || null, color: newSubColor.value })
   }
   showForm.value = false; resetForm()
 }
 function startEditSub(s: Subscription) {
   editId.value = s.id; newSubTitle.value = s.title; newSubAmount.value = s.amount; newSubCat.value = s.categoryId || ''; newSubDate.value = s.nextCharge || ''
+  newSubColor.value = s.color || CAT_META.value?.[s.categoryId || '']?.color || '#5aa6d2'
   showForm.value = true
 }
 
@@ -238,6 +243,13 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
     :title="tab === 'subs' ? (editId ? t('finances.entryForm.editSub') : t('finances.entryForm.newSub')) : (editId ? t('finances.entryForm.editExpense') : t('finances.entryForm.newExpense'))"
     :disabled="!entryValid"
     @close="closeForm" @save="saveEntry">
+    <div v-if="tab === 'subs'" class="flex justify-center pt-1">
+      <span class="relative inline-block" :style="{ width: '96px', height: '66px' }" aria-hidden="true">
+        <HibiCloud :size="96" :body-opacity="0.25" :style="{ color: newSubColor }" class="absolute inset-0" />
+        <Repeat class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+          :style="{ width: '30px', height: '30px', color: newSubColor }" :stroke-width="2" />
+      </span>
+    </div>
     <div class="flex flex-col gap-2">
       <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ tab === 'subs' ? t('finances.entryForm.serviceLabel') : t('finances.entryForm.conceptLabel') }}</label>
       <input v-model="entryTitle" type="text" :placeholder="tab === 'subs' ? t('finances.entryForm.servicePlaceholder') : t('finances.entryForm.conceptPlaceholder')" autofocus
@@ -261,6 +273,10 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
         <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('finances.entryForm.categoryLabel') }}</label>
         <AppSelect v-model="entryCat" :options="CAT_OPTS" :placeholder="t('finances.entryForm.categoryPlaceholder')" />
       </div>
+    </div>
+    <div v-if="tab === 'subs'" class="flex flex-col gap-2">
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('finances.entryForm.colorLabel') }}</label>
+      <AppColorPicker v-model="newSubColor" format="hex" />
     </div>
   </AppCreateView>
 
@@ -482,9 +498,9 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
           <li v-for="s in subscriptions" :key="s.id" class="group/sub flex items-center gap-2 p-2 rounded-[12px] hover:bg-muted transition-[background-color]">
             <div role="button" tabindex="0" class="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer text-left outline-none rounded-[10px] focus-visible:ring-2 focus-visible:ring-sky-deep" @click="startEditSub(s)" @keydown.enter.prevent="startEditSub(s)" @keydown.space.prevent="startEditSub(s)">
               <span class="relative inline-block shrink-0" :style="{ width: '54px', height: '37px' }" aria-hidden="true">
-                <HibiCloud :size="54" :body-opacity="0.25" :style="{ color: CAT_META[s.categoryId || '']?.color || '#bf8f2e' }" class="absolute inset-0" />
+                <HibiCloud :size="54" :body-opacity="0.25" :style="{ color: s.color || CAT_META[s.categoryId || '']?.color || '#bf8f2e' }" class="absolute inset-0" />
                 <Repeat class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-                  :style="{ width: '17px', height: '17px', color: CAT_META[s.categoryId || '']?.color || '#bf8f2e' }" :stroke-width="2" />
+                  :style="{ width: '17px', height: '17px', color: s.color || CAT_META[s.categoryId || '']?.color || '#bf8f2e' }" :stroke-width="2" />
               </span>
               <div class="flex-1 min-w-0">
                 <p class="text-[14px] font-semibold text-fg truncate">{{ s.title }}</p>

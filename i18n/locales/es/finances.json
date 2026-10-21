@@ -63,7 +63,8 @@
       "categoryLabel": "Categoría",
       "categoryPlaceholder": "Categoría",
       "submitCreateSub": "Crear",
-      "submitCreateExpense": "Anotar"
+      "submitCreateExpense": "Anotar",
+      "colorLabel": "Color"
     },
     "catForm": {
       "newTitle": "Nueva categoría",

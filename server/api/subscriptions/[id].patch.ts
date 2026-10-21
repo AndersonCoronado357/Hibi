@@ -7,6 +7,7 @@ const Body = z.object({
   amount: z.number().int().optional(),
   nextCharge: zDate().optional(),
   categoryId: z.string().nullable().optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Color invalido').nullable().optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -18,6 +19,7 @@ export default defineEventHandler(async (event) => {
   if (b.amount !== undefined) patch.amount = b.amount
   if (b.nextCharge !== undefined) patch.nextCharge = b.nextCharge || null
   if (b.categoryId !== undefined) patch.categoryId = b.categoryId || null
+  if (b.color !== undefined) patch.color = b.color || null
   const [row] = await useDb().update(schema.subscriptions).set(patch)
     .where(and(eq(schema.subscriptions.id, id), eq(schema.subscriptions.userId, userId)))
     .returning()

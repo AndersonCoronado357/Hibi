@@ -6,6 +6,7 @@ const Body = z.object({
   amount: z.number().int(),
   nextCharge: zDate().optional(),
   categoryId: z.string().nullable().optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Color invalido').nullable().optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -17,6 +18,7 @@ export default defineEventHandler(async (event) => {
     title: b.title,
     amount: b.amount,
     nextCharge: b.nextCharge || null,
+    color: b.color || null,
   }).returning()
   return row
 })
