@@ -16,12 +16,12 @@ export interface Expense {
   spentDate: string // yyyy-MM-dd
   createdAt: string
 }
-export interface Subscription {
+export interface FixedExpense {
   id: string
   categoryId: string | null
   title: string
   amount: number // COP/mes entero
-  nextCharge: string | null // yyyy-MM-dd | null
+  nextPayment: string | null // yyyy-MM-dd | null
   color: string | null
   createdAt: string
 }
@@ -34,17 +34,17 @@ export function useFinances() {
   const expensesR = useResource<Expense>('expenses', {
     optimistic: (i) => ({ categoryId: null, title: '', amount: 0, spentDate: '', ...i }),
   })
-  const subscriptionsR = useResource<Subscription>('subscriptions', {
-    optimistic: (i) => ({ categoryId: null, title: '', amount: 0, nextCharge: null, color: null, ...i }),
+  const fixedExpensesR = useResource<FixedExpense>('fixed-expenses', {
+    optimistic: (i) => ({ categoryId: null, title: '', amount: 0, nextPayment: null, color: null, ...i }),
   })
 
   return {
     categories: categoriesR.items,
     expenses: expensesR.items,
-    subscriptions: subscriptionsR.items,
+    fixedExpenses: fixedExpensesR.items,
     categoriesLoading: categoriesR.isLoading,
     expensesLoading: expensesR.isLoading,
-    subscriptionsLoading: subscriptionsR.isLoading,
+    fixedExpensesLoading: fixedExpensesR.isLoading,
 
     createCategory: (input: { name: string; icon?: string; color?: string }) => categoriesR.create(input),
     updateCategory: (id: string, patch: Partial<Pick<FinanceCategory, 'name' | 'icon' | 'color' | 'position'>>) => categoriesR.update(id, patch),
@@ -54,8 +54,8 @@ export function useFinances() {
     updateExpense: (id: string, patch: Partial<Pick<Expense, 'title' | 'amount' | 'spentDate' | 'categoryId'>>) => expensesR.update(id, patch),
     removeExpense: (id: string) => expensesR.remove(id),
 
-    createSubscription: (input: { title: string; amount: number; nextCharge?: string | null; categoryId?: string | null }) => subscriptionsR.create(input),
-    updateSubscription: (id: string, patch: Partial<Pick<Subscription, 'title' | 'amount' | 'nextCharge' | 'categoryId'>>) => subscriptionsR.update(id, patch),
-    removeSubscription: (id: string) => subscriptionsR.remove(id),
+    createFixedExpense: (input: { title: string; amount: number; nextPayment?: string | null; categoryId?: string | null; color?: string | null }) => fixedExpensesR.create(input),
+    updateFixedExpense: (id: string, patch: Partial<Pick<FixedExpense, 'title' | 'amount' | 'nextPayment' | 'categoryId' | 'color'>>) => fixedExpensesR.update(id, patch),
+    removeFixedExpense: (id: string) => fixedExpensesR.remove(id),
   }
 }

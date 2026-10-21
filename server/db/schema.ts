@@ -292,18 +292,18 @@ export const expenses = pgTable('expenses', {
   createdAt: created(),
 }, (t) => ({ byUser: index('expenses_user_idx').on(t.userId) }))
 
-export const subscriptions = pgTable('subscriptions', {
+export const fixedExpenses = pgTable('fixed_expenses', {
   id: text('id').primaryKey(),
   userId: integer('user_id').notNull().references(() => authUsers.id, { onDelete: 'cascade' }),
   categoryId: text('category_id').references(() => financeCategories.id, { onDelete: 'set null' }),
   title: text('title').notNull(),
   amount: integer('amount').notNull().default(0), // COP/mes
-  nextCharge: date('next_charge'),
+  nextPayment: date('next_payment'),
   // Color propio, para distinguir de un vistazo cada gasto fijo. Si está
   // vacío se cae al color de la categoría, como antes.
   color: text('color'),
   createdAt: created(),
-}, (t) => ({ byUser: index('subscriptions_user_idx').on(t.userId) }))
+}, (t) => ({ byUser: index('fixed_expenses_user_idx').on(t.userId) }))
 
 // ───────────────────────── MASCOTA (Hibi) ─────────────────────────
 export const petState = pgTable('pet_state', {

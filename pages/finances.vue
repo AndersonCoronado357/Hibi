@@ -10,11 +10,11 @@ const dateLocale = useDateLocale()
 useHead({ title: t('finances.head.title') })
 
 const {
-  categories, expenses, subscriptions,
-  categoriesLoading, expensesLoading, subscriptionsLoading,
+  categories, expenses, fixedExpenses,
+  categoriesLoading, expensesLoading, fixedExpensesLoading,
   createCategory, updateCategory, removeCategory,
   createExpense, updateExpense, removeExpense,
-  createSubscription, updateSubscription, removeSubscription,
+  createFixedExpense, updateFixedExpense, removeFixedExpense,
 } = useFinances()
 
 interface Category { name: string; icon: Component; color: string }
@@ -67,7 +67,7 @@ function fmtDate(iso?: string | null) {
   } catch { return iso }
 }
 
-const totalSubs = computed(() => subscriptions.value.reduce((a, s) => a + s.amount, 0))
+const totalFixed = computed(() => fixedExpenses.value.reduce((a, s) => a + s.amount, 0))
 
 // Mes seleccionado (arranca en el actual). Se puede navegar con las flechas.
 // Antes el mes estaba hardcodeado en el i18n ("junio") y se quedaba pegado.
@@ -86,14 +86,14 @@ function goCurrentMonth() { monthCursor.value = new Date() }
 const monthExpenses = computed(() => expenses.value.filter(e => (e.spentDate || '').startsWith(monthPrefix.value)))
 const totalMonth = computed(() => monthExpenses.value.reduce((a, t) => a + Math.abs(t.amount), 0))
 
-type Tab = 'expenses' | 'subs'
+type Tab = 'expenses' | 'fixed'
 type View = 'list' | 'categories'
 const tab = ref<Tab>('expenses')
 const view = ref<View>('list')
 const showForm = ref(false) // formulario colapsable de alta
 const tabOptions = computed(() => [
   { value: 'expenses', label: t('finances.tabs.expenses') },
-  { value: 'subs', label: t('finances.tabs.subs') },
+  { value: 'fixed', label: t('finances.tabs.fixed') },
 ])
 
 // Desglose por categoría para la tarjeta de resumen
@@ -137,16 +137,16 @@ function deleteCat(key: string) {
 }
 
 const newTitle = ref(''); const newAmount = ref<number | null>(null); const newCat = ref(''); const newDate = ref('')
-const newSubTitle = ref(''); const newSubAmount = ref<number | null>(null); const newSubDate = ref(''); const newSubCat = ref('')
+const newFixedTitle = ref(''); const newFixedAmount = ref<number | null>(null); const newFixedDate = ref(''); const newFixedCat = ref('')
 // Color propio del gasto fijo. Arranca en el de la categoria elegida.
-const newSubColor = ref('#5aa6d2')
+const newFixedColor = ref('#5aa6d2')
 const editId = ref<string | null>(null) // si != null, el form edita ese ítem
 
 function resetForm() {
   editId.value = null
   newTitle.value = ''; newAmount.value = null; newCat.value = defaultCatId.value; newDate.value = ''
-  newSubTitle.value = ''; newSubAmount.value = null; newSubCat.value = defaultCatId.value; newSubDate.value = ''
-  newSubColor.value = CAT_META.value?.[defaultCatId.value]?.color || '#5aa6d2'
+  newFixedTitle.value = ''; newFixedAmount.value = null; newFixedCat.value = defaultCatId.value; newFixedDate.value = ''
+  newFixedColor.value = CAT_META.value?.[defaultCatId.value]?.color || '#5aa6d2'
 }
 function switchTab(v: Tab) { tab.value = v; view.value = 'list'; showForm.value = false; resetForm() }
 function toggleForm() { if (showForm.value) { showForm.value = false; resetForm() } else { resetForm(); showForm.value = true } }
@@ -160,20 +160,20 @@ function newEntry() {
 
 // Editor único (gasto o suscripción) según la pestaña activa → un solo overlay
 const entryTitle = computed<string>({
-  get: () => tab.value === 'subs' ? newSubTitle.value : newTitle.value,
-  set: (v) => { if (tab.value === 'subs') newSubTitle.value = v; else newTitle.value = v },
+  get: () => tab.value === 'fixed' ? newFixedTitle.value : newTitle.value,
+  set: (v) => { if (tab.value === 'fixed') newFixedTitle.value = v; else newTitle.value = v },
 })
 const entryAmount = computed<number | null>({
-  get: () => tab.value === 'subs' ? newSubAmount.value : newAmount.value,
-  set: (v) => { if (tab.value === 'subs') newSubAmount.value = v; else newAmount.value = v },
+  get: () => tab.value === 'fixed' ? newFixedAmount.value : newAmount.value,
+  set: (v) => { if (tab.value === 'fixed') newFixedAmount.value = v; else newAmount.value = v },
 })
 const entryDate = computed<string>({
-  get: () => tab.value === 'subs' ? newSubDate.value : newDate.value,
-  set: (v) => { if (tab.value === 'subs') newSubDate.value = v; else newDate.value = v },
+  get: () => tab.value === 'fixed' ? newFixedDate.value : newDate.value,
+  set: (v) => { if (tab.value === 'fixed') newFixedDate.value = v; else newDate.value = v },
 })
 const entryCat = computed<string>({
-  get: () => tab.value === 'subs' ? newSubCat.value : newCat.value,
-  set: (v) => { if (tab.value === 'subs') newSubCat.value = v; else newCat.value = v },
+  get: () => tab.value === 'fixed' ? newFixedCat.value : newCat.value,
+  set: (v) => { if (tab.value === 'fixed') newFixedCat.value = v; else newCat.value = v },
 })
 // Monto mostrado con punto de miles EN VIVO (el input type="number" no lo permite)
 const entryAmountDisplay = computed<string>({
@@ -188,7 +188,7 @@ const entryAmountDisplay = computed<string>({
   },
 })
 const entryValid = computed(() => !!entryTitle.value.trim() && !!entryAmount.value)
-function saveEntry() { if (tab.value === 'subs') addSub(); else addExpense() }
+function saveEntry() { if (tab.value === 'fixed') addSub(); else addExpense() }
 function closeForm() { showForm.value = false; resetForm() }
 
 function addExpense() {
@@ -211,53 +211,53 @@ function startEditExpense(t: Expense) {
 }
 
 function addSub() {
-  const t = newSubTitle.value.trim(); const a = newSubAmount.value
+  const t = newFixedTitle.value.trim(); const a = newFixedAmount.value
   if (!t || !a) return
   const amount = Math.abs(Number(a))
-  const categoryId = newSubCat.value || null
+  const categoryId = newFixedCat.value || null
   if (editId.value) {
     const patch: Record<string, unknown> = { title: t, amount, categoryId }
-    patch.color = newSubColor.value
-    if (newSubDate.value) patch.nextCharge = newSubDate.value
-    updateSubscription(editId.value, patch)
+    patch.color = newFixedColor.value
+    if (newFixedDate.value) patch.nextPayment = newFixedDate.value
+    updateFixedExpense(editId.value, patch)
   } else {
-    createSubscription({ title: t, amount, categoryId, nextCharge: newSubDate.value || null, color: newSubColor.value })
+    createFixedExpense({ title: t, amount, categoryId, nextPayment: newFixedDate.value || null, color: newFixedColor.value })
   }
   showForm.value = false; resetForm()
 }
-function startEditSub(s: Subscription) {
-  editId.value = s.id; newSubTitle.value = s.title; newSubAmount.value = s.amount; newSubCat.value = s.categoryId || ''; newSubDate.value = s.nextCharge || ''
-  newSubColor.value = s.color || CAT_META.value?.[s.categoryId || '']?.color || '#5aa6d2'
+function startEditFixed(s: FixedExpense) {
+  editId.value = s.id; newFixedTitle.value = s.title; newFixedAmount.value = s.amount; newFixedCat.value = s.categoryId || ''; newFixedDate.value = s.nextPayment || ''
+  newFixedColor.value = s.color || CAT_META.value?.[s.categoryId || '']?.color || '#5aa6d2'
   showForm.value = true
 }
 
 // Estados de carga (primer fetch, sin datos aún)
 const expensesLoadingEmpty = computed(() => expensesLoading.value && !expenses.value.length)
-const subsLoadingEmpty = computed(() => subscriptionsLoading.value && !subscriptions.value.length)
+const subsLoadingEmpty = computed(() => fixedExpensesLoading.value && !fixedExpenses.value.length)
 const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.value.length)
 </script>
 
 <template>
   <!-- EDITOR DE GASTO / SUSCRIPCIÓN — pantalla completa dentro del módulo, SIN modal -->
   <AppCreateView v-if="showForm"
-    :title="tab === 'subs' ? (editId ? t('finances.entryForm.editSub') : t('finances.entryForm.newSub')) : (editId ? t('finances.entryForm.editExpense') : t('finances.entryForm.newExpense'))"
+    :title="tab === 'fixed' ? (editId ? t('finances.entryForm.editFixed') : t('finances.entryForm.newFixed')) : (editId ? t('finances.entryForm.editExpense') : t('finances.entryForm.newExpense'))"
     :disabled="!entryValid"
     @close="closeForm" @save="saveEntry">
-    <div v-if="tab === 'subs'" class="flex justify-center pt-1">
+    <div v-if="tab === 'fixed'" class="flex justify-center pt-1">
       <span class="relative inline-block" :style="{ width: '96px', height: '66px' }" aria-hidden="true">
-        <HibiCloud :size="96" :body-opacity="0.25" :style="{ color: newSubColor }" class="absolute inset-0" />
+        <HibiCloud :size="96" :body-opacity="0.25" :style="{ color: newFixedColor }" class="absolute inset-0" />
         <Repeat class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-          :style="{ width: '30px', height: '30px', color: newSubColor }" :stroke-width="2" />
+          :style="{ width: '30px', height: '30px', color: newFixedColor }" :stroke-width="2" />
       </span>
     </div>
     <div class="flex flex-col gap-2">
-      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ tab === 'subs' ? t('finances.entryForm.serviceLabel') : t('finances.entryForm.conceptLabel') }}</label>
-      <input v-model="entryTitle" type="text" :placeholder="tab === 'subs' ? t('finances.entryForm.servicePlaceholder') : t('finances.entryForm.conceptPlaceholder')" autofocus
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ tab === 'fixed' ? t('finances.entryForm.fixedLabel') : t('finances.entryForm.conceptLabel') }}</label>
+      <input v-model="entryTitle" type="text" :placeholder="tab === 'fixed' ? t('finances.entryForm.fixedPlaceholder') : t('finances.entryForm.conceptPlaceholder')" autofocus
         class="w-full h-14 rounded-[14px] bg-card px-4 text-[16px] font-semibold text-fg outline-none placeholder:text-fg-subtle"
         @keydown.enter.prevent="entryValid && saveEntry()" />
     </div>
     <div class="flex flex-col gap-2">
-      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ tab === 'subs' ? t('finances.entryForm.monthlyAmountLabel') : t('finances.entryForm.amountLabel') }}</label>
+      <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ tab === 'fixed' ? t('finances.entryForm.monthlyAmountLabel') : t('finances.entryForm.amountLabel') }}</label>
       <div class="relative">
         <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[16px] font-semibold text-fg-muted pointer-events-none">$</span>
         <input v-model="entryAmountDisplay" type="text" inputmode="numeric" placeholder="0"
@@ -266,17 +266,17 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div class="flex flex-col gap-2">
-        <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ tab === 'subs' ? t('finances.entryForm.nextChargeLabel') : t('finances.entryForm.dateLabel') }}</label>
-        <AppDate v-model="entryDate" :placeholder="tab === 'subs' ? t('finances.entryForm.nextChargePlaceholder') : t('finances.entryForm.datePlaceholder')" />
+        <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ tab === 'fixed' ? t('finances.entryForm.nextPaymentLabel') : t('finances.entryForm.dateLabel') }}</label>
+        <AppDate v-model="entryDate" :placeholder="tab === 'fixed' ? t('finances.entryForm.nextPaymentPlaceholder') : t('finances.entryForm.datePlaceholder')" />
       </div>
       <div class="flex flex-col gap-2">
         <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('finances.entryForm.categoryLabel') }}</label>
         <AppSelect v-model="entryCat" :options="CAT_OPTS" :placeholder="t('finances.entryForm.categoryPlaceholder')" />
       </div>
     </div>
-    <div v-if="tab === 'subs'" class="flex flex-col gap-2">
+    <div v-if="tab === 'fixed'" class="flex flex-col gap-2">
       <label class="text-[12.5px] font-bold text-fg-muted px-1">{{ t('finances.entryForm.colorLabel') }}</label>
-      <AppColorPicker v-model="newSubColor" format="hex" />
+      <AppColorPicker v-model="newFixedColor" format="hex" />
     </div>
   </AppCreateView>
 
@@ -329,7 +329,7 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
           <AppSegmented :model-value="tab" :options="tabOptions" @update:model-value="(v) => switchTab(v as Tab)" />
           <AppButton variant="primary" size="sm" class="ml-auto shrink-0" @click="newEntry">
             <template #icon><Plus class="size-[16px]" :stroke-width="2.3" /></template>
-            {{ tab === 'subs' ? t('finances.new.sub') : t('finances.new.expense') }}
+            {{ tab === 'fixed' ? t('finances.new.fixed') : t('finances.new.expense') }}
           </AppButton>
         </template>
       </PageHero>
@@ -459,18 +459,18 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
       <!-- Resumen suscripciones (compacto) -->
       <AppCard class="shrink-0 !p-4 md:!p-5 flex items-end justify-between gap-3">
         <div class="min-w-0">
-          <p class="text-[11.5px] font-bold text-fg-muted uppercase tracking-wide">{{ t('finances.subs.monthlyRecurring') }}</p>
-          <p class="text-[26px] md:text-[28px] font-extrabold text-fg leading-none tabular-nums mt-0.5">{{ fmt(totalSubs) }}<span class="text-[15px] text-fg-muted font-bold">{{ t('finances.subs.perMonth') }}</span></p>
+          <p class="text-[11.5px] font-bold text-fg-muted uppercase tracking-wide">{{ t('finances.fixed.monthlyRecurring') }}</p>
+          <p class="text-[26px] md:text-[28px] font-extrabold text-fg leading-none tabular-nums mt-0.5">{{ fmt(totalFixed) }}<span class="text-[15px] text-fg-muted font-bold">{{ t('finances.fixed.perMonth') }}</span></p>
         </div>
         <span class="shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-mint text-[#34936a] text-[12.5px] font-bold">
-          <Repeat class="size-[14px]" :stroke-width="2.2" /> {{ t('finances.subs.active', { count: subscriptions.length }) }}
+          <Repeat class="size-[14px]" :stroke-width="2.2" /> {{ t('finances.fixed.active', { count: fixedExpenses.length }) }}
         </span>
       </AppCard>
 
       <!-- Lista: llena el alto disponible -->
       <AppCard class="flex-1 min-h-0 min-w-0 flex flex-col" :padded="false">
         <header class="px-4 md:px-5 pt-4 md:pt-5 pb-2 md:pb-3 shrink-0">
-          <h2 class="text-[14px] font-bold text-fg">{{ t('finances.subs.listTitle') }}</h2>
+          <h2 class="text-[14px] font-bold text-fg">{{ t('finances.fixed.listTitle') }}</h2>
         </header>
         <!-- Carga inicial -->
         <div v-if="subsLoadingEmpty" class="flex-1 min-h-0 overflow-hidden px-2 md:px-3 pb-3 flex flex-col gap-1">
@@ -484,19 +484,19 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
           </div>
         </div>
         <!-- Vacío -->
-        <div v-else-if="!subscriptions.length" class="flex-1 min-h-0 grid place-items-center px-6 pb-6 text-center">
+        <div v-else-if="!fixedExpenses.length" class="flex-1 min-h-0 grid place-items-center px-6 pb-6 text-center">
           <div class="flex flex-col items-center gap-2">
             <span class="relative inline-block" :style="{ width: '72px', height: '49px' }" aria-hidden="true">
               <HibiCloud :size="72" :body-opacity="0.3" class="absolute inset-0 text-mint" />
               <Repeat class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[#34936a]" :style="{ width: '22px', height: '22px' }" :stroke-width="2" />
             </span>
-            <p class="text-[14px] font-bold text-fg">{{ t('finances.subs.emptyTitle') }}</p>
-            <p class="text-[12.5px] text-fg-muted max-w-[220px]">{{ t('finances.subs.emptySubtitle') }}</p>
+            <p class="text-[14px] font-bold text-fg">{{ t('finances.fixed.emptyTitle') }}</p>
+            <p class="text-[12.5px] text-fg-muted max-w-[220px]">{{ t('finances.fixed.emptySubtitle') }}</p>
           </div>
         </div>
         <ul v-else class="flex-1 min-h-0 overflow-y-auto scroll-area px-2 md:px-3 pb-3 flex flex-col">
-          <li v-for="s in subscriptions" :key="s.id" class="group/sub flex items-center gap-2 p-2 rounded-[12px] hover:bg-muted transition-[background-color]">
-            <div role="button" tabindex="0" class="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer text-left outline-none rounded-[10px] focus-visible:ring-2 focus-visible:ring-sky-deep" @click="startEditSub(s)" @keydown.enter.prevent="startEditSub(s)" @keydown.space.prevent="startEditSub(s)">
+          <li v-for="s in fixedExpenses" :key="s.id" class="group/fixed flex items-center gap-2 p-2 rounded-[12px] hover:bg-muted transition-[background-color]">
+            <div role="button" tabindex="0" class="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer text-left outline-none rounded-[10px] focus-visible:ring-2 focus-visible:ring-sky-deep" @click="startEditFixed(s)" @keydown.enter.prevent="startEditFixed(s)" @keydown.space.prevent="startEditFixed(s)">
               <span class="relative inline-block shrink-0" :style="{ width: '54px', height: '37px' }" aria-hidden="true">
                 <HibiCloud :size="54" :body-opacity="0.25" :style="{ color: s.color || CAT_META[s.categoryId || '']?.color || '#bf8f2e' }" class="absolute inset-0" />
                 <Repeat class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
@@ -504,11 +504,11 @@ const catsLoadingEmpty = computed(() => categoriesLoading.value && !categories.v
               </span>
               <div class="flex-1 min-w-0">
                 <p class="text-[14px] font-semibold text-fg truncate">{{ s.title }}</p>
-                <p class="text-[12px] text-fg-muted truncate"><template v-if="s.nextCharge">{{ t('finances.subs.nextCharge', { date: fmtDate(s.nextCharge) }) }}</template><template v-if="s.nextCharge && CAT_META[s.categoryId || '']"> · </template><template v-if="CAT_META[s.categoryId || '']">{{ CAT_META[s.categoryId || '']?.name }}</template></p>
+                <p class="text-[12px] text-fg-muted truncate"><template v-if="s.nextPayment">{{ t('finances.fixed.nextPayment', { date: fmtDate(s.nextPayment) }) }}</template><template v-if="s.nextPayment && CAT_META[s.categoryId || '']"> · </template><template v-if="CAT_META[s.categoryId || '']">{{ CAT_META[s.categoryId || '']?.name }}</template></p>
               </div>
               <span class="text-[15px] font-bold text-fg tabular-nums shrink-0">{{ fmt(s.amount) }}</span>
             </div>
-            <button type="button" class="shrink-0 grid place-items-center size-8 rounded-[9px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" :aria-label="t('finances.subs.deleteAria')" @click.stop="removeSubscription(s.id)"><Trash2 class="size-[15px]" :stroke-width="2" /></button>
+            <button type="button" class="shrink-0 grid place-items-center size-8 rounded-[9px] text-fg-subtle hover:text-pink-deep hover:bg-pink-soft transition-[opacity,background-color,color]" :aria-label="t('finances.fixed.deleteAria')" @click.stop="removeFixedExpense(s.id)"><Trash2 class="size-[15px]" :stroke-width="2" /></button>
           </li>
         </ul>
       </AppCard>

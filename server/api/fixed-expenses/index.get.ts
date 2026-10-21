@@ -3,7 +3,7 @@ import { eq, sql } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const userId = await requireUserId(event)
-  return useDb().select().from(schema.subscriptions)
-    .where(eq(schema.subscriptions.userId, userId))
-    .orderBy(sql`${schema.subscriptions.nextCharge} asc nulls last`, sql`${schema.subscriptions.createdAt} asc`)
+  return useDb().select().from(schema.fixedExpenses)
+    .where(eq(schema.fixedExpenses.userId, userId))
+    .orderBy(sql`${schema.fixedExpenses.nextPayment} asc nulls last`, sql`${schema.fixedExpenses.createdAt} asc`)
 })

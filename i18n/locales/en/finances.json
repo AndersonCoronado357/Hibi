@@ -13,11 +13,11 @@
     "dateFormat": "MMM d",
     "tabs": {
       "expenses": "Expenses",
-      "subs": "Fixed expenses"
+      "fixed": "Fixed expenses"
     },
     "new": {
       "expense": "Expense",
-      "sub": "Fixed expense"
+      "fixed": "Fixed expense"
     },
     "categories": {
       "title": "Categories",
@@ -35,36 +35,26 @@
       "emptySubtitle": "Log your first expense with the button above.",
       "deleteAria": "Delete expense"
     },
-    "subs": {
-      "monthlyRecurring": "Fixed total per month",
-      "perMonth": "/mo",
-      "active": "{count} in total",
-      "listTitle": "Fixed expenses",
-      "emptyTitle": "No fixed expenses",
-      "emptySubtitle": "Add what you pay every month with the button above.",
-      "nextCharge": "Next payment {date}",
-      "deleteAria": "Delete fixed expense"
-    },
     "entryForm": {
-      "editSub": "Edit fixed expense",
-      "newSub": "New fixed expense",
       "editExpense": "Edit expense",
       "newExpense": "New expense",
-      "serviceLabel": "Concept",
       "conceptLabel": "Concept",
-      "servicePlaceholder": "Rent, internet, gym…",
       "conceptPlaceholder": "Expense concept",
       "monthlyAmountLabel": "Monthly amount",
       "amountLabel": "Amount",
-      "nextChargeLabel": "Next payment",
       "dateLabel": "Date",
-      "nextChargePlaceholder": "Next payment",
       "datePlaceholder": "Date",
       "categoryLabel": "Category",
       "categoryPlaceholder": "Category",
-      "submitCreateSub": "Create",
       "submitCreateExpense": "Log",
-      "colorLabel": "Color"
+      "colorLabel": "Color",
+      "editFixed": "Edit fixed expense",
+      "newFixed": "New fixed expense",
+      "fixedLabel": "Concept",
+      "fixedPlaceholder": "Rent, internet, gym…",
+      "nextPaymentLabel": "Next payment",
+      "nextPaymentPlaceholder": "Next payment",
+      "submitCreateFixed": "Create"
     },
     "catForm": {
       "newTitle": "New category",
@@ -73,6 +63,16 @@
       "namePlaceholder": "Category name",
       "iconLabel": "Icon",
       "colorLabel": "Color"
+    },
+    "fixed": {
+      "monthlyRecurring": "Fixed total per month",
+      "perMonth": "/mo",
+      "active": "{count} in total",
+      "listTitle": "Fixed expenses",
+      "emptyTitle": "No fixed expenses",
+      "emptySubtitle": "Add what you pay every month with the button above.",
+      "deleteAria": "Delete fixed expense",
+      "nextPayment": "Next payment {date}"
     }
   }
 }

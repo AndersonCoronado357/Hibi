@@ -13,11 +13,11 @@
     "dateFormat": "d MMM",
     "tabs": {
       "expenses": "Gastos",
-      "subs": "Gastos fijos"
+      "fixed": "Gastos fijos"
     },
     "new": {
       "expense": "Gasto",
-      "sub": "Gasto fijo"
+      "fixed": "Gasto fijo"
     },
     "categories": {
       "title": "Categorías",
@@ -35,36 +35,26 @@
       "emptySubtitle": "Anota tu primer gasto con el botón de arriba.",
       "deleteAria": "Eliminar gasto"
     },
-    "subs": {
-      "monthlyRecurring": "Total fijo al mes",
-      "perMonth": "/mes",
-      "active": "{count} en total",
-      "listTitle": "Gastos fijos",
-      "emptyTitle": "Sin gastos fijos",
-      "emptySubtitle": "Anota lo que pagas todos los meses con el botón de arriba.",
-      "nextCharge": "Próximo pago {date}",
-      "deleteAria": "Eliminar gasto fijo"
-    },
     "entryForm": {
-      "editSub": "Editar gasto fijo",
-      "newSub": "Nuevo gasto fijo",
       "editExpense": "Editar gasto",
       "newExpense": "Nuevo gasto",
-      "serviceLabel": "Concepto",
       "conceptLabel": "Concepto",
-      "servicePlaceholder": "Arriendo, internet, gimnasio…",
       "conceptPlaceholder": "Concepto del gasto",
       "monthlyAmountLabel": "Monto mensual",
       "amountLabel": "Monto",
-      "nextChargeLabel": "Próximo pago",
       "dateLabel": "Fecha",
-      "nextChargePlaceholder": "Próximo pago",
       "datePlaceholder": "Fecha",
       "categoryLabel": "Categoría",
       "categoryPlaceholder": "Categoría",
-      "submitCreateSub": "Crear",
       "submitCreateExpense": "Anotar",
-      "colorLabel": "Color"
+      "colorLabel": "Color",
+      "editFixed": "Editar gasto fijo",
+      "newFixed": "Nuevo gasto fijo",
+      "fixedLabel": "Concepto",
+      "fixedPlaceholder": "Arriendo, internet, gimnasio…",
+      "nextPaymentLabel": "Próximo pago",
+      "nextPaymentPlaceholder": "Próximo pago",
+      "submitCreateFixed": "Crear"
     },
     "catForm": {
       "newTitle": "Nueva categoría",
@@ -73,6 +63,16 @@
       "namePlaceholder": "Nombre de la categoría",
       "iconLabel": "Icono",
       "colorLabel": "Color"
+    },
+    "fixed": {
+      "monthlyRecurring": "Total fijo al mes",
+      "perMonth": "/mes",
+      "active": "{count} en total",
+      "listTitle": "Gastos fijos",
+      "emptyTitle": "Sin gastos fijos",
+      "emptySubtitle": "Anota lo que pagas todos los meses con el botón de arriba.",
+      "deleteAria": "Eliminar gasto fijo",
+      "nextPayment": "Próximo pago {date}"
     }
   }
 }
